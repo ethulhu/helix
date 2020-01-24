@@ -30,6 +30,7 @@ func Do(req *http.Request, repeats int) ([]*http.Response, []error, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not listen on UDP: %w", err)
 	}
+	defer conn.Close()
 
 	if deadline, ok := req.Context().Deadline(); ok {
 		conn.SetDeadline(deadline)

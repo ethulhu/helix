@@ -1,13 +1,10 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/ethulhu/helix/upnpav/avtransport"
-	"github.com/ethulhu/helix/upnpav/contentdirectory"
 	"github.com/gorilla/mux"
 )
 
@@ -52,56 +49,5 @@ func FormValues(keysAndValues ...string) mux.MatcherFunc {
 			}
 		}
 		return true
-	}
-}
-
-func needsDirectory(key string, f http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		udn := mustVar(r, key)
-		ctx := r.Context()
-
-		devicesLock.Lock()
-		device, ok := devices[udn]
-		devicesLock.Unlock()
-
-		if !ok {
-			http.Error(w, fmt.Sprintf("could not find ContentDirectory %s", udn), http.StatusNotFound)
-			return
-		}
-
-		soapClient, ok := device.Client(contentdirectory.Version1)
-		if !ok {
-			http.Error(w, fmt.Sprintf("found a device %s, but it was not an ContentDirectory", udn), http.StatusNotFound)
-			return
-		}
-		directory := contentdirectory.NewClient(soapClient)
-
-		newCtx := context.WithValue(ctx, "ContentDirectory", directory)
-		f(w, r.WithContext(newCtx))
-	}
-}
-func needsTransport(key string, f http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		udn := mustVar(r, key)
-		ctx := r.Context()
-
-		devicesLock.Lock()
-		device, ok := devices[udn]
-		devicesLock.Unlock()
-
-		if !ok {
-			http.Error(w, fmt.Sprintf("could not find AVTransport %s", udn), http.StatusNotFound)
-			return
-		}
-
-		soapClient, ok := device.Client(avtransport.Version1)
-		if !ok {
-			http.Error(w, fmt.Sprintf("found a device %s, but it was not an AVTransport", udn), http.StatusNotFound)
-			return
-		}
-		transport := avtransport.NewClient(soapClient)
-
-		newCtx := context.WithValue(ctx, "AVTransport", transport)
-		f(w, r.WithContext(newCtx))
 	}
 }

@@ -1,17 +1,15 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
-	"github.com/ethulhu/helix/upnp/ssdp"
+	"github.com/ethulhu/helix/cmd/control-point/internal"
 	"github.com/gorilla/mux"
 )
 
@@ -20,25 +18,7 @@ var (
 	socket = flag.String("socket", "", "path to socket to listen to")
 )
 
-var (
-	devices     = map[string]*ssdp.Device{}
-	devicesLock = sync.Mutex{}
-)
-
-func updateDevices() {
-	devicesLock.Lock()
-	defer devicesLock.Unlock()
-
-	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
-	newDevices, _, err := ssdp.Discover(ctx, ssdp.All)
-	if err != nil {
-		log.Printf("could not find UPnP devices: %v", err)
-		return
-	}
-	for _, device := range newDevices {
-		devices[device.UDN] = device
-	}
-}
+var devices *internal.Devices
 
 func main() {
 	flag.Parse()
@@ -60,12 +40,7 @@ func main() {
 	}
 	defer conn.Close()
 
-	updateDevices()
-	go func() {
-		for _ = range time.Tick(1 * time.Minute) {
-			updateDevices()
-		}
-	}()
+	devices = internal.NewDevices(1 * time.Minute)
 
 	m := mux.NewRouter()
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -88,17 +63,17 @@ func main() {
 
 	m.Path("/browse/{udn}/{object}").
 		Methods("GET").
-		HandlerFunc(needsDirectory("udn", getObject))
+		HandlerFunc(getObject)
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
 		MatcherFunc(FormValues("action", "stop")).
-		HandlerFunc(needsTransport("udn", stop))
+		HandlerFunc(stop)
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
 		MatcherFunc(FormValues("action", "pause")).
-		HandlerFunc(needsTransport("udn", pause))
+		HandlerFunc(pause)
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
@@ -107,12 +82,12 @@ func main() {
 			"directory", "{directory}",
 			"object", "{object}",
 		)).
-		HandlerFunc(needsTransport("udn", needsDirectory("directory", playObject)))
+		HandlerFunc(playObject)
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
 		MatcherFunc(FormValues("action", "play")).
-		HandlerFunc(needsTransport("udn", play))
+		HandlerFunc(play)
 
 	log.Printf("starting HTTP server on %v", conn.Addr())
 	if err := http.Serve(conn, m); err != nil {

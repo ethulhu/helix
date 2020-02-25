@@ -5,26 +5,16 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/ethulhu/helix/upnp/ssdp"
 	"github.com/ethulhu/helix/upnpav"
-	"github.com/ethulhu/helix/upnpav/avtransport"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
 )
 
 // ContentDirectory handlers.
 
 func getDirectories(w http.ResponseWriter, r *http.Request) {
+	directories := devices.DevicesByURN(contentdirectory.Version1)
 
-	var ds []*ssdp.Device
-	devicesLock.Lock()
-	for _, device := range devices {
-		if _, ok := device.Client(contentdirectory.Version1); ok {
-			ds = append(ds, device)
-		}
-	}
-	devicesLock.Unlock()
-
-	if err := directoriesTmpl.Execute(w, devices); err != nil {
+	if err := directoriesTmpl.Execute(w, directories); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -37,9 +27,13 @@ func getObject(w http.ResponseWriter, r *http.Request) {
 	object := mustVar(r, "object")
 	udn := mustVar(r, "udn")
 
-	ctx := r.Context()
-	directory := ctx.Value("ContentDirectory").(contentdirectory.Client)
+	directory, ok := devices.ContentDirectoryByUDN(udn)
+	if !ok {
+		http.Error(w, fmt.Sprintf("could not find ContentDirectory %s", udn), http.StatusNotFound)
+		return
+	}
 
+	ctx := r.Context()
 	didl, err := directory.Browse(ctx, contentdirectory.BrowseChildren, upnpav.Object(object))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -59,8 +53,15 @@ func getObject(w http.ResponseWriter, r *http.Request) {
 // AVTransport handlers.
 
 func play(w http.ResponseWriter, r *http.Request) {
+	udn := mustVar(r, "udn")
+
+	transport, ok := devices.AVTransportByUDN(udn)
+	if !ok {
+		http.Error(w, fmt.Sprintf("could not find AVTransport %s", udn), http.StatusNotFound)
+		return
+	}
+
 	ctx := r.Context()
-	transport := ctx.Value("AVTransport").(avtransport.Client)
 	if err := transport.Play(ctx); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -68,8 +69,15 @@ func play(w http.ResponseWriter, r *http.Request) {
 	maybeRedirect(w, r)
 }
 func pause(w http.ResponseWriter, r *http.Request) {
+	udn := mustVar(r, "udn")
+
+	transport, ok := devices.AVTransportByUDN(udn)
+	if !ok {
+		http.Error(w, fmt.Sprintf("could not find AVTransport %s", udn), http.StatusNotFound)
+		return
+	}
+
 	ctx := r.Context()
-	transport := ctx.Value("AVTransport").(avtransport.Client)
 	if err := transport.Pause(ctx); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -77,8 +85,15 @@ func pause(w http.ResponseWriter, r *http.Request) {
 	maybeRedirect(w, r)
 }
 func stop(w http.ResponseWriter, r *http.Request) {
+	udn := mustVar(r, "udn")
+
+	transport, ok := devices.AVTransportByUDN(udn)
+	if !ok {
+		http.Error(w, fmt.Sprintf("could not find AVTransport %s", udn), http.StatusNotFound)
+		return
+	}
+
 	ctx := r.Context()
-	transport := ctx.Value("AVTransport").(avtransport.Client)
 	if err := transport.Stop(ctx); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -86,12 +101,22 @@ func stop(w http.ResponseWriter, r *http.Request) {
 	maybeRedirect(w, r)
 }
 func playObject(w http.ResponseWriter, r *http.Request) {
+	directoryUDN := mustVar(r, "directory")
+	transportUDN := mustVar(r, "udn")
 	object := mustVar(r, "object")
 
-	ctx := r.Context()
-	transport := ctx.Value("AVTransport").(avtransport.Client)
-	directory := ctx.Value("ContentDirectory").(contentdirectory.Client)
+	directory, ok := devices.ContentDirectoryByUDN(directoryUDN)
+	if !ok {
+		http.Error(w, fmt.Sprintf("could not find ContentDirectory %s", directoryUDN), http.StatusNotFound)
+		return
+	}
+	transport, ok := devices.AVTransportByUDN(transportUDN)
+	if !ok {
+		http.Error(w, fmt.Sprintf("could not find AVTransport %s", transportUDN), http.StatusNotFound)
+		return
+	}
 
+	ctx := r.Context()
 	didl, err := directory.Browse(ctx, contentdirectory.BrowseMetadata, upnpav.Object(object))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

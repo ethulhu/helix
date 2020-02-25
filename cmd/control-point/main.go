@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"text/template"
 	"time"
@@ -132,7 +133,7 @@ func main() {
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
-		Queries("action", "stop").
+		MatcherFunc(FormValues("action", "stop")).
 		HandlerFunc(needsTransport("udn", func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			transport := ctx.Value("AVTransport").(avtransport.Client)
@@ -145,7 +146,7 @@ func main() {
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
-		Queries("action", "pause").
+		MatcherFunc(FormValues("action", "pause")).
 		HandlerFunc(needsTransport("udn", func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			transport := ctx.Value("AVTransport").(avtransport.Client)
@@ -158,11 +159,11 @@ func main() {
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
-		Queries(
+		MatcherFunc(FormValues(
 			"action", "play",
 			"directory", "{directory}",
 			"object", "{object}",
-		).
+		)).
 		HandlerFunc(needsTransport("udn", needsDirectory("directory",
 			func(w http.ResponseWriter, r *http.Request) {
 				object := mustVar(r, "object")
@@ -198,7 +199,7 @@ func main() {
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
-		Queries("action", "play").
+		MatcherFunc(FormValues("action", "play")).
 		HandlerFunc(needsTransport("udn", func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
 			transport := ctx.Value("AVTransport").(avtransport.Client)
@@ -264,6 +265,36 @@ func mustVar(r *http.Request, key string) string {
 func maybeRedirect(w http.ResponseWriter, r *http.Request) {
 	if redirect := r.Form.Get("redirect"); redirect != "" {
 		http.Redirect(w, r, redirect, http.StatusFound)
+	}
+}
+
+func FormValues(keysAndValues ...string) mux.MatcherFunc {
+	if len(keysAndValues)%2 != 0 {
+		panic("an equal number of keys and values must be provided")
+	}
+	return func(r *http.Request, rm *mux.RouteMatch) bool {
+		for i := 0; i < len(keysAndValues); i += 2 {
+			key := keysAndValues[i]
+			value := keysAndValues[i+1]
+
+			formValue := r.FormValue(key)
+			if formValue == "" {
+				return false
+			}
+
+			if strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
+				if rm.Vars == nil {
+					rm.Vars = map[string]string{}
+				}
+				varKey := value[1 : len(value)-1]
+				rm.Vars[varKey] = formValue
+			} else {
+				if formValue != value {
+					return false
+				}
+			}
+		}
+		return true
 	}
 }
 

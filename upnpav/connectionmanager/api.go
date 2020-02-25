@@ -9,7 +9,6 @@ import (
 
 type (
 	Client interface {
-		Name() string
 		ProtocolInfo(context.Context) ([]*upnpav.ProtocolInfo, []*upnpav.ProtocolInfo, error)
 	}
 )

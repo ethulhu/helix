@@ -7,46 +7,19 @@ import (
 	"time"
 
 	"github.com/ethulhu/helix/soap"
-	"github.com/ethulhu/helix/upnp/ssdp"
 	"github.com/ethulhu/helix/upnpav"
 )
 
 type (
-	client struct {
-		name       string
-		soapClient soap.Client
-	}
+	client struct{ soap.Client }
 )
 
-func Discover(ctx context.Context) ([]Client, []error, error) {
-	devices, errs, err := ssdp.DiscoverDevices(ctx, Version1)
-
-	var clients []Client
-	for _, device := range devices {
-		soapClient, ok := device.Client(Version1)
-		if !ok {
-			// TODO: expand this.
-			errs = append(errs, fmt.Errorf("could not find ConnectionManager client"))
-			continue
-		}
-		clients = append(clients, NewClient(device.Name(), soapClient))
-	}
-	return clients, errs, err
-}
-
-func NewClient(name string, soapClient soap.Client) Client {
-	return &client{
-		name:       name,
-		soapClient: soapClient,
-	}
-}
-
-func (c *client) Name() string {
-	return c.name
+func NewClient(soapClient soap.Client) Client {
+	return &client{soapClient}
 }
 
 func (c *client) call(ctx context.Context, method string, input, output interface{}) error {
-	return c.soapClient.Call(ctx, string(Version1), method, input, output)
+	return c.Call(ctx, string(Version1), method, input, output)
 }
 
 func (c *client) Play(ctx context.Context) error {

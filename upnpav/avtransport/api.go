@@ -11,19 +11,21 @@ import (
 type (
 	// Client is a UPnP AVTransport1 client.
 	Client interface {
-		// Name is the "friendly name" of the UPnP Device.
-		Name() string
-
 		// Play plays the current track.
 		Play(context.Context) error
+
 		// Pause pauses the current track.
 		Pause(context.Context) error
+
 		// Next skips to the next track.
 		Next(context.Context) error
+
 		// Previous skips back to the previous track.
 		Previous(context.Context) error
+
 		// Stop stops playback altogether.
 		Stop(context.Context) error
+
 		// Seek seeks to a given time.
 		Seek(context.Context, time.Duration) error
 

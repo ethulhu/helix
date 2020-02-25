@@ -1,17 +1,18 @@
 // Package ssdp implements the Simple Service Discovery Protocol.
 package ssdp
 
-import "github.com/ethulhu/helix/soap"
+import "net/url"
 
 type (
 	// Device is an SSDP device.
-	Device interface {
+	Device struct {
 		// Name is the "friendly name" of a UPnP device.
-		Name() string
-		// Client returns a SOAP client for the given URN, and whether or not that client exists.
-		Client(URN) (soap.Client, bool)
-		// Services lists URNs advertised by the device.
-		Services() []URN
+		Name string
+
+		// UDN is a unique identifier that can be used to rediscover a device.
+		UDN string
+
+		services map[URN]*url.URL
 	}
 
 	// URN is a UPnP service URN.

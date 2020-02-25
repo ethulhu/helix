@@ -7,48 +7,21 @@ import (
 	"strings"
 
 	"github.com/ethulhu/helix/soap"
-	"github.com/ethulhu/helix/upnp/ssdp"
 	"github.com/ethulhu/helix/upnpav"
 )
 
 type (
-	client struct {
-		name       string
-		soapClient soap.Client
-	}
+	client struct{ soap.Client }
 )
 
-func NewClient(name string, soapClient soap.Client) Client {
-	return &client{
-		name:       name,
-		soapClient: soapClient,
-	}
-}
-
-func Discover(ctx context.Context) ([]Client, []error, error) {
-	devices, errs, err := ssdp.DiscoverDevices(ctx, Version1)
-
-	var clients []Client
-	for _, device := range devices {
-		soapClient, ok := device.Client(Version1)
-		if !ok {
-			// TODO: expand this.
-			errs = append(errs, fmt.Errorf("could not find ConnectionManager client"))
-			continue
-		}
-		clients = append(clients, NewClient(device.Name(), soapClient))
-	}
-	return clients, errs, err
-}
-
-func (c *client) Name() string {
-	return c.name
+func NewClient(soapClient soap.Client) Client {
+	return &client{soapClient}
 }
 
 func (c *client) ProtocolInfo(ctx context.Context) ([]*upnpav.ProtocolInfo, []*upnpav.ProtocolInfo, error) {
 	req := getProtocolInfoRequest{}
 	rsp := getProtocolInfoResponse{}
-	if err := c.soapClient.Call(ctx, string(Version1), "GetProtocolInfo", req, &rsp); err != nil {
+	if err := c.Call(ctx, string(Version1), "GetProtocolInfo", req, &rsp); err != nil {
 		return nil, nil, fmt.Errorf("could not get protocol info: %w", err)
 	}
 

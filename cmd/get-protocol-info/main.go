@@ -8,6 +8,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/ethulhu/helix/upnp/ssdp"
 	"github.com/ethulhu/helix/upnpav/connectionmanager"
 )
 
@@ -23,15 +24,15 @@ func main() {
 	}
 
 	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
-	clients, _, err := connectionmanager.Discover(ctx)
+	devices, _, err := ssdp.Discover(ctx, connectionmanager.Version1)
 	if err != nil {
 		log.Fatalf("could not discover ConnectionManager clients: %v", err)
 	}
 
 	var client connectionmanager.Client
-	for _, c := range clients {
-		if c.Name() == *server {
-			client = c
+	for _, device := range devices {
+		if soapClient, ok := device.Client(connectionmanager.Version1); ok && device.Name == *server {
+			client = connectionmanager.NewClient(soapClient)
 			break
 		}
 	}

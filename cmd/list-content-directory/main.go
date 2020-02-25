@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/ethulhu/helix/upnp/ssdp"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
 )
@@ -24,15 +25,15 @@ func main() {
 	}
 
 	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
-	clients, _, err := contentdirectory.Discover(ctx)
+	devices, _, err := ssdp.Discover(ctx, contentdirectory.Version1)
 	if err != nil {
 		log.Fatalf("could not discover ContentDirectory clients: %v", err)
 	}
 
 	var client contentdirectory.Client
-	for _, c := range clients {
-		if c.Name() == *server {
-			client = c
+	for _, device := range devices {
+		if soapClient, ok := device.Client(contentdirectory.Version1); ok && device.Name == *server {
+			client = contentdirectory.NewClient(soapClient)
 			break
 		}
 	}
@@ -41,15 +42,15 @@ func main() {
 	}
 
 	ctx, _ = context.WithTimeout(context.Background(), 1*time.Second)
-	collections, items, err := client.Browse(ctx, upnpav.Object(*object))
+	didl, err := client.Browse(ctx, contentdirectory.BrowseChildren, upnpav.Object(*object))
 	if err != nil {
 		log.Fatalf("could not list ContentDirectory root: %v", err)
 	}
 
-	for _, collection := range collections {
+	for _, collection := range didl.Containers {
 		fmt.Printf("%+v\n", collection)
 	}
-	for _, item := range items {
+	for _, item := range didl.Items {
 		fmt.Printf("%+v\n", item)
 	}
 }

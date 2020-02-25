@@ -9,13 +9,6 @@ import (
 )
 
 type (
-	device struct {
-		name     string
-		services map[URN]*url.URL
-
-		baseURL *url.URL
-	}
-
 	manifestXML struct {
 		XMLName     xml.Name `xml:"urn:schemas-upnp-org:device-1-0 root"`
 		SpecVersion struct {
@@ -25,8 +18,10 @@ type (
 		Device deviceXML `xml:"device"`
 	}
 	deviceXML struct {
-		DeviceType      string       `xml:"deviceType"`
-		FriendlyName    string       `xml:"friendlyName"`
+		DeviceType   string `xml:"deviceType"`
+		FriendlyName string `xml:"friendlyName"`
+		UDN          string `xml:"UDN"`
+
 		Devices         []deviceXML  `xml:"deviceList>device"`
 		Icons           []iconXML    `xml:"iconList>icon"`
 		Services        []serviceXML `xml:"serviceList>service"`
@@ -48,7 +43,7 @@ type (
 	}
 )
 
-func newDevice(manifestURL *url.URL, rawManifest []byte) (Device, error) {
+func newDevice(manifestURL *url.URL, rawManifest []byte) (*Device, error) {
 	m, err := parseDeviceManifest(rawManifest)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse device manifest: %w", err)
@@ -62,17 +57,15 @@ func newDevice(manifestURL *url.URL, rawManifest []byte) (Device, error) {
 		services[s.ServiceType] = &serviceURL
 	}
 
-	return &device{
-		name:     m.Device.FriendlyName,
+	return &Device{
+		Name:     m.Device.FriendlyName,
+		UDN:      m.Device.UDN,
 		services: services,
 	}, nil
 }
 
-func (d *device) Name() string {
-	return d.name
-}
-
-func (d *device) Client(urn URN) (soap.Client, bool) {
+// Client returns a SOAP client for the given URN, and whether or not that client exists.
+func (d *Device) Client(urn URN) (soap.Client, bool) {
 	baseURL, ok := d.services[urn]
 	if !ok {
 		return nil, false
@@ -80,7 +73,8 @@ func (d *device) Client(urn URN) (soap.Client, bool) {
 	return soap.NewClient(baseURL), true
 }
 
-func (d *device) Services() []URN {
+// Services lists URNs advertised by the device.
+func (d *Device) Services() []URN {
 	var urns []URN
 	for urn := range d.services {
 		urns = append(urns, urn)

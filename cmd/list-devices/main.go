@@ -20,7 +20,7 @@ func main() {
 	flag.Parse()
 
 	ctx, _ := context.WithTimeout(context.Background(), *timeout)
-	devices, errs, err := ssdp.DiscoverDevices(ctx, ssdp.All)
+	devices, errs, err := ssdp.Discover(ctx, ssdp.All)
 	if err != nil {
 		log.Fatalf("could not discover URLs: %v", err)
 	}
@@ -29,12 +29,11 @@ func main() {
 	}
 
 	for _, device := range devices {
-		name := device.Name()
 		urns := device.Services()
 
 		sort.Slice(urns, func(i, j int) bool { return urns[i] < urns[j] })
 		for _, urn := range urns {
-			fmt.Printf("%v\t%v\n", name, urn)
+			fmt.Printf("%v\t%v\t%v\n", device.Name, device.UDN, urn)
 		}
 	}
 }

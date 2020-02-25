@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/ethulhu/helix/upnp/ssdp"
 	"github.com/ethulhu/helix/upnpav/avtransport"
 )
 
@@ -22,15 +23,18 @@ func main() {
 	}
 
 	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
-	clients, _, err := avtransport.Discover(ctx)
+	clients, _, err := ssdp.Discover(ctx, avtransport.Version1)
 	if err != nil {
 		log.Fatalf("could not discover AVTransport clients: %v", err)
 	}
 
 	var client avtransport.Client
 	for _, c := range clients {
-		if c.Name() == *server {
-			client = c
+		if c.Name != *server {
+			continue
+		}
+		if soapClient, ok := c.Client(avtransport.Version1); ok {
+			client = avtransport.NewClient(soapClient)
 			break
 		}
 	}

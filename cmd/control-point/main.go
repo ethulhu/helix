@@ -163,62 +163,38 @@ func main() {
 			"directory", "{directory}",
 			"object", "{object}",
 		).
-		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			directoryUDN := mustVar(r, "directory")
-			object := mustVar(r, "object")
-			transportUDN := mustVar(r, "udn")
+		HandlerFunc(needsTransport("udn", needsDirectory("directory",
+			func(w http.ResponseWriter, r *http.Request) {
+				object := mustVar(r, "object")
 
-			ctx := r.Context()
-			discoverCtx, _ := context.WithTimeout(ctx, 2*time.Second)
-			devices, _, err := ssdp.Discover(discoverCtx, ssdp.All)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
+				ctx := r.Context()
+				transport := ctx.Value("AVTransport").(avtransport.Client)
+				directory := ctx.Value("ContentDirectory").(contentdirectory.Client)
 
-			var directory contentdirectory.Client
-			var transport avtransport.Client
-			for _, device := range devices {
-				if soapClient, ok := device.Client(avtransport.Version1); ok && device.UDN == transportUDN {
-					transport = avtransport.NewClient(soapClient)
+				didl, err := directory.Browse(ctx, contentdirectory.BrowseMetadata, upnpav.Object(object))
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
 				}
-				if soapClient, ok := device.Client(contentdirectory.Version1); ok && device.UDN == directoryUDN {
-					directory = contentdirectory.NewClient(soapClient)
+				if didl == nil {
+					http.Error(w, fmt.Sprintf("could not find object %s", object), http.StatusNotFound)
+					return
 				}
-			}
-			if transport == nil {
-				http.Error(w, fmt.Sprintf("could not find AVTransport %s", transportUDN), http.StatusNotFound)
-				return
-			}
-			if directory == nil {
-				http.Error(w, fmt.Sprintf("could not find ContentDirectory %s", directoryUDN), http.StatusNotFound)
-				return
-			}
 
-			didl, err := directory.Browse(ctx, contentdirectory.BrowseMetadata, upnpav.Object(object))
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			if didl == nil {
-				http.Error(w, fmt.Sprintf("could not find object %s", object), http.StatusNotFound)
-				return
-			}
-
-			if err := transport.Stop(ctx); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			if err := transport.SetCurrentURI(ctx, didl.Items[0].Resources[0].URI, didl); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			if err := transport.Play(ctx); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			maybeRedirect(w, r)
-		})
+				if err := transport.Stop(ctx); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				if err := transport.SetCurrentURI(ctx, didl.Items[0].Resources[0].URI, didl); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				if err := transport.Play(ctx); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				maybeRedirect(w, r)
+			})))
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").

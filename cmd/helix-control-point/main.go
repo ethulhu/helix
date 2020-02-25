@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/ethulhu/helix/cmd/control-point/internal"
+	"github.com/ethulhu/helix/cmd/helix-control-point/internal"
 	"github.com/gorilla/mux"
 )
 

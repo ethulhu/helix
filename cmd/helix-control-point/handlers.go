@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 
 	"github.com/ethulhu/helix/upnp/ssdp"
 	"github.com/ethulhu/helix/upnpav"
@@ -17,6 +18,13 @@ import (
 func getIndexHTML(w http.ResponseWriter, r *http.Request) {
 	directories := devices.DevicesByURN(contentdirectory.Version1)
 	transports := devices.DevicesByURN(avtransport.Version1)
+
+	sort.Slice(directories, func(i, j int) bool {
+		return directories[i].Name < directories[j].Name
+	})
+	sort.Slice(transports, func(i, j int) bool {
+		return transports[i].Name < transports[j].Name
+	})
 
 	args := struct {
 		Directories []*ssdp.Device
@@ -31,6 +39,9 @@ func getIndexHTML(w http.ResponseWriter, r *http.Request) {
 
 func getDirectories(w http.ResponseWriter, r *http.Request) {
 	directories := devices.DevicesByURN(contentdirectory.Version1)
+	sort.Slice(directories, func(i, j int) bool {
+		return directories[i].Name < directories[j].Name
+	})
 
 	if err := directoriesTmpl.Execute(w, directories); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -76,6 +87,9 @@ func getObject(w http.ResponseWriter, r *http.Request) {
 
 func getTransports(w http.ResponseWriter, r *http.Request) {
 	transports := devices.DevicesByURN(avtransport.Version1)
+	sort.Slice(transports, func(i, j int) bool {
+		return transports[i].Name < transports[j].Name
+	})
 
 	if err := transportsTmpl.Execute(w, transports); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

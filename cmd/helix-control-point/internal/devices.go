@@ -38,14 +38,19 @@ func (d *Devices) Refresh() {
 	defer d.mu.Unlock()
 
 	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
-	newDevices, _, err := ssdp.Discover(ctx, ssdp.All)
+	devices, _, err := ssdp.Discover(ctx, ssdp.All)
 	if err != nil {
 		log.Printf("could not find UPnP devices: %v", err)
 		return
 	}
-	for _, device := range newDevices {
-		d.devices[device.UDN] = device
+
+	newDevices := map[string]*ssdp.Device{}
+	for _, device := range devices {
+		newDevices[device.UDN] = device
 	}
+
+	d.devices = newDevices
+
 }
 
 func (d *Devices) AVTransportByUDN(udn string) (avtransport.Client, bool) {

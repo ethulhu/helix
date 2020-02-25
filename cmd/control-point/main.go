@@ -8,15 +8,10 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
 	"sync"
-	"text/template"
 	"time"
 
 	"github.com/ethulhu/helix/upnp/ssdp"
-	"github.com/ethulhu/helix/upnpav"
-	"github.com/ethulhu/helix/upnpav/avtransport"
-	"github.com/ethulhu/helix/upnpav/contentdirectory"
 	"github.com/gorilla/mux"
 )
 
@@ -85,77 +80,25 @@ func main() {
 
 	m.Path("/browse").
 		Methods("GET").
-		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
-			discoverCtx, _ := context.WithTimeout(ctx, 2*time.Second)
-			devices, _, err := ssdp.Discover(discoverCtx, contentdirectory.Version1)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			if err := directoriesTmpl.Execute(w, devices); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		})
+		HandlerFunc(getDirectories)
 
 	m.Path("/browse/{udn}").
 		Methods("GET").
-		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			udn := mustVar(r, "udn")
-			http.Redirect(w, r, fmt.Sprintf("/browse/%v/0", udn), http.StatusFound)
-		})
+		HandlerFunc(getDirectory)
 
 	m.Path("/browse/{udn}/{object}").
 		Methods("GET").
-		HandlerFunc(needsDirectory("udn", func(w http.ResponseWriter, r *http.Request) {
-			object := mustVar(r, "object")
-			udn := mustVar(r, "udn")
-
-			ctx := r.Context()
-			directory := ctx.Value("ContentDirectory").(contentdirectory.Client)
-
-			didl, err := directory.Browse(ctx, contentdirectory.BrowseChildren, upnpav.Object(object))
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			args := struct {
-				DIDL *upnpav.DIDL
-				UDN  string
-			}{didl, udn}
-			if err := browseTmpl.Execute(w, args); err != nil {
-				log.Printf("error rendering %v: %v", r.URL.Path, err)
-				return
-			}
-		}))
+		HandlerFunc(needsDirectory("udn", getObject))
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
 		MatcherFunc(FormValues("action", "stop")).
-		HandlerFunc(needsTransport("udn", func(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
-			transport := ctx.Value("AVTransport").(avtransport.Client)
-			if err := transport.Stop(ctx); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			maybeRedirect(w, r)
-		}))
+		HandlerFunc(needsTransport("udn", stop))
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
 		MatcherFunc(FormValues("action", "pause")).
-		HandlerFunc(needsTransport("udn", func(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
-			transport := ctx.Value("AVTransport").(avtransport.Client)
-			if err := transport.Pause(ctx); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			maybeRedirect(w, r)
-		}))
+		HandlerFunc(needsTransport("udn", pause))
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
@@ -164,187 +107,15 @@ func main() {
 			"directory", "{directory}",
 			"object", "{object}",
 		)).
-		HandlerFunc(needsTransport("udn", needsDirectory("directory",
-			func(w http.ResponseWriter, r *http.Request) {
-				object := mustVar(r, "object")
-
-				ctx := r.Context()
-				transport := ctx.Value("AVTransport").(avtransport.Client)
-				directory := ctx.Value("ContentDirectory").(contentdirectory.Client)
-
-				didl, err := directory.Browse(ctx, contentdirectory.BrowseMetadata, upnpav.Object(object))
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				if didl == nil {
-					http.Error(w, fmt.Sprintf("could not find object %s", object), http.StatusNotFound)
-					return
-				}
-
-				if err := transport.Stop(ctx); err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				if err := transport.SetCurrentURI(ctx, didl.Items[0].Resources[0].URI, didl); err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				if err := transport.Play(ctx); err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				maybeRedirect(w, r)
-			})))
+		HandlerFunc(needsTransport("udn", needsDirectory("directory", playObject)))
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
 		MatcherFunc(FormValues("action", "play")).
-		HandlerFunc(needsTransport("udn", func(w http.ResponseWriter, r *http.Request) {
-			ctx := r.Context()
-			transport := ctx.Value("AVTransport").(avtransport.Client)
-			if err := transport.Play(ctx); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			maybeRedirect(w, r)
-		}))
+		HandlerFunc(needsTransport("udn", play))
 
 	log.Printf("starting HTTP server on %v", conn.Addr())
 	if err := http.Serve(conn, m); err != nil {
 		log.Fatalf("HTTP server failed: %v", err)
-	}
-}
-
-var (
-	browseTmpl = template.Must(template.New("/browse").Parse(`<!DOCTYPE html>
-<html lang='en'>
-<head>
-	<meta charset='utf-8'>
-	<meta name='viewport' content='width=device-width, initial-scale=1.0'>
-</head>
-<body>
-	{{ $udn := .UDN }}
-	<ul>
-	{{ range $index, $container := .DIDL.Containers }}
-		<li><a href='/browse/{{ $udn }}/{{ $container.ID }}'>{{ $container.Title }}</a></li>
-	{{ end }}
-	</ul>
-	<ul>
-	{{ range $index, $item := .DIDL.Items }}
-		<li><a href='/browse/{{ $udn }}/{{ $item.ID }}'>{{ $item.Title }}</a></li>
-	{{ end }}
-	</ul>
-</body>
-</html>`))
-
-	directoriesTmpl = template.Must(template.New("/browse").Parse(`<!DOCTYPE html>
-<html lang='en'>
-<head>
-	<meta charset='utf-8'>
-	<meta name='viewport' content='width=device-width, initial-scale=1.0'>
-</head>
-<body>
-	<ul>
-	{{ range $index, $device := . }}
-		<li><a href='/browse/{{ $device.UDN }}'>{{ $device.Name }}</a></li>
-	{{ end }}
-	</ul>
-</body>
-</html>`))
-)
-
-func mustVar(r *http.Request, key string) string {
-	value, ok := mux.Vars(r)[key]
-	if !ok {
-		panic(fmt.Sprintf("gorilla/mux did not provide parameter %q", key))
-	}
-	return value
-}
-
-func maybeRedirect(w http.ResponseWriter, r *http.Request) {
-	if redirect := r.Form.Get("redirect"); redirect != "" {
-		http.Redirect(w, r, redirect, http.StatusFound)
-	}
-}
-
-func FormValues(keysAndValues ...string) mux.MatcherFunc {
-	if len(keysAndValues)%2 != 0 {
-		panic("an equal number of keys and values must be provided")
-	}
-	return func(r *http.Request, rm *mux.RouteMatch) bool {
-		for i := 0; i < len(keysAndValues); i += 2 {
-			key := keysAndValues[i]
-			value := keysAndValues[i+1]
-
-			formValue := r.FormValue(key)
-			if formValue == "" {
-				return false
-			}
-
-			if strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
-				if rm.Vars == nil {
-					rm.Vars = map[string]string{}
-				}
-				varKey := value[1 : len(value)-1]
-				rm.Vars[varKey] = formValue
-			} else {
-				if formValue != value {
-					return false
-				}
-			}
-		}
-		return true
-	}
-}
-
-func needsDirectory(key string, f http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		udn := mustVar(r, key)
-		ctx := r.Context()
-
-		devicesLock.Lock()
-		device, ok := devices[udn]
-		devicesLock.Unlock()
-
-		if !ok {
-			http.Error(w, fmt.Sprintf("could not find ContentDirectory %s", udn), http.StatusNotFound)
-			return
-		}
-
-		soapClient, ok := device.Client(contentdirectory.Version1)
-		if !ok {
-			http.Error(w, fmt.Sprintf("found a device %s, but it was not an ContentDirectory", udn), http.StatusNotFound)
-			return
-		}
-		directory := contentdirectory.NewClient(soapClient)
-
-		newCtx := context.WithValue(ctx, "ContentDirectory", directory)
-		f(w, r.WithContext(newCtx))
-	}
-}
-func needsTransport(key string, f http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		udn := mustVar(r, key)
-		ctx := r.Context()
-
-		devicesLock.Lock()
-		device, ok := devices[udn]
-		devicesLock.Unlock()
-
-		if !ok {
-			http.Error(w, fmt.Sprintf("could not find AVTransport %s", udn), http.StatusNotFound)
-			return
-		}
-
-		soapClient, ok := device.Client(avtransport.Version1)
-		if !ok {
-			http.Error(w, fmt.Sprintf("found a device %s, but it was not an AVTransport", udn), http.StatusNotFound)
-			return
-		}
-		transport := avtransport.NewClient(soapClient)
-
-		newCtx := context.WithValue(ctx, "AVTransport", transport)
-		f(w, r.WithContext(newCtx))
 	}
 }

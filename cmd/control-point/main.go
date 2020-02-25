@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync"
 	"text/template"
 	"time"
 
@@ -22,6 +23,26 @@ var (
 	port   = flag.Uint("port", 0, "port to listen on")
 	socket = flag.String("socket", "", "path to socket to listen to")
 )
+
+var (
+	devices     = map[string]*ssdp.Device{}
+	devicesLock = sync.Mutex{}
+)
+
+func updateDevices() {
+	devicesLock.Lock()
+	defer devicesLock.Unlock()
+
+	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
+	newDevices, _, err := ssdp.Discover(ctx, ssdp.All)
+	if err != nil {
+		log.Printf("could not find UPnP devices: %v", err)
+		return
+	}
+	for _, device := range newDevices {
+		devices[device.UDN] = device
+	}
+}
 
 func main() {
 	flag.Parse()
@@ -42,6 +63,13 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	defer conn.Close()
+
+	updateDevices()
+	go func() {
+		for _ = range time.Tick(1 * time.Minute) {
+			updateDevices()
+		}
+	}()
 
 	m := mux.NewRouter()
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -268,23 +296,21 @@ func needsDirectory(key string, f http.HandlerFunc) http.HandlerFunc {
 		udn := mustVar(r, key)
 		ctx := r.Context()
 
-		discoverCtx, _ := context.WithTimeout(ctx, 2*time.Second)
-		devices, _, err := ssdp.Discover(discoverCtx, ssdp.URN(udn))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		var directory contentdirectory.Client
-		for _, device := range devices {
-			if soapClient, ok := device.Client(contentdirectory.Version1); ok && device.UDN == udn {
-				directory = contentdirectory.NewClient(soapClient)
-				break
-			}
-		}
-		if directory == nil {
+		devicesLock.Lock()
+		device, ok := devices[udn]
+		devicesLock.Unlock()
+
+		if !ok {
 			http.Error(w, fmt.Sprintf("could not find ContentDirectory %s", udn), http.StatusNotFound)
 			return
 		}
+
+		soapClient, ok := device.Client(contentdirectory.Version1)
+		if !ok {
+			http.Error(w, fmt.Sprintf("found a device %s, but it was not an ContentDirectory", udn), http.StatusNotFound)
+			return
+		}
+		directory := contentdirectory.NewClient(soapClient)
 
 		newCtx := context.WithValue(ctx, "ContentDirectory", directory)
 		f(w, r.WithContext(newCtx))
@@ -295,23 +321,21 @@ func needsTransport(key string, f http.HandlerFunc) http.HandlerFunc {
 		udn := mustVar(r, key)
 		ctx := r.Context()
 
-		discoverCtx, _ := context.WithTimeout(ctx, 2*time.Second)
-		devices, _, err := ssdp.Discover(discoverCtx, ssdp.URN(udn))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		var transport avtransport.Client
-		for _, device := range devices {
-			if soapClient, ok := device.Client(avtransport.Version1); ok && device.UDN == udn {
-				transport = avtransport.NewClient(soapClient)
-				break
-			}
-		}
-		if transport == nil {
+		devicesLock.Lock()
+		device, ok := devices[udn]
+		devicesLock.Unlock()
+
+		if !ok {
 			http.Error(w, fmt.Sprintf("could not find AVTransport %s", udn), http.StatusNotFound)
 			return
 		}
+
+		soapClient, ok := device.Client(avtransport.Version1)
+		if !ok {
+			http.Error(w, fmt.Sprintf("found a device %s, but it was not an AVTransport", udn), http.StatusNotFound)
+			return
+		}
+		transport := avtransport.NewClient(soapClient)
 
 		newCtx := context.WithValue(ctx, "AVTransport", transport)
 		f(w, r.WithContext(newCtx))

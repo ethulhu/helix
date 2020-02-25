@@ -49,9 +49,7 @@ func main() {
 
 	m.Path("/").
 		Methods("GET").
-		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "/browse", http.StatusFound)
-		})
+		HandlerFunc(getIndexHTML)
 
 	m.Path("/browse").
 		Methods("GET").
@@ -64,6 +62,18 @@ func main() {
 	m.Path("/browse/{udn}/{object}").
 		Methods("GET").
 		HandlerFunc(getObject)
+
+	m.Path("/renderer").
+		Methods("GET").
+		HandlerFunc(getTransports)
+
+	m.Path("/renderer/{udn}").
+		Methods("GET").
+		HeadersRegexp("Accept", "(application|text)/json").
+		HandlerFunc(getTransportJSON)
+	m.Path("/renderer/{udn}").
+		Methods("GET").
+		HandlerFunc(getTransportHTML)
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").

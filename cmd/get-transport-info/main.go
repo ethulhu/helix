@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"time"
 
 	"github.com/ethulhu/helix/upnp/ssdp"
@@ -13,6 +14,8 @@ import (
 
 var (
 	server = flag.String("server", "", "name of server to list")
+
+	ifaceName = flag.String("interface", "", "network interface to discover on (optional)")
 )
 
 func main() {
@@ -22,8 +25,17 @@ func main() {
 		log.Fatal("must set -server")
 	}
 
+	var iface *net.Interface
+	if *ifaceName != "" {
+		var err error
+		iface, err = net.InterfaceByName(*ifaceName)
+		if err != nil {
+			log.Fatalf("could not find interface %s: %v", *ifaceName, err)
+		}
+	}
+
 	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
-	devices, _, err := ssdp.Discover(ctx, avtransport.Version1)
+	devices, _, err := ssdp.Discover(ctx, avtransport.Version1, iface)
 	if err != nil {
 		log.Fatalf("could not discover AVTransport clients: %v", err)
 	}

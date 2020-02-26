@@ -36,10 +36,10 @@ func discoverRequest(ctx context.Context, urn URN) *http.Request {
 
 // DiscoverURLs discovers UPnP device manifest URLs using SSDP on the local network.
 // It returns all valid URLs it finds, a slice of errors from invalid SSDP responses, and an error with the actual connection itself.
-func DiscoverURLs(ctx context.Context, urn URN) ([]*url.URL, []error, error) {
+func DiscoverURLs(ctx context.Context, urn URN, iface *net.Interface) ([]*url.URL, []error, error) {
 	req := discoverRequest(ctx, urn)
 
-	rsps, errs, err := httpu.Do(req, 3)
+	rsps, errs, err := httpu.Do(req, 3, iface)
 
 	locations := map[string]*url.URL{}
 	for _, rsp := range rsps {
@@ -60,8 +60,8 @@ func DiscoverURLs(ctx context.Context, urn URN) ([]*url.URL, []error, error) {
 
 // Discover discovers UPnP devices using SSDP on the local network.
 // It returns all valid URLs it finds, a slice of errors from invalid SSDP responses or UPnP device manifests, and an error with the actual connection itself.
-func Discover(ctx context.Context, urn URN) ([]*Device, []error, error) {
-	urls, errs, err := DiscoverURLs(ctx, urn)
+func Discover(ctx context.Context, urn URN, iface *net.Interface) ([]*Device, []error, error) {
+	urls, errs, err := DiscoverURLs(ctx, urn, iface)
 
 	var devices []*Device
 	for _, manifestURL := range urls {

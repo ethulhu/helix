@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"log"
+	"net"
 	"sync"
 	"time"
 
@@ -13,14 +14,17 @@ import (
 
 type (
 	Devices struct {
-		mu      sync.Mutex
+		mu    sync.Mutex
+		iface *net.Interface
+
 		devices map[string]*ssdp.Device
 	}
 )
 
-func NewDevices(refresh time.Duration) *Devices {
+func NewDevices(refresh time.Duration, iface *net.Interface) *Devices {
 	d := &Devices{
 		devices: map[string]*ssdp.Device{},
+		iface:   iface,
 	}
 
 	go d.Refresh()
@@ -38,7 +42,7 @@ func (d *Devices) Refresh() {
 	defer d.mu.Unlock()
 
 	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
-	devices, _, err := ssdp.Discover(ctx, ssdp.All)
+	devices, _, err := ssdp.Discover(ctx, ssdp.All, d.iface)
 	if err != nil {
 		log.Printf("could not find UPnP devices: %v", err)
 		return

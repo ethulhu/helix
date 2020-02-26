@@ -18,6 +18,8 @@ var (
 	socket = flag.String("socket", "", "path to socket to listen to")
 
 	upnpRefresh = flag.Duration("upnp-refresh", 30*time.Second, "how frequently to refresh the UPnP devices")
+
+	ifaceName = flag.String("interface", "", "network interface to discover on (optional)")
 )
 
 var (
@@ -27,6 +29,15 @@ var (
 
 func main() {
 	flag.Parse()
+
+	var iface *net.Interface
+	if *ifaceName != "" {
+		var err error
+		iface, err = net.InterfaceByName(*ifaceName)
+		if err != nil {
+			log.Fatalf("could not find interface %s: %v", *ifaceName, err)
+		}
+	}
 
 	if (*port == 0) == (*socket == "") {
 		log.Fatal("must set -socket XOR -port")
@@ -45,7 +56,7 @@ func main() {
 	}
 	defer conn.Close()
 
-	devices = internal.NewDevices(*upnpRefresh)
+	devices = internal.NewDevices(*upnpRefresh, iface)
 	queue = internal.NewQueue()
 
 	m := mux.NewRouter()

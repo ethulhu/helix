@@ -21,12 +21,35 @@ func serializeRequest(req *http.Request) []byte {
 	return buf.Bytes()
 }
 
+func udpIPv4AddrForInterface(iface *net.Interface) (*net.UDPAddr, error) {
+	addrs, err := iface.Addrs()
+	if err != nil {
+		return nil, err
+	}
+	for _, addr := range addrs {
+		addr := addr.(*net.IPNet)
+		if addr.IP.To4() != nil {
+			return &net.UDPAddr{IP: addr.IP}, nil
+		}
+	}
+	return nil, errors.New("interface does not have an IPv4 address")
+}
+
 // Do does a HTTP-over-UDP broadcast a given number of times and waits for responses.
 // It always returns any valid HTTP responses it has seen, regardless of eventual errors.
 // The error slice is errors with malformed responses.
 // The single error is an error with the connection itself.
-func Do(req *http.Request, repeats int) ([]*http.Response, []error, error) {
-	conn, err := net.ListenUDP("udp", nil)
+func Do(req *http.Request, repeats int, iface *net.Interface) ([]*http.Response, []error, error) {
+	var listenAddr *net.UDPAddr
+	if iface != nil {
+		var err error
+		listenAddr, err = udpIPv4AddrForInterface(iface)
+		if err != nil {
+			return nil, nil, fmt.Errorf("could not find address for interface %s: %w", iface.Name, err)
+		}
+	}
+
+	conn, err := net.ListenUDP("udp", listenAddr)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not listen on UDP: %w", err)
 	}

@@ -16,9 +16,14 @@ import (
 var (
 	port   = flag.Uint("port", 0, "port to listen on")
 	socket = flag.String("socket", "", "path to socket to listen to")
+
+	upnpRefresh = flag.Duration("upnp-refresh", 30*time.Second, "how frequently to refresh the UPnP devices")
 )
 
-var devices *internal.Devices
+var (
+	devices *internal.Devices
+	queue   *internal.Queue
+)
 
 func main() {
 	flag.Parse()
@@ -40,7 +45,8 @@ func main() {
 	}
 	defer conn.Close()
 
-	devices = internal.NewDevices(1 * time.Minute)
+	devices = internal.NewDevices(*upnpRefresh)
+	queue = internal.NewQueue()
 
 	m := mux.NewRouter()
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -63,9 +69,46 @@ func main() {
 		Methods("GET").
 		HandlerFunc(getObject)
 
-	m.Path("/renderer").
+	m.Path("/queue").
 		Methods("GET").
-		HandlerFunc(getTransports)
+		HeadersRegexp("Accept", "(application|text)/json").
+		HandlerFunc(getQueueJSON)
+	// m.Path("/queue").
+	// Methods("GET").
+	// HandlerFunc(getQueueHTML)
+
+	m.Path("/queue").
+		Methods("POST").
+		MatcherFunc(FormValues("transport", "{transport}")).
+		HandlerFunc(setQueueTransport)
+	m.Path("/queue").
+		Methods("POST").
+		MatcherFunc(FormValues("action", "play")).
+		HandlerFunc(playQueue)
+	m.Path("/queue").
+		Methods("POST").
+		MatcherFunc(FormValues("action", "pause")).
+		HandlerFunc(pauseQueue)
+	m.Path("/queue").
+		Methods("POST").
+		MatcherFunc(FormValues("action", "stop")).
+		HandlerFunc(stopQueue)
+	m.Path("/queue").
+		Methods("POST").
+		MatcherFunc(FormValues(
+			"action", "add",
+			"position", "last",
+			"directory", "{directory}",
+			"object", "{object}",
+		)).
+		HandlerFunc(addObjectToQueue)
+	m.Path("/queue").
+		Methods("POST").
+		MatcherFunc(FormValues(
+			"action", "remove",
+			"position", "all",
+		)).
+		HandlerFunc(removeAllFromQueue)
 
 	m.Path("/renderer/{udn}").
 		Methods("GET").

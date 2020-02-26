@@ -51,9 +51,18 @@ const (
 )
 
 const (
-	StatePaused  = State("PAUSED_PLAYBACK")
+	// The spec requires AVTransports to support StatePlaying & StateStopped.
+
 	StatePlaying = State("PLAYING")
 	StateStopped = State("STOPPED")
+
+	// The spec considers the rest as optional.
+
+	StateNoMediaPresent  = State("NO_MEDIA_PRESENT")
+	StatePaused          = State("PAUSED_PLAYBACK")
+	StatePausedRecording = State("PAUSED_RECORDING")
+	StateRecording       = State("RECORDING")
+	StateTransitioning   = State("TRANSITIONING")
 )
 
 const (

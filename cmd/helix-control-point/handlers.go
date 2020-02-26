@@ -107,7 +107,7 @@ func getTransportHTML(w http.ResponseWriter, r *http.Request) {
 	device, _ := devices.DeviceByUDN(udn)
 
 	ctx := r.Context()
-	state, err := transport.TransportInfo(ctx)
+	state, _, err := transport.TransportInfo(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -144,7 +144,7 @@ func getTransportJSON(w http.ResponseWriter, r *http.Request) {
 	device, _ := devices.DeviceByUDN(udn)
 
 	ctx := r.Context()
-	state, err := transport.TransportInfo(ctx)
+	state, _, err := transport.TransportInfo(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -3,6 +3,7 @@ package avtransport
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"time"
 
@@ -53,21 +54,29 @@ func (c *client) Seek(ctx context.Context, d time.Duration) error {
 	return c.call(ctx, seek, req, nil)
 }
 
-func (c *client) MediaInfo(ctx context.Context) (string, *upnpav.DIDL, error) {
+func (c *client) MediaInfo(ctx context.Context) (string, *upnpav.DIDL, string, *upnpav.DIDL, error) {
 	req := getMediaInfoRequest{InstanceID: 0}
 	rsp := getMediaInfoResponse{}
 	if err := c.call(ctx, getMediaInfo, req, &rsp); err != nil {
-		return "", nil, err
+		return "", nil, "", nil, err
 	}
 
-	var didl *upnpav.DIDL
+	var currentDIDL *upnpav.DIDL
 	if len(rsp.CurrentMetadata) != 0 {
-		didl = &upnpav.DIDL{}
-		if err := xml.Unmarshal(rsp.CurrentMetadata, didl); err != nil {
-			return rsp.CurrentURI, nil, fmt.Errorf("could not unmarshal metadata: %w", err)
+		currentDIDL = &upnpav.DIDL{}
+		if err := xml.Unmarshal(rsp.CurrentMetadata, currentDIDL); err != nil {
+			return rsp.CurrentURI, nil, rsp.NextURI, nil, fmt.Errorf("could not unmarshal metadata: %w", err)
 		}
 	}
-	return rsp.CurrentURI, didl, nil
+
+	var nextDIDL *upnpav.DIDL
+	if len(rsp.CurrentMetadata) != 0 {
+		nextDIDL = &upnpav.DIDL{}
+		if err := xml.Unmarshal(rsp.CurrentMetadata, nextDIDL); err != nil {
+			return rsp.CurrentURI, currentDIDL, rsp.NextURI, nil, fmt.Errorf("could not unmarshal metadata: %w", err)
+		}
+	}
+	return rsp.CurrentURI, currentDIDL, rsp.NextURI, nextDIDL, nil
 }
 func (c *client) PositionInfo(ctx context.Context) (string, *upnpav.DIDL, time.Duration, time.Duration, error) {
 	req := getPositionInfoRequest{InstanceID: 0}
@@ -84,23 +93,26 @@ func (c *client) PositionInfo(ctx context.Context) (string, *upnpav.DIDL, time.D
 		}
 	}
 	duration, err := upnpav.ParseDuration(rsp.Duration)
-	if err != nil {
-		return rsp.URI, didl, 0, 0, fmt.Errorf("could not unmarshal duration: %w", err)
+	if err != nil && rsp.Duration != "" {
+		return rsp.URI, didl, 0, 0, fmt.Errorf("could not unmarshal duration %q: %w", rsp.Duration, err)
 	}
 	progress, err := upnpav.ParseDuration(rsp.RelativeTime)
-	if err != nil {
-		return rsp.URI, didl, duration, 0, fmt.Errorf("could not unmarshal duration: %w", err)
+	if err != nil && rsp.RelativeTime != "" {
+		return rsp.URI, didl, duration, 0, fmt.Errorf("could not unmarshal partial time %q: %w", rsp.RelativeTime, err)
 	}
 
 	return rsp.URI, didl, duration, progress, nil
 }
-func (c *client) TransportInfo(ctx context.Context) (State, error) {
+func (c *client) TransportInfo(ctx context.Context) (State, Status, error) {
 	req := getTransportInfoRequest{}
 	rsp := getTransportInfoResponse{}
 	if err := c.call(ctx, getTransportInfo, req, &rsp); err != nil {
-		return State(""), err
+		return State(""), Status(""), err
 	}
-	return rsp.TransportState, nil
+	if rsp == (getTransportInfoResponse{}) {
+		return State(""), Status(""), errors.New("received an empty GetTransportInfoResponse")
+	}
+	return rsp.State, rsp.Status, nil
 }
 
 func (c *client) SetCurrentURI(ctx context.Context, uri string, metadata *upnpav.DIDL) error {

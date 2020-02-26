@@ -55,7 +55,7 @@ func main() {
 	}
 
 	ctx, _ = context.WithTimeout(context.Background(), 1*time.Second)
-	uri, metadata, err := client.MediaInfo(ctx)
+	uri, metadata, _, _, err := client.MediaInfo(ctx)
 	if err != nil {
 		log.Fatalf("could not get media info: %v", err)
 	}

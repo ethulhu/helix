@@ -83,9 +83,9 @@ type (
 		InstanceID int      `xml:"InstanceID"`
 	}
 	getTransportInfoResponse struct {
-		TransportState  State  `xml:"CurrentTransportState"`
-		TransportStatus string `xml:"CurrentTransportStatus"`
-		Speed           string `xml:"CurrentSpeed"`
+		State  State  `xml:"CurrentTransportState"`
+		Status Status `xml:"CurrentTransportStatus"`
+		Speed  string `xml:"CurrentSpeed"`
 	}
 )
 

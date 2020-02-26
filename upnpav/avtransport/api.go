@@ -10,6 +10,8 @@ import (
 
 type (
 	// Client is a UPnP AVTransport1 client.
+	// Not all methods exist on all Renderers.
+	// For example, Next is missing on gmediarender.
 	Client interface {
 		// Play plays the current track.
 		Play(context.Context) error
@@ -36,13 +38,25 @@ type (
 		// If metadata is nil, it will create a minimal metadata.
 		SetNextURI(ctx context.Context, uri string, metadata *upnpav.DIDL) error
 
-		MediaInfo(context.Context) (string, *upnpav.DIDL, error)
+		// MediaInfo returns the current URI and metadata.
+		MediaInfo(context.Context) (string, *upnpav.DIDL, string, *upnpav.DIDL, error)
+
+		// PositionInfo returns the current URI, metadata, total time, and elapsed time.
 		PositionInfo(context.Context) (string, *upnpav.DIDL, time.Duration, time.Duration, error)
-		TransportInfo(context.Context) (State, error)
+
+		// TransportInfo returns the current playback state and error status.
+		TransportInfo(context.Context) (State, Status, error)
 	}
 
-	State    string
 	SeekMode string
+
+	// State is a playback state.
+	// Vendor defined states can exist.
+	State string
+
+	// Status is whether or not an error occurred.
+	// Vendor defined statuses can exist.
+	Status string
 )
 
 const (
@@ -68,4 +82,9 @@ const (
 const (
 	SeekRelativeTime = SeekMode("REL_TIME")
 	SeekAbsoluteTime = SeekMode("ABS_TIME")
+)
+
+const (
+	StatusOK    = Status("OK")
+	StatusError = Status("ERROR_OCCURRED")
 )

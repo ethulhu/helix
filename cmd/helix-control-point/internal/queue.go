@@ -134,7 +134,7 @@ func (q *Queue) transportState(ctx context.Context) (*transportState, error) {
 	if q.transport == nil {
 		return nil, nil
 	}
-	state, err := q.transport.TransportInfo(ctx)
+	state, _, err := q.transport.TransportInfo(ctx)
 	if err != nil {
 		return nil, err
 	}

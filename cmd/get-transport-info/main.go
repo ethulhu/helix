@@ -52,9 +52,10 @@ func main() {
 	}
 
 	ctx, _ = context.WithTimeout(context.Background(), 1*time.Second)
-	state, err := client.TransportInfo(ctx)
+	state, status, err := client.TransportInfo(ctx)
 	if err != nil {
 		log.Fatalf("could not get media info: %v", err)
 	}
-	fmt.Println(state)
+	fmt.Printf("state: %s\n", state)
+	fmt.Printf("status: %s\n", status)
 }

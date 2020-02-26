@@ -40,16 +40,19 @@ func NewQueue() *Queue {
 				continue
 			}
 
-			state, err := q.transport.TransportInfo(ctx)
+			ts, err := q.transportState(ctx)
 			if err != nil {
 				log.Printf("could not get transport state: %v", err)
 				continue
 			}
 
-			if q.state == avtransport.StateStopped && state == q.state {
+			if ts.state == avtransport.StateTransitioning {
 				continue
 			}
-			if q.state == avtransport.StatePaused && state == q.state {
+			if q.state == avtransport.StateStopped && ts.state == q.state {
+				continue
+			}
+			if q.state == avtransport.StatePaused && ts.state == q.state {
 				continue
 			}
 
@@ -72,7 +75,7 @@ func NewQueue() *Queue {
 				continue
 			}
 
-			if state == avtransport.StateStopped {
+			if ts.state == avtransport.StateStopped {
 				if q.current != nil {
 					// Skip to the next track.
 					q.queue = q.queue[1:]
@@ -97,16 +100,14 @@ func NewQueue() *Queue {
 				continue
 			}
 
-			uri, _, _, _, err := q.transport.PositionInfo(ctx)
-			if err != nil {
-				log.Printf("could not get transport position: %v", err)
-				continue
-			}
-			if uri == q.current.Resources[0].URI && state == avtransport.StatePlaying {
+			currentURI := q.current.Resources[0].URI
+			currentDIDL := &upnpav.DIDL{Items: []upnpav.Item{*q.current}}
+
+			if ts.uri == currentURI && ts.state == avtransport.StatePlaying {
 				// Everything is OK.
 				continue
 			}
-			if uri == q.current.Resources[0].URI && state == avtransport.StatePaused {
+			if ts.uri == currentURI && ts.state == avtransport.StatePaused {
 				// Unpause.
 				if err := q.transport.Play(ctx); err != nil {
 					log.Printf("could not play transport: %v", err)
@@ -114,10 +115,8 @@ func NewQueue() *Queue {
 				continue
 			}
 
-			currentURI := q.current.Resources[0].URI
-			currentDIDL := &upnpav.DIDL{Items: []upnpav.Item{*q.current}}
-			// transport state is either Playing or Paused,
-			// either way we stop it, set the new URI, then start it again.
+			// Transport state is Playing, Paused, or something custom (e.g. "LG_TRANSITIONING").
+			// Either way we stop it, set the new URI, then start it again.
 			_ = q.transport.Stop(ctx)
 			if err := q.transport.SetCurrentURI(ctx, currentURI, currentDIDL); err != nil {
 				log.Printf("could not set transport URI: %v", err)
@@ -129,6 +128,26 @@ func NewQueue() *Queue {
 	}()
 
 	return q
+}
+
+func (q *Queue) transportState(ctx context.Context) (*transportState, error) {
+	if q.transport == nil {
+		return nil, nil
+	}
+	state, err := q.transport.TransportInfo(ctx)
+	if err != nil {
+		return nil, err
+	}
+	t := &transportState{state: state}
+	if state != avtransport.StateStopped {
+		uri, didl, _, _, err := q.transport.PositionInfo(ctx)
+		if err != nil {
+			return t, nil
+		}
+		t.uri = uri
+		t.didl = didl
+	}
+	return t, nil
 }
 
 func (q *Queue) Play()  { q.state = avtransport.StatePlaying }

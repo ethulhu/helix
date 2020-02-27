@@ -31,6 +31,9 @@ var baseTmpl = template.Must(template.New("base.html").Parse(`<!DOCTYPE html>
 		body {
 			background-color:  var(--background-color);
 			color:             var(--foreground-color);
+
+			font-size:    14pt;
+			font-family:  sans-serif;
 		}
 		a, a:visited {
 			color:            var(--link-color);
@@ -52,12 +55,49 @@ var baseTmpl = template.Must(template.New("base.html").Parse(`<!DOCTYPE html>
 			border-radius: 5px;
 			border:        solid 3px var(--link-hover-color);
 		}
+
+		nav {
+			position: absolute;
+			top: 0;
+			max-width: 100%;
+
+			border-radius: 5px;
+			border:        solid 3px var(--link-color);
+
+			background-color: var(--link-color);
+		}
+		nav ul {
+			list-style-type: none;
+			margin: 0;
+			padding: 0;
+		}
+		nav li {
+			display: inline;
+			float: left;
+			text-align: center;
+
+			border-right: 1px solid var(--background-color);
+		}
+		nav li:last-child {
+			border-right: none;
+		}
+		nav a {
+			color: var(--background-color) !important;
+			text-decoration: none;
+			display: block;
+			width: 60px;
+		}
+		nav a:hover {
+			background-color: var(--link-hover-color) !important;
+		}
 	</style>
 </head>
 <body>
 	{{ block "nav" . }}{{ end }}
-	<h1>{{ block "title" . }}{{ end }}</h1>
-	{{ block "main" . }}{{ end }}
+	<main>
+		<h1>{{ block "title" . }}{{ end }}</h1>
+		{{ block "main" . }}{{ end }}
+	</main>
 </body>
 </html>`))
 

@@ -120,3 +120,19 @@ func DIDLForURI(uri string) (*DIDL, error) {
 		}},
 	}, nil
 }
+
+// URIForProtocolInfos finds a URI from an item that matches a set of valid ProtocolInfos.
+// TODO: Return the "best" supported URI instead of just the first.
+func (item *Item) URIForProtocolInfos(infos []*ProtocolInfo) (string, bool) {
+	for _, resource := range item.Resources {
+		resInfo := resource.ProtocolInfo
+		for _, info := range infos {
+			if resInfo.Protocol == info.Protocol &&
+				resInfo.Network == info.Network &&
+				resInfo.ContentFormat == info.ContentFormat {
+				return resource.URI, true
+			}
+		}
+	}
+	return "", false
+}

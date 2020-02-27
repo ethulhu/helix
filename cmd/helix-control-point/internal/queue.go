@@ -2,23 +2,31 @@ package internal
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"sync"
 	"time"
 
+	"github.com/ethulhu/helix/upnp/ssdp"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/avtransport"
+	"github.com/ethulhu/helix/upnpav/connectionmanager"
 )
 
 type (
 	Queue struct {
 		mu sync.Mutex
 
-		state     avtransport.State
-		transport avtransport.Client
+		state avtransport.State
 
 		// queue TrackSequence
 		queue *TrackList
+
+		transport avtransport.Client
+		udn       string
+		name      string
+		sinks     []*upnpav.ProtocolInfo
 	}
 
 	transportState struct {
@@ -85,8 +93,12 @@ func NewQueue() *Queue {
 			if !ok {
 				continue
 			}
-			currentURI := current.Resources[0].URI
-			currentDIDL := &upnpav.DIDL{Items: []upnpav.Item{current}}
+			currentURI, ok := current.URIForProtocolInfos(q.sinks)
+			if !ok {
+				// If the transport can't play it, skip again.
+				q.queue.Skip()
+				continue
+			}
 
 			if ts.uri == currentURI && ts.state == avtransport.StatePlaying {
 				// Everything is OK.
@@ -103,18 +115,24 @@ func NewQueue() *Queue {
 			if prevTS.state == avtransport.StatePlaying && prevTS.uri == currentURI {
 				// We've fallen behind, so skip ourselves.
 				q.queue.Skip()
-				current, ok := q.queue.Current()
+				var ok bool
+				current, ok = q.queue.Current()
 				if !ok {
 					continue
 				}
-				currentURI = current.Resources[0].URI
-				currentDIDL = &upnpav.DIDL{Items: []upnpav.Item{current}}
+				currentURI, ok = current.URIForProtocolInfos(q.sinks)
+				if !ok {
+					// If the transport can't play it, skip again.
+					q.queue.Skip()
+					continue
+				}
 			}
 
+			didl := &upnpav.DIDL{Items: []upnpav.Item{current}}
 			if ts.state != avtransport.StateStopped {
 				_ = q.transport.Stop(ctx)
 			}
-			if err := q.transport.SetCurrentURI(ctx, currentURI, currentDIDL); err != nil {
+			if err := q.transport.SetCurrentURI(ctx, currentURI, didl); err != nil {
 				log.Printf("could not set transport URI: %v", err)
 			}
 			if err := q.transport.Play(ctx); err != nil {
@@ -150,8 +168,30 @@ func (q *Queue) Play()  { q.state = avtransport.StatePlaying }
 func (q *Queue) Pause() { q.state = avtransport.StatePaused }
 func (q *Queue) Stop()  { q.state = avtransport.StateStopped }
 
-func (q *Queue) SetTransport(transport avtransport.Client) {
-	q.transport = transport
+func (q *Queue) SetTransport(device *ssdp.Device) error {
+	connMgr, ok := device.Client(connectionmanager.Version1)
+	if !ok {
+		return errors.New("device does not expose ConnectionManager")
+	}
+	transport, ok := device.Client(avtransport.Version1)
+	if !ok {
+		return errors.New("device does not expose AVTransport")
+	}
+
+	ctx := context.Background()
+	_, sinks, err := connectionmanager.NewClient(connMgr).ProtocolInfo(ctx)
+	if err != nil {
+		return fmt.Errorf("could not list device sink protocols: %w", err)
+	}
+	if len(sinks) == 0 {
+		return errors.New("device has no valid sink protocols")
+	}
+
+	q.name = device.Name
+	q.sinks = sinks
+	q.transport = avtransport.NewClient(transport)
+	q.udn = device.UDN
+	return nil
 }
 func (q *Queue) AddLast(item upnpav.Item) {
 	q.queue.AddLast(item)

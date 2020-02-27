@@ -29,12 +29,14 @@ func getQueueJSON(w http.ResponseWriter, r *http.Request) {
 func setQueueTransport(w http.ResponseWriter, r *http.Request) {
 	udn := mustVar(r, "transport")
 
-	transport, ok := devices.AVTransportByUDN(udn)
+	device, ok := devices.DeviceByUDN(udn)
 	if !ok {
-		http.Error(w, fmt.Sprintf("could not find AVTransport %s", udn), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("could not find device %s", udn), http.StatusNotFound)
 		return
 	}
-	queue.SetTransport(transport)
+	if err := queue.SetTransport(device); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func playQueue(w http.ResponseWriter, r *http.Request) {

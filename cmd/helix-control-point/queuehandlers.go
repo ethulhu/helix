@@ -28,13 +28,17 @@ func getQueueJSON(w http.ResponseWriter, r *http.Request) {
 func getQueueHTML(w http.ResponseWriter, r *http.Request) {
 	transports := devices.DevicesByURN(avtransport.Version1)
 
+	udn := "none"
+	if queue.UDN() != "" {
+		udn = queue.UDN()
+	}
+
 	args := struct {
 		CurrentUDN  string
-		CurrentName string
 		State       avtransport.State
 		Items       []upnpav.Item
 		Transports  []*ssdp.Device
-	}{queue.UDN(), queue.Name(), queue.State(), queue.Queue(), transports}
+	}{udn, queue.State(), queue.Queue(), transports}
 
 	if err := queueTmpl.Execute(w, args); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -44,11 +48,17 @@ func getQueueHTML(w http.ResponseWriter, r *http.Request) {
 func setQueueTransport(w http.ResponseWriter, r *http.Request) {
 	udn := mustVar(r, "transport")
 
-	device, ok := devices.DeviceByUDN(udn)
-	if !ok {
-		http.Error(w, fmt.Sprintf("could not find device %s", udn), http.StatusNotFound)
-		return
+	// "none" is a magic value to unset the transport.
+	var device *ssdp.Device
+	if udn != "none" {
+		var ok bool
+		device, ok = devices.DeviceByUDN(udn)
+		if !ok {
+			http.Error(w, fmt.Sprintf("could not find device %s", udn), http.StatusNotFound)
+			return
+		}
 	}
+
 	if err := queue.SetTransport(device); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

@@ -44,6 +44,8 @@ var baseTmpl = template.Must(template.New("base.html").Parse(`<!DOCTYPE html>
 		input[type=text] {
 			background-color:  var(--callout-color);
 			color:             var(--foreground-color);
+			font-size:    12pt;
+			font-family:  sans-serif;
 
 			border-radius: 5px;
 			border:        solid 3px var(--callout-color);
@@ -51,6 +53,8 @@ var baseTmpl = template.Must(template.New("base.html").Parse(`<!DOCTYPE html>
 		button, select {
 			background-color:  var(--link-hover-color);
 			color:             var(--background-color);
+			font-size:    12pt;
+			font-family:  sans-serif;
 
 			border-radius: 5px;
 			border:        solid 3px var(--link-hover-color);

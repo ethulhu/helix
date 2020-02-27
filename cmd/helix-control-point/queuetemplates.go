@@ -1,6 +1,8 @@
 package main
 
-import "html/template"
+import (
+	"html/template"
+)
 
 var queueTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
 {{ define "title" }}queue{{ end }}
@@ -15,9 +17,13 @@ var queueTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
 	<label>
 		Transport:
 		<select id='transport' value='{{ .CurrentUDN }}'>
-		{{ range $index, $device := .Transports }}
+			<option value='none'>none</option>
+		{{- if .Transports }}
+			<option disabled>────────────</option>
+		{{- end }}
+		{{- range $index, $device := .Transports }}
 			<option value='{{ $device.UDN }}'>{{ $device.Name }}</option>
-		{{ end }}
+		{{- end }}
 		</select>
 	</label>
 	<button id='play'>play</button>

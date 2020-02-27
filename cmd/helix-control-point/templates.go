@@ -2,15 +2,26 @@ package main
 
 import "html/template"
 
-var indexTmpl = template.Must(template.New("/browse").Parse(`<!DOCTYPE html>
+var baseTmpl = template.Must(template.New("base.html").Parse(`<!DOCTYPE html>
 <html lang='en'>
 <head>
 	<meta charset='utf-8'>
 	<meta name='viewport' content='width=device-width, initial-scale=1.0'>
-	<title>Helix Control Point</title>
+	<title>Helix - {{ block "title" . }}{{ end }}</title>
 </head>
 <body>
-	<h1>Helix Control Point</h1>
+	{{ block "nav" . }}{{ end }}
+	<h1>{{ block "title" . }}{{ end }}</h1>
+	{{ block "main" . }}{{ end }}
+</body>
+</html>`))
+
+var indexTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
+{{ define "title" }}Helix Control Point{{ end }}
+{{ define "main" }}
+	<section id='queues'>
+		<a href='/queue'>queue</a>
+	</section>
 	<section id='directories'>
 		<h2>Directories</h2>
 		{{ range $index, $device := .Directories }}
@@ -23,54 +34,55 @@ var indexTmpl = template.Must(template.New("/browse").Parse(`<!DOCTYPE html>
 		<li><a href='/renderer/{{ $device.UDN }}'>{{ $device.Name }}</a></li>
 		{{ end }}
 	</section>
-	<script type='module'>
-	</script>
-</body>
-</html>`))
+{{ end }}`))
 
-var directoriesTmpl = template.Must(template.New("/browse").Parse(`<!DOCTYPE html>
-<html lang='en'>
-<head>
-	<meta charset='utf-8'>
-	<meta name='viewport' content='width=device-width, initial-scale=1.0'>
-	<title>Helix - directories</title>
-</head>
-<body>
-	<h1>directories</h1>
+var directoriesTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
+{{ define "title" }}directories{{ end }}
+{{ define "nav" }}
+	<nav>
+		<ul>
+			<li><a href='/'>home</a></li>
+			<li><a href='/queue'>queue</a></li>
+		</ul>
+	</nav>
+{{ end }}
+{{ define "main" }}
 	<ul>
 	{{ range $index, $device := . }}
 		<li><a href='/browse/{{ $device.UDN }}'>{{ $device.Name }}</a></li>
 	{{ end }}
 	</ul>
-</body>
-</html>`))
+{{ end }}`))
 
-var browseTmpl = template.Must(template.New("/browse").Parse(`<!DOCTYPE html>
-<html lang='en'>
-<head>
-	<meta charset='utf-8'>
-	<meta name='viewport' content='width=device-width, initial-scale=1.0'>
-	<title>Helix - {{ .Directory.Name }}</title>
-</head>
-<body>
-	<h1>{{ .Directory.Name }}</h1>
+var browseTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
+{{ define "title" }}{{ .Directory.Name }}{{ end }}
+{{ define "nav" }}
+	<nav>
+		<ul>
+			<li><a href='/'>home</a></li>
+			<li><a href='/queue'>queue</a></li>
+		</ul>
+	</nav>
+{{ end }}
+{{ define "main" }}
 	{{ $udn := .Directory.UDN }}
 
 	{{ if .DIDL.Containers }}
-	<ul>
-	{{ range $index, $container := .DIDL.Containers }}
-		<li><a href='/browse/{{ $udn }}/{{ $container.ID }}'>{{ $container.Title }}</a></li>
-	{{ end }}
-	</ul>
+		<ul>
+		{{ range $index, $container := .DIDL.Containers }}
+			<li><a href='/browse/{{ $udn }}/{{ $container.ID }}'>{{ $container.Title }}</a></li>
+		{{ end }}
+		</ul>
 	{{ end }}
 
 	{{ if .DIDL.Items }}
-	<ul>
-	{{ range $index, $item := .DIDL.Items }}
-		<li><button data-objectid='{{ $item.ID }}'>{{ $item.Title }}</button></li>
+		<ul>
+		{{ range $index, $item := .DIDL.Items }}
+			<li><button data-objectid='{{ $item.ID }}'>{{ $item.Title }}</button></li>
+		{{ end }}
+		</ul>
 	{{ end }}
-	</ul>
-	{{ end }}
+
 	<script type='module'>
 const directoryUDN = '{{ .Directory.UDN }}';
 document.querySelectorAll( 'button' ).forEach( button => {
@@ -87,35 +99,38 @@ document.querySelectorAll( 'button' ).forEach( button => {
 		} ).catch( console.error );
 	} );
 } );
-
 	</script>
-</body>
-</html>`))
+{{ end }}`))
 
-var transportsTmpl = template.Must(template.New("/browse").Parse(`<!DOCTYPE html>
-<html lang='en'>
-<head>
-	<meta charset='utf-8'>
-	<meta name='viewport' content='width=device-width, initial-scale=1.0'>
-</head>
-<body>
-	<h1>renderers</h1>
+var transportsTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
+{{ define "title" }}transports{{ end }}
+{{ define "nav" }}
+	<nav>
+		<ul>
+			<li><a href='/'>home</a></li>
+			<li><a href='/queue'>queue</a></li>
+		</ul>
+	</nav>
+{{ end }}
+{{ define "main" }}
 	<ul>
 	{{ range $index, $device := . }}
 		<li><a href='/renderer/{{ $device.UDN }}'>{{ $device.Name }}</a></li>
 	{{ end }}
 	</ul>
-</body>
-</html>`))
+{{ end }}`))
 
-var transportTmpl = template.Must(template.New("/browse").Parse(`<!DOCTYPE html>
-<html lang='en'>
-<head>
-	<meta charset='utf-8'>
-	<meta name='viewport' content='width=device-width, initial-scale=1.0'>
-</head>
-<body>
-	<h1>{{ .Transport.Name }}</h1>
+var transportTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
+{{ define "title" }}{{ .Transport.Name }}{{ end }}
+{{ define "nav" }}
+	<nav>
+		<ul>
+			<li><a href='/'>home</a></li>
+			<li><a href='/queue'>queue</a></li>
+		</ul>
+	</nav>
+{{ end }}
+{{ define "main" }}
 	<p>state: {{ .PlaybackState }}</p>
 	{{ if .DIDL }}
 	<p>items:
@@ -141,5 +156,4 @@ const actions = document.getElementById( 'actions' );
 	actions.appendChild( li );
 } );
 	</script>
-</body>
-</html>`))
+{{ end }}`))

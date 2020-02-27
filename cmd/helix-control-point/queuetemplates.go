@@ -2,15 +2,16 @@ package main
 
 import "html/template"
 
-var queueTmpl = template.Must(template.New("/browse").Parse(`<!DOCTYPE html>
-<html lang='en'>
-<head>
-	<meta charset='utf-8'>
-	<meta name='viewport' content='width=device-width, initial-scale=1.0'>
-	<title>Helix - Queue</title>
-</head>
-<body>
-	<h1>Play Queue</h1>
+var queueTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
+{{ define "title" }}queue{{ end }}
+{{ define "nav" }}
+	<nav>
+		<ul>
+			<li><a href='/'>home</a></li>
+		</ul>
+	</nav>
+{{ end }}
+{{ define "main" }}
 	<label>
 		Transport:
 		<select id='transport' value='{{ .CurrentUDN }}'>
@@ -46,5 +47,4 @@ document.getElementById( 'transport' ).addEventListener( 'change', e => {
 } );
 } );
 	</script>
-</body>
-</html>`))
+{{ end }}`))

@@ -9,6 +9,7 @@ import (
 
 type (
 	Client interface {
+		// ProtocolInfo lists the protocols that the device can send and receive, respectively.
 		ProtocolInfo(context.Context) ([]*upnpav.ProtocolInfo, []*upnpav.ProtocolInfo, error)
 	}
 )

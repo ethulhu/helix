@@ -11,13 +11,12 @@ import (
 )
 
 func getQueueJSON(w http.ResponseWriter, r *http.Request) {
-	state := queue.State()
-	items := queue.Queue()
-
 	data := struct {
+		UDN   string            `json:"udn,omitempty"`
+		Name  string            `json:"name,omitempty"`
 		State avtransport.State `json:"state"`
 		Items []upnpav.Item     `json:"items,omitempty"`
-	}{state, items}
+	}{queue.UDN(), queue.Name(), queue.State(), queue.Queue()}
 
 	bytes, err := json.Marshal(data)
 	if err != nil {

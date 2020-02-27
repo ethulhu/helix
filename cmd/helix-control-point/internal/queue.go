@@ -201,6 +201,12 @@ func (q *Queue) Clear() {
 	q.queue.Clear()
 }
 
+func (q *Queue) UDN() string {
+	return q.udn
+}
+func (q *Queue) Name() string {
+	return q.name
+}
 func (q *Queue) State() avtransport.State {
 	return q.state
 }

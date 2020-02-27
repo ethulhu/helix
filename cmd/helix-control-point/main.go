@@ -84,9 +84,9 @@ func main() {
 		Methods("GET").
 		HeadersRegexp("Accept", "(application|text)/json").
 		HandlerFunc(getQueueJSON)
-	// m.Path("/queue").
-	// Methods("GET").
-	// HandlerFunc(getQueueHTML)
+	m.Path("/queue").
+		Methods("GET").
+		HandlerFunc(getQueueHTML)
 
 	m.Path("/queue").
 		Methods("POST").

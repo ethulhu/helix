@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ethulhu/helix/upnp/ssdp"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/avtransport"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
@@ -24,6 +25,21 @@ func getQueueJSON(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(bytes)
 }
+func getQueueHTML(w http.ResponseWriter, r *http.Request) {
+	transports := devices.DevicesByURN(avtransport.Version1)
+
+	args := struct {
+		CurrentUDN  string
+		CurrentName string
+		State       avtransport.State
+		Items       []upnpav.Item
+		Transports  []*ssdp.Device
+	}{queue.UDN(), queue.Name(), queue.State(), queue.Queue(), transports}
+
+	if err := queueTmpl.Execute(w, args); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
 
 func setQueueTransport(w http.ResponseWriter, r *http.Request) {
 	udn := mustVar(r, "transport")
@@ -39,6 +55,12 @@ func setQueueTransport(w http.ResponseWriter, r *http.Request) {
 }
 
 func playQueue(w http.ResponseWriter, r *http.Request) {
+	if queue.UDN() == "" {
+		transports := devices.DevicesByURN(avtransport.Version1)
+		if len(transports) == 1 {
+			queue.SetTransport(transports[0])
+		}
+	}
 	queue.Play()
 }
 func pauseQueue(w http.ResponseWriter, r *http.Request) {

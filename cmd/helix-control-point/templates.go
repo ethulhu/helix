@@ -55,18 +55,16 @@ var browseTmpl = template.Must(template.New("/browse").Parse(`<!DOCTYPE html>
 <body>
 	<h1>{{ .Directory.Name }}</h1>
 	{{ $udn := .Directory.UDN }}
+
+	{{ if .DIDL.Containers }}
 	<ul>
 	{{ range $index, $container := .DIDL.Containers }}
 		<li><a href='/browse/{{ $udn }}/{{ $container.ID }}'>{{ $container.Title }}</a></li>
 	{{ end }}
 	</ul>
+	{{ end }}
 
 	{{ if .DIDL.Items }}
-	<select id='renderer'>
-		{{ range $index, $transport := .Transports }}
-		<option value='{{ $transport.UDN }}'>{{ $transport.Name }}</object>
-		{{ end }}
-	</select>
 	<ul>
 	{{ range $index, $item := .DIDL.Items }}
 		<li><button data-objectid='{{ $item.ID }}'>{{ $item.Title }}</button></li>
@@ -77,13 +75,12 @@ var browseTmpl = template.Must(template.New("/browse").Parse(`<!DOCTYPE html>
 const directoryUDN = '{{ .Directory.UDN }}';
 document.querySelectorAll( 'button' ).forEach( button => {
 	button.addEventListener( 'click', e => {
-		const transportUDN = document.getElementById( 'renderer' ).value;
-		const url = '/renderer/' + transportUDN;
 		const fd = new FormData();
-		fd.append( 'action', 'play' );
+		fd.append( 'action', 'add' );
+		fd.append( 'position', 'last' );
 		fd.append( 'directory', directoryUDN );
 		fd.append( 'object', e.target.dataset.objectid );
-		fetch( url, { method: 'post', body: fd } ).then( rsp => {
+		fetch( '/queue', { method: 'post', body: fd } ).then( rsp => {
 			if ( ! rsp.ok ) {
 				throw rsp.text();
 			}

@@ -30,6 +30,7 @@ type (
 	}
 
 	transportState struct {
+		udn   string
 		state avtransport.State
 		uri   string
 		didl  *upnpav.DIDL
@@ -95,6 +96,7 @@ func NewQueue() *Queue {
 			}
 			currentURI, ok := current.URIForProtocolInfos(q.sinks)
 			if !ok {
+				log.Print("skipping track for invalid protocol")
 				// If the transport can't play it, skip again.
 				q.queue.Skip()
 				continue
@@ -112,8 +114,9 @@ func NewQueue() *Queue {
 				continue
 			}
 
-			if prevTS.state == avtransport.StatePlaying && prevTS.uri == currentURI {
+			if prevTS.udn == ts.udn && prevTS.state == avtransport.StatePlaying && prevTS.uri == currentURI {
 				// We've fallen behind, so skip ourselves.
+				log.Print("skipping track")
 				q.queue.Skip()
 				var ok bool
 				current, ok = q.queue.Current()
@@ -123,6 +126,7 @@ func NewQueue() *Queue {
 				currentURI, ok = current.URIForProtocolInfos(q.sinks)
 				if !ok {
 					// If the transport can't play it, skip again.
+					log.Print("skipping track for invalid protocol")
 					q.queue.Skip()
 					continue
 				}
@@ -152,7 +156,7 @@ func (q *Queue) transportState(ctx context.Context) (*transportState, error) {
 	if err != nil {
 		return nil, err
 	}
-	t := &transportState{state: state}
+	t := &transportState{udn: q.udn, state: state}
 	if state != avtransport.StateStopped {
 		uri, didl, _, _, err := q.transport.PositionInfo(ctx)
 		if err != nil {
@@ -185,6 +189,11 @@ func (q *Queue) SetTransport(device *ssdp.Device) error {
 	}
 	if len(sinks) == 0 {
 		return errors.New("device has no valid sink protocols")
+	}
+
+	// TODO: maybe reconsider how handoff between renderers works?
+	if q.transport != nil {
+		_ = q.transport.Stop(ctx)
 	}
 
 	q.name = device.Name

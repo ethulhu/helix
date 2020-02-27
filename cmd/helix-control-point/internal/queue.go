@@ -183,7 +183,23 @@ func (q *Queue) Play()  { q.state = avtransport.StatePlaying }
 func (q *Queue) Pause() { q.state = avtransport.StatePaused }
 func (q *Queue) Stop()  { q.state = avtransport.StateStopped }
 
+// SetTransport sets the queue to immediately start using a new transport.
+// This will stop playback on the existing transport.
+// Setting the transport to nil is valid, and just stops playback.
 func (q *Queue) SetTransport(device *ssdp.Device) error {
+	ctx := context.Background()
+
+	if device == nil {
+		if q.transport != nil {
+			_ = q.transport.Stop(ctx)
+		}
+		q.name = ""
+		q.sinks = nil
+		q.transport = nil
+		q.udn = ""
+		return nil
+	}
+
 	connMgr, ok := device.Client(connectionmanager.Version1)
 	if !ok {
 		return errors.New("device does not expose ConnectionManager")
@@ -193,7 +209,6 @@ func (q *Queue) SetTransport(device *ssdp.Device) error {
 		return errors.New("device does not expose AVTransport")
 	}
 
-	ctx := context.Background()
 	_, sinks, err := connectionmanager.NewClient(connMgr).ProtocolInfo(ctx)
 	if err != nil {
 		return fmt.Errorf("could not list device sink protocols: %w", err)
@@ -202,7 +217,6 @@ func (q *Queue) SetTransport(device *ssdp.Device) error {
 		return errors.New("device has no valid sink protocols")
 	}
 
-	// TODO: maybe reconsider how handoff between renderers works?
 	if q.transport != nil {
 		_ = q.transport.Stop(ctx)
 	}

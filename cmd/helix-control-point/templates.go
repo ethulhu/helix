@@ -8,6 +8,51 @@ var baseTmpl = template.Must(template.New("base.html").Parse(`<!DOCTYPE html>
 	<meta charset='utf-8'>
 	<meta name='viewport' content='width=device-width, initial-scale=1.0'>
 	<title>Helix - {{ block "title" . }}{{ end }}</title>
+	<style>
+		:root {
+			--background-color:  hsl(0, 0%, 100%);
+			--callout-color:     hsl(0, 0%, 90%);
+
+			--foreground-color:  hsl(0, 0%, 0%);
+			--link-color:        hsl(0, 0%, 50%);
+			--link-hover-color:  hsl(205, 69%, 50%);
+		}
+		@media (prefers-color-scheme: dark) {
+			:root {
+				--background-color:  hsl(0, 0%, 12%);
+				--callout-color:     hsl(0, 0%, 24%);
+
+				--foreground-color:  hsl(0, 0%, 82%);
+				--link-color:        hsl(0, 0%, 65%);
+				--link-hover-color:  hsl(259, 49%, 65%);
+			}
+		}
+
+		body {
+			background-color:  var(--background-color);
+			color:             var(--foreground-color);
+		}
+		a, a:visited {
+			color:            var(--link-color);
+		}
+		a:hover {
+			color:            var(--link-hover-color);
+		}
+		input[type=text] {
+			background-color:  var(--callout-color);
+			color:             var(--foreground-color);
+
+			border-radius: 5px;
+			border:        solid 3px var(--callout-color);
+		}
+		button, select {
+			background-color:  var(--link-hover-color);
+			color:             var(--background-color);
+
+			border-radius: 5px;
+			border:        solid 3px var(--link-hover-color);
+		}
+	</style>
 </head>
 <body>
 	{{ block "nav" . }}{{ end }}

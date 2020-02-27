@@ -30,10 +30,11 @@ type (
 	}
 
 	transportState struct {
-		udn   string
-		state avtransport.State
-		uri   string
-		didl  *upnpav.DIDL
+		udn     string
+		state   avtransport.State
+		uri     string
+		didl    *upnpav.DIDL
+		elapsed time.Duration
 	}
 )
 
@@ -114,10 +115,13 @@ func NewQueue() *Queue {
 				continue
 			}
 
+			newTrack := false
 			if prevTS.udn == ts.udn && prevTS.state == avtransport.StatePlaying && prevTS.uri == currentURI {
 				// We've fallen behind, so skip ourselves.
 				log.Print("skipping track")
 				q.queue.Skip()
+				newTrack = true
+
 				var ok bool
 				current, ok = q.queue.Current()
 				if !ok {
@@ -142,6 +146,12 @@ func NewQueue() *Queue {
 			if err := q.transport.Play(ctx); err != nil {
 				log.Printf("could not play transport: %v", err)
 			}
+			if !newTrack {
+				log.Printf("seeking to %v", prevTS.elapsed)
+				if err := q.transport.Seek(ctx, prevTS.elapsed); err != nil {
+					log.Printf("could not set seek: %v", err)
+				}
+			}
 		}
 	}()
 
@@ -158,12 +168,13 @@ func (q *Queue) transportState(ctx context.Context) (*transportState, error) {
 	}
 	t := &transportState{udn: q.udn, state: state}
 	if state != avtransport.StateStopped {
-		uri, didl, _, _, err := q.transport.PositionInfo(ctx)
+		uri, didl, _, elapsed, err := q.transport.PositionInfo(ctx)
 		if err != nil {
 			return t, nil
 		}
 		t.uri = uri
 		t.didl = didl
+		t.elapsed = elapsed
 	}
 	return t, nil
 }

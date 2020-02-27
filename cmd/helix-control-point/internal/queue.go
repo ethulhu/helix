@@ -53,11 +53,12 @@ func NewQueue() *Queue {
 		}
 
 		for _ = range time.Tick(1 * time.Second) {
+			prevTS = ts
+
 			if q.transport == nil {
+				prevTS.udn = ""
 				continue
 			}
-
-			prevTS = ts
 
 			var err error
 			ts, err = q.transportState(ctx)

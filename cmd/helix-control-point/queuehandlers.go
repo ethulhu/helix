@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/ethulhu/helix/upnp/ssdp"
@@ -34,10 +35,10 @@ func getQueueHTML(w http.ResponseWriter, r *http.Request) {
 	}
 
 	args := struct {
-		CurrentUDN  string
-		State       avtransport.State
-		Items       []upnpav.Item
-		Transports  []*ssdp.Device
+		CurrentUDN string
+		State      avtransport.State
+		Items      []upnpav.Item
+		Transports []*ssdp.Device
 	}{udn, queue.State(), queue.Queue(), transports}
 
 	if err := queueTmpl.Execute(w, args); err != nil {
@@ -58,6 +59,7 @@ func setQueueTransport(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	log.Printf("setting transport: %v", udn)
 
 	if err := queue.SetTransport(device); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

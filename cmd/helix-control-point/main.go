@@ -61,7 +61,11 @@ func main() {
 
 	m := mux.NewRouter()
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, fmt.Sprintf("not found: %s %s %s", r.Method, r.URL, r.Form), http.StatusNotFound)
+		msg := fmt.Sprintf("not found: %s %s %s", r.Method, r.URL, r.Form)
+		if r.URL.Path != "/favicon.ico" {
+			log.Print(msg)
+		}
+		http.Error(w, msg, http.StatusNotFound)
 	})
 
 	m.Path("/").
@@ -70,7 +74,7 @@ func main() {
 
 	m.Path("/browse").
 		Methods("GET").
-		HandlerFunc(getDirectories)
+		HandlerFunc(getDirectoriesHTML)
 
 	m.Path("/browse/{udn}").
 		Methods("GET").
@@ -78,7 +82,7 @@ func main() {
 
 	m.Path("/browse/{udn}/{object}").
 		Methods("GET").
-		HandlerFunc(getObject)
+		HandlerFunc(getObjectHTML)
 
 	m.Path("/queue").
 		Methods("GET").

@@ -15,35 +15,59 @@ import (
 
 // Index.
 
-func getIndexHTML(w http.ResponseWriter, r *http.Request) {
-	directories := devices.DevicesByURN(contentdirectory.Version1)
-	transports := devices.DevicesByURN(avtransport.Version1)
+type queueArgs struct {
+	Transports []*ssdp.Device
+	CurrentUDN string
+	Items      []upnpav.Item
+}
 
-	sort.Slice(directories, func(i, j int) bool {
-		return directories[i].Name < directories[j].Name
-	})
+func getQueueArgs() queueArgs {
+	transports := devices.DevicesByURN(avtransport.Version1)
 	sort.Slice(transports, func(i, j int) bool {
 		return transports[i].Name < transports[j].Name
 	})
 
+	udn := "none"
+	if queue.UDN() != "" {
+		udn = queue.UDN()
+	}
+
+	return queueArgs{
+		Transports: transports,
+		CurrentUDN: udn,
+		Items:      queue.Queue(),
+	}
+}
+
+func getIndexHTML(w http.ResponseWriter, r *http.Request) {
+	directories := devices.DevicesByURN(contentdirectory.Version1)
+	sort.Slice(directories, func(i, j int) bool {
+		return directories[i].Name < directories[j].Name
+	})
+
 	args := struct {
 		Directories []*ssdp.Device
-		Transports  []*ssdp.Device
-	}{directories, transports}
+		Queue       queueArgs
+	}{directories, getQueueArgs()}
 	if err := indexTmpl.Execute(w, args); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("could not render %v: %v", r.URL.Path, err)
 	}
 }
 
 // ContentDirectory handlers.
 
-func getDirectories(w http.ResponseWriter, r *http.Request) {
+func getDirectoriesHTML(w http.ResponseWriter, r *http.Request) {
 	directories := devices.DevicesByURN(contentdirectory.Version1)
 	sort.Slice(directories, func(i, j int) bool {
 		return directories[i].Name < directories[j].Name
 	})
 
-	if err := directoriesTmpl.Execute(w, directories); err != nil {
+	args := struct {
+		Directories []*ssdp.Device
+		Queue       queueArgs
+	}{directories, getQueueArgs()}
+	if err := directoriesTmpl.Execute(w, args); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -52,7 +76,7 @@ func getDirectory(w http.ResponseWriter, r *http.Request) {
 	udn := mustVar(r, "udn")
 	http.Redirect(w, r, fmt.Sprintf("/browse/%v/0", udn), http.StatusFound)
 }
-func getObject(w http.ResponseWriter, r *http.Request) {
+func getObjectHTML(w http.ResponseWriter, r *http.Request) {
 	object := mustVar(r, "object")
 	udn := mustVar(r, "udn")
 
@@ -70,13 +94,11 @@ func getObject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transports := devices.DevicesByURN(avtransport.Version1)
-
 	args := struct {
-		DIDL       *upnpav.DIDL
-		Directory  *ssdp.Device
-		Transports []*ssdp.Device
-	}{didl, device, transports}
+		DIDL      *upnpav.DIDL
+		Directory *ssdp.Device
+		Queue     queueArgs
+	}{didl, device, getQueueArgs()}
 	if err := browseTmpl.Execute(w, args); err != nil {
 		log.Printf("error rendering %v: %v", r.URL.Path, err)
 		return
@@ -86,12 +108,10 @@ func getObject(w http.ResponseWriter, r *http.Request) {
 // AVTransport handlers.
 
 func getTransports(w http.ResponseWriter, r *http.Request) {
-	transports := devices.DevicesByURN(avtransport.Version1)
-	sort.Slice(transports, func(i, j int) bool {
-		return transports[i].Name < transports[j].Name
-	})
-
-	if err := transportsTmpl.Execute(w, transports); err != nil {
+	args := struct {
+		Queue queueArgs
+	}{getQueueArgs()}
+	if err := transportsTmpl.Execute(w, args); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -127,7 +147,8 @@ func getTransportHTML(w http.ResponseWriter, r *http.Request) {
 		DIDL          *upnpav.DIDL
 		Transport     *ssdp.Device
 		PlaybackState avtransport.State
-	}{didl, device, state}
+		Queue         queueArgs
+	}{didl, device, state, getQueueArgs()}
 	if err := transportTmpl.Execute(w, args); err != nil {
 		log.Printf("error rendering %v: %v", r.URL.Path, err)
 		return

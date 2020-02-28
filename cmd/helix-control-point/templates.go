@@ -35,13 +35,16 @@ var baseTmpl = template.Must(template.New("base.html").Parse(`<!DOCTYPE html>
 			font-size:    14pt;
 			font-family:  sans-serif;
 		}
+		p, li {
+			line-height:  1.4;
+		}
 		a, a:visited {
 			color:            var(--link-color);
 		}
 		a:hover {
 			color:            var(--link-hover-color);
 		}
-		input[type=text] {
+		button, select, details {
 			background-color:  var(--callout-color);
 			color:             var(--foreground-color);
 			font-size:    12pt;
@@ -50,67 +53,69 @@ var baseTmpl = template.Must(template.New("base.html").Parse(`<!DOCTYPE html>
 			border-radius: 5px;
 			border:        solid 3px var(--callout-color);
 		}
-		button, select {
-			background-color:  var(--link-hover-color);
-			color:             var(--background-color);
-			font-size:    12pt;
-			font-family:  sans-serif;
-
-			border-radius: 5px;
-			border:        solid 3px var(--link-hover-color);
-		}
-
-		nav {
-			position: absolute;
-			top: 0;
+		#controls details {
 			max-width: 100%;
-
-			border-radius: 5px;
-			border:        solid 3px var(--link-color);
-
-			background-color: var(--link-color);
-		}
-		nav ul {
-			list-style-type: none;
-			margin: 0;
-			padding: 0;
-		}
-		nav li {
-			display: inline;
-			float: left;
-			text-align: center;
-
-			border-right: 1px solid var(--background-color);
-		}
-		nav li:last-child {
-			border-right: none;
-		}
-		nav a {
-			color: var(--background-color) !important;
-			text-decoration: none;
-			display: block;
-			width: 60px;
-		}
-		nav a:hover {
-			background-color: var(--link-hover-color) !important;
 		}
 	</style>
 </head>
 <body>
-	{{ block "nav" . }}{{ end }}
-	<main>
+	<div class='controls'>
+		<button id='play'>play</button>
+		<button id='pause'>pause</button>
+		<button id='stop'>stop</button>
+
+		{{- $currentUDN := .Queue.CurrentUDN }}
+		<select id='transport'>
+			<option value='none' {{ if eq $currentUDN "none" }}selected{{ end }}r>no transport</option>
+			{{- if .Queue.Transports }}
+				<option disabled>────────────</option>
+			{{- end }}
+			{{- range $index, $device := .Queue.Transports }}
+			<option value='{{ $device.UDN }}' {{ if eq $currentUDN $device.UDN }}selected{{ end }}>{{ $device.Name }}</option>
+			{{- end }}
+		</select>
+
+		<details>
+			<summary>playlist</summary>
+			<ul id='queue'>
+			{{- range $index, $item := .Queue.Items }}
+				<li>{{ $item.Title }}</li>
+			{{- end }}
+			</ul>
+		</details>
+	</div>
+	<section>
+		{{ block "nav" . }}{{ end }}
 		<h1>{{ block "title" . }}{{ end }}</h1>
 		{{ block "main" . }}{{ end }}
-	</main>
+	</section>
+
+	<script type='module'>
+[ 'play', 'pause', 'stop' ].forEach( action => {
+	const button = document.getElementById( action );
+	button.addEventListener( 'click', e => {
+		const fd = new FormData();
+		fd.append( 'action', action );
+		fetch( '/queue', { method: 'post', body: fd } ).then( rsp => rsp.text() )
+		                                               .then( console.log )
+		                                               .catch( console.error );
+	} );
+} );
+
+document.getElementById( 'transport' ).addEventListener( 'change', e => {
+	console.log( 'setting transport to ' + e.target.value );
+	const fd = new FormData();
+	fd.append( 'transport', e.target.value );
+	fetch( '/queue', { method: 'post', body: fd } ).then( rsp => rsp.text() )
+	                                               .then( console.log );
+} );
+	</script>
 </body>
 </html>`))
 
 var indexTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
 {{ define "title" }}Helix Control Point{{ end }}
 {{ define "main" }}
-	<section id='queues'>
-		<a href='/queue'>queue</a>
-	</section>
 	<section id='directories'>
 		<h2>Directories</h2>
 		{{ range $index, $device := .Directories }}
@@ -119,7 +124,7 @@ var indexTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
 	</section>
 	<section id='renderers'>
 		<h2>Renderers</h2>
-		{{ range $index, $device := .Transports }}
+		{{ range $index, $device := .Queue.Transports }}
 		<li><a href='/renderer/{{ $device.UDN }}'>{{ $device.Name }}</a></li>
 		{{ end }}
 	</section>
@@ -137,7 +142,7 @@ var directoriesTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
 {{ end }}
 {{ define "main" }}
 	<ul>
-	{{ range $index, $device := . }}
+	{{ range $index, $device := .Directories }}
 		<li><a href='/browse/{{ $device.UDN }}'>{{ $device.Name }}</a></li>
 	{{ end }}
 	</ul>
@@ -167,7 +172,7 @@ var browseTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
 	{{ if .DIDL.Items }}
 		<ul>
 		{{ range $index, $item := .DIDL.Items }}
-			<li><button data-objectid='{{ $item.ID }}'>{{ $item.Title }}</button></li>
+			<li>{{ $item.Title }} <button data-objectid='{{ $item.ID }}'>+</button></li>
 		{{ end }}
 		</ul>
 	{{ end }}
@@ -203,7 +208,7 @@ var transportsTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
 {{ end }}
 {{ define "main" }}
 	<ul>
-	{{ range $index, $device := . }}
+	{{ range $index, $device := .Queue.Transports }}
 		<li><a href='/renderer/{{ $device.UDN }}'>{{ $device.Name }}</a></li>
 	{{ end }}
 	</ul>

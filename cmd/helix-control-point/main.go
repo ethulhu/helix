@@ -95,19 +95,19 @@ func main() {
 	m.Path("/queue").
 		Methods("POST").
 		MatcherFunc(FormValues("transport", "{transport}")).
-		HandlerFunc(setQueueTransport)
+		HandlerFunc(redirectReferer(setQueueTransport))
 	m.Path("/queue").
 		Methods("POST").
 		MatcherFunc(FormValues("action", "play")).
-		HandlerFunc(playQueue)
+		HandlerFunc(redirectReferer(playQueue))
 	m.Path("/queue").
 		Methods("POST").
 		MatcherFunc(FormValues("action", "pause")).
-		HandlerFunc(pauseQueue)
+		HandlerFunc(redirectReferer(pauseQueue))
 	m.Path("/queue").
 		Methods("POST").
 		MatcherFunc(FormValues("action", "stop")).
-		HandlerFunc(stopQueue)
+		HandlerFunc(redirectReferer(stopQueue))
 	m.Path("/queue").
 		Methods("POST").
 		MatcherFunc(FormValues(
@@ -116,14 +116,14 @@ func main() {
 			"directory", "{directory}",
 			"object", "{object}",
 		)).
-		HandlerFunc(addObjectToQueue)
+		HandlerFunc(redirectReferer(addObjectToQueue))
 	m.Path("/queue").
 		Methods("POST").
 		MatcherFunc(FormValues(
 			"action", "remove",
 			"position", "all",
 		)).
-		HandlerFunc(removeAllFromQueue)
+		HandlerFunc(redirectReferer(removeAllFromQueue))
 
 	m.Path("/renderer/{udn}").
 		Methods("GET").
@@ -136,12 +136,12 @@ func main() {
 	m.Path("/renderer/{udn}").
 		Methods("POST").
 		MatcherFunc(FormValues("action", "stop")).
-		HandlerFunc(stop)
+		HandlerFunc(redirectReferer(stop))
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
 		MatcherFunc(FormValues("action", "pause")).
-		HandlerFunc(pause)
+		HandlerFunc(redirectReferer(pause))
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
@@ -150,12 +150,12 @@ func main() {
 			"directory", "{directory}",
 			"object", "{object}",
 		)).
-		HandlerFunc(playObject)
+		HandlerFunc(redirectReferer(playObject))
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
 		MatcherFunc(FormValues("action", "play")).
-		HandlerFunc(play)
+		HandlerFunc(redirectReferer(play))
 
 	log.Printf("starting HTTP server on %v", conn.Addr())
 	if err := http.Serve(conn, m); err != nil {

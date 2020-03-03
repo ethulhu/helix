@@ -213,7 +213,6 @@ func play(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	maybeRedirect(w, r)
 }
 func pause(w http.ResponseWriter, r *http.Request) {
 	udn := mustVar(r, "udn")
@@ -229,7 +228,6 @@ func pause(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	maybeRedirect(w, r)
 }
 func stop(w http.ResponseWriter, r *http.Request) {
 	udn := mustVar(r, "udn")
@@ -245,7 +243,6 @@ func stop(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	maybeRedirect(w, r)
 }
 func playObject(w http.ResponseWriter, r *http.Request) {
 	directoryUDN := mustVar(r, "directory")
@@ -283,5 +280,4 @@ func playObject(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	maybeRedirect(w, r)
 }

@@ -16,9 +16,12 @@ func mustVar(r *http.Request, key string) string {
 	return value
 }
 
-func maybeRedirect(w http.ResponseWriter, r *http.Request) {
-	if redirect := r.Form.Get("redirect"); redirect != "" {
-		http.Redirect(w, r, redirect, http.StatusFound)
+func redirectReferer(f http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		f(w, r)
+		if redirect := r.Referer(); redirect != "" {
+			http.Redirect(w, r, redirect, http.StatusFound)
+		}
 	}
 }
 

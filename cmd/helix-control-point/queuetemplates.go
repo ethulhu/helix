@@ -16,12 +16,12 @@ var queueTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
 {{ define "main" }}
 	<label>
 		Transport:
-		<select id='transport' value='{{ .CurrentUDN }}'>
+		<select id='transport' value='{{ .Queue.CurrentUDN }}'>
 			<option value='none'>none</option>
-		{{- if .Transports }}
+		{{- if .Queue.Transports }}
 			<option disabled>────────────</option>
 		{{- end }}
-		{{- range $index, $device := .Transports }}
+		{{- range $index, $device := .Queue.Transports }}
 			<option value='{{ $device.UDN }}'>{{ $device.Name }}</option>
 		{{- end }}
 		</select>

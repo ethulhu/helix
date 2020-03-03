@@ -27,19 +27,10 @@ func getQueueJSON(w http.ResponseWriter, r *http.Request) {
 	w.Write(bytes)
 }
 func getQueueHTML(w http.ResponseWriter, r *http.Request) {
-	transports := devices.DevicesByURN(avtransport.Version1)
-
-	udn := "none"
-	if queue.UDN() != "" {
-		udn = queue.UDN()
-	}
-
 	args := struct {
-		CurrentUDN string
-		State      avtransport.State
-		Items      []upnpav.Item
-		Transports []*ssdp.Device
-	}{udn, queue.State(), queue.Queue(), transports}
+		Items []upnpav.Item
+		Queue queueArgs
+	}{queue.Queue(), getQueueArgs()}
 
 	if err := queueTmpl.Execute(w, args); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

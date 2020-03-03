@@ -98,15 +98,15 @@ func main() {
 		HandlerFunc(redirectReferer(setQueueTransport))
 	m.Path("/queue").
 		Methods("POST").
-		MatcherFunc(FormValues("action", "play")).
+		MatcherFunc(FormValues("state", "play")).
 		HandlerFunc(redirectReferer(playQueue))
 	m.Path("/queue").
 		Methods("POST").
-		MatcherFunc(FormValues("action", "pause")).
+		MatcherFunc(FormValues("state", "pause")).
 		HandlerFunc(redirectReferer(pauseQueue))
 	m.Path("/queue").
 		Methods("POST").
-		MatcherFunc(FormValues("action", "stop")).
+		MatcherFunc(FormValues("state", "stop")).
 		HandlerFunc(redirectReferer(stopQueue))
 	m.Path("/queue").
 		Methods("POST").

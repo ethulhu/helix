@@ -60,20 +60,31 @@ var baseTmpl = template.Must(template.New("base.html").Parse(`<!DOCTYPE html>
 </head>
 <body>
 	<div class='controls'>
-		<button id='play'>play</button>
-		<button id='pause'>pause</button>
-		<button id='stop'>stop</button>
+		<form method='post' action='/queue'>
+			<button name='state' value='play'>play</button>
+			<button name='state' value='pause'>pause</button>
+			<button name='state' value='stop'>stop</button>
+		</form>
 
 		{{- $currentUDN := .Queue.CurrentUDN }}
-		<select id='transport'>
-			<option value='none' {{ if eq $currentUDN "none" }}selected{{ end }}r>no transport</option>
-			{{- if .Queue.Transports }}
-				<option disabled>────────────</option>
-			{{- end }}
-			{{- range $index, $device := .Queue.Transports }}
-			<option value='{{ $device.UDN }}' {{ if eq $currentUDN $device.UDN }}selected{{ end }}>{{ $device.Name }}</option>
-			{{- end }}
-		</select>
+		<form method='post' action='/queue' id='transport-form'>
+			<noscript>
+				<input type='submit' value='set output'>
+			</noscript>
+			<select name='transport'>
+				<option value='none' {{ if eq $currentUDN "none" }}selected{{ end }}r>no transport</option>
+				{{- if .Queue.Transports }}
+					<option disabled>────────────</option>
+				{{- end }}
+				{{- range $index, $device := .Queue.Transports }}
+				<option value='{{ $device.UDN }}' {{ if eq $currentUDN $device.UDN }}selected{{ end }}>{{ $device.Name }}</option>
+				{{- end }}
+			</select>
+		</form>
+		<script type='module'>
+			document.querySelector( 'select[name=transport]' )
+			        .addEventListener( 'change', e => { e.target.parentElement.submit(); } );
+		</script>
 
 		<details>
 			<summary>playlist</summary>
@@ -89,27 +100,6 @@ var baseTmpl = template.Must(template.New("base.html").Parse(`<!DOCTYPE html>
 		<h1>{{ block "title" . }}{{ end }}</h1>
 		{{ block "main" . }}{{ end }}
 	</section>
-
-	<script type='module'>
-[ 'play', 'pause', 'stop' ].forEach( action => {
-	const button = document.getElementById( action );
-	button.addEventListener( 'click', e => {
-		const fd = new FormData();
-		fd.append( 'action', action );
-		fetch( '/queue', { method: 'post', body: fd } ).then( rsp => rsp.text() )
-		                                               .then( console.log )
-		                                               .catch( console.error );
-	} );
-} );
-
-document.getElementById( 'transport' ).addEventListener( 'change', e => {
-	console.log( 'setting transport to ' + e.target.value );
-	const fd = new FormData();
-	fd.append( 'transport', e.target.value );
-	fetch( '/queue', { method: 'post', body: fd } ).then( rsp => rsp.text() )
-	                                               .then( console.log );
-} );
-	</script>
 </body>
 </html>`))
 
@@ -170,30 +160,17 @@ var browseTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
 	{{ end }}
 
 	{{ if .DIDL.Items }}
+	<form method='post' action='/queue'>
+		<input type='hidden' name='action'    value='add'>
+		<input type='hidden' name='position'  value='last'>
+		<input type='hidden' name='directory' value='{{ $udn }}'>
 		<ul>
 		{{ range $index, $item := .DIDL.Items }}
-			<li>{{ $item.Title }} <button data-objectid='{{ $item.ID }}'>+</button></li>
+			<li>{{ $item.Title }} <button name='object' value='{{ $item.ID }}'>+</button></li>
 		{{ end }}
 		</ul>
+	</form>
 	{{ end }}
-
-	<script type='module'>
-const directoryUDN = '{{ .Directory.UDN }}';
-document.querySelectorAll( 'button' ).forEach( button => {
-	button.addEventListener( 'click', e => {
-		const fd = new FormData();
-		fd.append( 'action', 'add' );
-		fd.append( 'position', 'last' );
-		fd.append( 'directory', directoryUDN );
-		fd.append( 'object', e.target.dataset.objectid );
-		fetch( '/queue', { method: 'post', body: fd } ).then( rsp => {
-			if ( ! rsp.ok ) {
-				throw rsp.text();
-			}
-		} ).catch( console.error );
-	} );
-} );
-	</script>
 {{ end }}`))
 
 var transportsTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
@@ -236,18 +213,10 @@ var transportTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
 	</p>
 	{{ end }}
 	<ul id='actions'>
+		<form method='post' action='/renderer/{{ .Transport.UDN }}'>
+			<button name='action' value='play'>play</button>
+			<button name='action' value='pause'>pause</button>
+			<button name='action' value='stop'>stop</button>
+		</form>
 	</ul>
-	<script type='module'>
-const actions = document.getElementById( 'actions' );
-[ 'play', 'pause', 'stop' ].forEach( action => {
-	const li = document.createElement( 'li' );
-	const button = document.createElement( 'button' );
-	const fd = new FormData();
-	fd.append('action', action);
-	button.addEventListener( 'click', e => fetch( window.location, { method: 'POST', body: fd } ).then( console.log ).catch( console.error ) );
-	button.textContent = action;
-	li.appendChild( button );
-	actions.appendChild( li );
-} );
-	</script>
 {{ end }}`))

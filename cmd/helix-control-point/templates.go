@@ -139,12 +139,13 @@ var directoriesTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
 {{ end }}`))
 
 var browseTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
-{{ define "title" }}{{ .Directory.Name }}{{ end }}
+{{ define "title" }}{{ .Directory.Name }} — {{ .Container.Title }}{{ end }}
 {{ define "nav" }}
 	<nav>
 		<ul>
 			<li><a href='/'>home</a></li>
 			<li><a href='/queue'>queue</a></li>
+			{{ if ne .Container.ParentID "-1" }}<li><a href='/browse/{{ .Directory.UDN }}/{{ .Container.ParentID }}'>back</a></li>{{ end }}
 		</ul>
 	</nav>
 {{ end }}
@@ -160,10 +161,12 @@ var browseTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
 	{{ end }}
 
 	{{ if .DIDL.Items }}
+	{{ $containerID := .Container.ID }}
 	<form method='post' action='/queue'>
 		<input type='hidden' name='action'    value='add'>
 		<input type='hidden' name='position'  value='last'>
 		<input type='hidden' name='directory' value='{{ $udn }}'>
+		<button name='object' value='{{ $containerID }}'>+all</button>
 		<ul>
 		{{ range $index, $item := .DIDL.Items }}
 			<li>{{ $item.Title }} <button name='object' value='{{ $item.ID }}'>+</button></li>

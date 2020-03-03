@@ -88,17 +88,29 @@ func getObjectHTML(w http.ResponseWriter, r *http.Request) {
 	device, _ := devices.DeviceByUDN(udn)
 
 	ctx := r.Context()
-	didl, err := directory.Browse(ctx, contentdirectory.BrowseChildren, upnpav.Object(object))
+	self, err := directory.Browse(ctx, contentdirectory.BrowseMetadata, upnpav.Object(object))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// TODO: support browsing non-container objects.
+	if len(self.Containers) == 0 {
+		http.Error(w, "could not find container", http.StatusNotFound)
+	}
+
+	children, err := directory.Browse(ctx, contentdirectory.BrowseChildren, upnpav.Object(object))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	args := struct {
+		Container upnpav.Container
 		DIDL      *upnpav.DIDL
 		Directory *ssdp.Device
 		Queue     queueArgs
-	}{didl, device, getQueueArgs()}
+	}{self.Containers[0], children, device, getQueueArgs()}
 	if err := browseTmpl.Execute(w, args); err != nil {
 		log.Printf("error rendering %v: %v", r.URL.Path, err)
 		return

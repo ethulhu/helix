@@ -58,18 +58,15 @@ func setQueueTransport(w http.ResponseWriter, r *http.Request) {
 }
 
 func playQueue(w http.ResponseWriter, r *http.Request) {
-	if queue.UDN() == "" {
-		transports := devices.DevicesByURN(avtransport.Version1)
-		if len(transports) == 1 {
-			queue.SetTransport(transports[0])
-		}
-	}
+	log.Print("playing")
 	queue.Play()
 }
 func pauseQueue(w http.ResponseWriter, r *http.Request) {
+	log.Print("pausing")
 	queue.Pause()
 }
 func stopQueue(w http.ResponseWriter, r *http.Request) {
+	log.Print("stopping")
 	queue.Stop()
 }
 func addObjectToQueue(w http.ResponseWriter, r *http.Request) {
@@ -86,10 +83,27 @@ func addObjectToQueue(w http.ResponseWriter, r *http.Request) {
 	didl, err := directory.Browse(ctx, contentdirectory.BrowseMetadata, upnpav.Object(object))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("could not add %v to queue: %v", object, err)
 		return
 	}
 
-	queue.AddLast(didl.Items[0])
+	if len(didl.Items) != 0 {
+		for _, item := range didl.Items {
+			queue.AddLast(item)
+		}
+	} else if len(didl.Containers) == 1 {
+		didl, err := directory.Browse(ctx, contentdirectory.BrowseChildren, upnpav.Object(object))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			log.Printf("could not add %v to queue: %v", object, err)
+			return
+		}
+		for _, item := range didl.Items {
+			queue.AddLast(item)
+		}
+	} else {
+		http.Error(w, "could not find any items", http.StatusNotFound)
+	}
 }
 func removeAllFromQueue(w http.ResponseWriter, r *http.Request) {
 	queue.Clear()

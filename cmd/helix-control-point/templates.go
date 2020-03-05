@@ -50,12 +50,21 @@ var baseTmpl = template.Must(template.New("base.html").Parse(`<!DOCTYPE html>
 			font-size:    12pt;
 			font-family:  sans-serif;
 
-			border-radius: 5px;
-			border:        solid 3px var(--callout-color);
+			border-radius:  5px;
+			border:         solid 3px var(--callout-color);
+			filter:         drop-shadow(1px 1px 1px black);
+			margin-top:     3px;
+			margin-bottom:  3px;
 		}
+		button:active {
+			filter:     drop-shadow(1px 1px 0.5px black);
+			transform:  translateY(1px);
+		}
+
 		#controls details {
 			max-width: 100%;
 		}
+
 	</style>
 </head>
 <body>

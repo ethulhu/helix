@@ -97,11 +97,15 @@ var baseTmpl = template.Must(template.New("base.html").Parse(`<!DOCTYPE html>
 
 		<details>
 			<summary>playlist</summary>
-			<ul id='queue'>
-			{{- range $index, $item := .Queue.Items }}
-				<li>{{ $item.Title }}</li>
-			{{- end }}
-			</ul>
+			<form method='post' action='/queue'>
+				<input type='hidden' name='action' value='remove'>
+				<button name='position' value='all'>clear playlist</button>
+				<ul id='queue'>
+				{{- range $index, $item := .Queue.Items }}
+					<li>{{ $item.Title }}</li>
+				{{- end }}
+				</ul>
+			</form>
 		</details>
 	</div>
 	<section>

@@ -34,7 +34,19 @@ var baseTmpl = template.Must(template.New("base.html").Parse(`<!DOCTYPE html>
 
 			font-size:    14pt;
 			font-family:  sans-serif;
+
+			min-width:    12em;
+			padding:      0.5em;
 		}
+		@media screen and ( min-width: 40em ) {
+			body {
+				margin:     0 auto;
+				max-width:  30em;
+				padding:    10% 0;
+			}
+		}
+
+
 		p, li {
 			line-height:  1.4;
 		}
@@ -59,6 +71,13 @@ var baseTmpl = template.Must(template.New("base.html").Parse(`<!DOCTYPE html>
 		button:active {
 			filter:     drop-shadow(1px 1px 0.5px black);
 			transform:  translateY(1px);
+		}
+
+		table {
+			width: 100%;
+		}
+		td:not(.title) {
+			float: right;
 		}
 
 		#controls details {
@@ -180,11 +199,14 @@ var browseTmpl = template.Must(template.Must(baseTmpl.Clone()).Parse(`
 		<input type='hidden' name='position'  value='last'>
 		<input type='hidden' name='directory' value='{{ $udn }}'>
 		<button name='object' value='{{ $containerID }}'>+all</button>
-		<ul>
+		<table>
 		{{ range $index, $item := .DIDL.Items }}
-			<li>{{ $item.Title }} <button name='object' value='{{ $item.ID }}'>+</button></li>
+			<tr>
+				<td class='title'><div>{{ $item.Title }}</div></td>
+				<td><button name='object' value='{{ $item.ID }}'>+</button></td>
+			</tr>
 		{{ end }}
-		</ul>
+		</table>
 	</form>
 	{{ end }}
 {{ end }}`))

@@ -42,7 +42,6 @@ var baseTmpl = template.Must(template.New("base.html").Parse(`<!DOCTYPE html>
 			body {
 				margin:     0 auto;
 				max-width:  30em;
-				padding:    10% 0;
 			}
 		}
 

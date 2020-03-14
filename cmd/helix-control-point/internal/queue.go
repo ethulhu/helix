@@ -84,9 +84,20 @@ func NewQueue() *Queue {
 				continue
 			}
 			if q.state == avtransport.StatePaused {
-				if err := q.transport.Pause(ctx); err != nil {
-					log.Printf("could not pause transport: %v", err)
+				// if previously it was Paused but now is Playing, and all other fields are correct, set ourseves to play.
+				// TODO: check URI & elapsed time?
+				if prevTS.state == avtransport.StatePaused && ts.state == avtransport.StatePlaying {
+					q.state = avtransport.StatePlaying
+				} else {
+					if err := q.transport.Pause(ctx); err != nil {
+						log.Printf("could not pause transport: %v", err)
+					}
 				}
+				continue
+			}
+			if q.state == avtransport.StatePlaying && prevTS.state == avtransport.StatePlaying && ts.state == avtransport.StatePaused {
+				// TODO: check URI & elapsed time?
+				q.state = avtransport.StatePaused
 				continue
 			}
 

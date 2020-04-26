@@ -9,7 +9,6 @@ import (
 	"github.com/ethulhu/helix/upnp/ssdp"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/avtransport"
-	"github.com/ethulhu/helix/upnpav/contentdirectory"
 )
 
 func getQueueJSON(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +79,7 @@ func addObjectToQueue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	didl, err := directory.Browse(ctx, contentdirectory.BrowseMetadata, upnpav.Object(object))
+	didl, err := directory.BrowseMetadata(ctx, upnpav.Object(object))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Printf("could not add %v to queue: %v", object, err)
@@ -92,7 +91,7 @@ func addObjectToQueue(w http.ResponseWriter, r *http.Request) {
 			queue.AddLast(item)
 		}
 	} else if len(didl.Containers) == 1 {
-		didl, err := directory.Browse(ctx, contentdirectory.BrowseChildren, upnpav.Object(object))
+		didl, err := directory.BrowseChildren(ctx, upnpav.Object(object))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			log.Printf("could not add %v to queue: %v", object, err)

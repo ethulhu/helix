@@ -12,6 +12,7 @@ type (
 		Capabilities string   `xml:"SearchCaps"`
 	}
 
+	browseFlag    string
 	browseRequest struct {
 		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 Browse"`
 
@@ -20,7 +21,7 @@ type (
 		Object upnpav.Object `xml:"ObjectID"`
 
 		// BrowseFlag specifies whether to return data about Object or Object's children.
-		BrowseFlag BrowseFlag `xml:"BrowseFlag"`
+		BrowseFlag browseFlag `xml:"BrowseFlag"`
 
 		Filter string `xml:"Filter,omitempty"`
 
@@ -52,7 +53,7 @@ type (
 
 	searchRequest struct {
 		ID             upnpav.Object `xml:"ObjectID"`
-		BrowseFlag     BrowseFlag    `xml:"BrowseFlag"`
+		SearchCriteria string        `xml:"SearchCriteria,omitempty"`
 		Filter         string        `xml:"Filter,omitempty"`
 		StartingIndex  string        `xml:"StartingIndex,omitempty"`
 		RequestedCount int           `xml:"RequestedCount,omitempty"`
@@ -64,4 +65,9 @@ type (
 		TotalMatches   string `xml:"TotalMatches"`
 		UpdateID       string `xml:"UpdateID"`
 	}
+)
+
+const (
+	browseMetadata = browseFlag("BrowseMetadata")
+	browseChildren = browseFlag("BrowseDirectChildren")
 )

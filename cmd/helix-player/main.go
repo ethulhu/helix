@@ -127,7 +127,7 @@ func getObjectByType(w http.ResponseWriter, r *http.Request) {
 
 	// find the object.
 	ctx := r.Context()
-	self, err := directory.Browse(ctx, contentdirectory.BrowseMetadata, upnpav.Object(object))
+	self, err := directory.BrowseMetadata(ctx, upnpav.Object(object))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

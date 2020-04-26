@@ -9,11 +9,12 @@ import (
 
 type (
 	Client interface {
-		Browse(context.Context, BrowseFlag, upnpav.Object) (*upnpav.DIDL, error)
+		// BrowseMetadata shows information about a given object.
+		BrowseMetadata(context.Context, upnpav.Object) (*upnpav.DIDL, error)
+		// BrowseChildren lists the child objects of a given object.
+		BrowseChildren(context.Context, upnpav.Object) (*upnpav.DIDL, error)
 		SearchCapabilities(context.Context) ([]string, error)
 	}
-
-	BrowseFlag string
 )
 
 const (
@@ -24,9 +25,4 @@ const (
 
 const (
 	Root = upnpav.Object("0")
-)
-
-const (
-	BrowseMetadata = BrowseFlag("BrowseMetadata")
-	BrowseChildren = BrowseFlag("BrowseDirectChildren")
 )

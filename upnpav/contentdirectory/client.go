@@ -22,7 +22,13 @@ func (c *client) call(ctx context.Context, method string, input, output interfac
 	return c.Call(ctx, string(Version1), method, input, output)
 }
 
-func (c *client) Browse(ctx context.Context, bf BrowseFlag, object upnpav.Object) (*upnpav.DIDL, error) {
+func (c *client) BrowseMetadata(ctx context.Context, object upnpav.Object) (*upnpav.DIDL, error) {
+	return c.browse(ctx, browseMetadata, object)
+}
+func (c *client) BrowseChildren(ctx context.Context, object upnpav.Object) (*upnpav.DIDL, error) {
+	return c.browse(ctx, browseChildren, object)
+}
+func (c *client) browse(ctx context.Context, bf browseFlag, object upnpav.Object) (*upnpav.DIDL, error) {
 	req := browseRequest{
 		Object:     object,
 		BrowseFlag: bf,

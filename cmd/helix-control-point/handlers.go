@@ -88,7 +88,7 @@ func getObjectHTML(w http.ResponseWriter, r *http.Request) {
 	device, _ := devices.DeviceByUDN(udn)
 
 	ctx := r.Context()
-	self, err := directory.Browse(ctx, contentdirectory.BrowseMetadata, upnpav.Object(object))
+	self, err := directory.BrowseMetadata(ctx, upnpav.Object(object))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -99,7 +99,7 @@ func getObjectHTML(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not find container", http.StatusNotFound)
 	}
 
-	children, err := directory.Browse(ctx, contentdirectory.BrowseChildren, upnpav.Object(object))
+	children, err := directory.BrowseChildren(ctx, upnpav.Object(object))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -273,7 +273,7 @@ func playObject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	didl, err := directory.Browse(ctx, contentdirectory.BrowseMetadata, upnpav.Object(object))
+	didl, err := directory.BrowseMetadata(ctx, upnpav.Object(object))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

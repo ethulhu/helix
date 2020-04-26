@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -75,7 +76,7 @@ func main() {
 		Methods("GET").
 		HandlerFunc(getIndexHTML)
 
-	m.Path("/{udn}/").
+	m.Path("/{udn}").
 		Methods("GET").
 		HandlerFunc(getDirectoryHTML)
 
@@ -95,11 +96,92 @@ func main() {
 }
 
 func getIndexHTML(w http.ResponseWriter, r *http.Request) {
+	devices := directories.Devices()
+	sort.Slice(devices, func(i, j int) bool {
+		return devices[i].Name < devices[j].Name
+	})
+
+	var deviceLIs []string
+	for _, device := range devices {
+		deviceLIs = append(deviceLIs, fmt.Sprintf(`<li><a href='/%s'>%s</a></li>`, device.UDN, device.Name))
+	}
+
+	fmt.Fprintf(w, `<!DOCTYPE html>
+<html>
+<head><title>Helix Player</title></head>
+<body><ul>%s</ul></body>
+</html>`, strings.Join(deviceLIs, ""))
 }
+
 func getDirectoryHTML(w http.ResponseWriter, r *http.Request) {
+	udn := mux.Vars(r)["udn"]
+
+	if _, ok := directories.DeviceByUDN(udn); !ok {
+		http.Error(w, fmt.Sprintf("unknown ContentDirectory: %v", udn), http.StatusNotFound)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/%s/%s", udn, contentdirectory.Root), http.StatusFound)
 }
+
 func getObjectHTML(w http.ResponseWriter, r *http.Request) {
+	udn := mux.Vars(r)["udn"]
+	object := mux.Vars(r)["object"]
+
+	device, ok := directories.DeviceByUDN(udn)
+	if !ok {
+		http.Error(w, fmt.Sprintf("unknown ContentDirectory: %s", udn), http.StatusNotFound)
+		return
+	}
+	soapClient, ok := device.Client(contentdirectory.Version1)
+	if !ok {
+		http.Error(w, fmt.Sprintf("UPnP device exists but is not a ContentDirectory: %s", udn), http.StatusInternalServerError)
+		return
+	}
+	directory := contentdirectory.NewClient(soapClient)
+
+	ctx := r.Context()
+
+	self, err := directory.BrowseMetadata(ctx, upnpav.Object(object))
+	if err != nil {
+		http.Error(w, fmt.Sprintf("could not fetch object metadata: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	switch {
+	case len(self.Containers) > 0:
+		children, err := directory.BrowseChildren(ctx, upnpav.Object(object))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("could not fetch object children: %v", err), http.StatusInternalServerError)
+			return
+		}
+		var childrenLIs []string
+		for _, container := range children.Containers {
+			childrenLIs = append(childrenLIs, fmt.Sprintf(`<li><a href='/%s/%s'>%s</a></li>`, udn, container.ID, container.Title))
+		}
+		for _, item := range children.Items {
+			childrenLIs = append(childrenLIs, fmt.Sprintf(`<li><a href='/%s/%s'>%s</a></li>`, udn, item.ID, item.Title))
+		}
+		fmt.Fprintf(w, `<!DOCTYPE html>
+<html>
+<head><title>Helix Player</title></head>
+<body><ul>%s</ul></body>
+</html>`, strings.Join(childrenLIs, ""))
+	case len(self.Items) > 0:
+		item := self.Items[0]
+
+		// TODO: switch by itemClass, e.g. VideoItem, AudioItem.
+		fmt.Fprintf(w, `<!DOCTYPE html>
+<html>
+<head><title>Helix Player</title></head>
+<body><audio src='/%s/%s?accept=audio/*' controls></audio></body>
+</html>`, udn, item.ID)
+	default:
+		// I think this is impossible, but I can't be sure.
+		http.Error(w, "object is neither item nor container?!", http.StatusInternalServerError)
+	}
 }
+
 func getObjectByType(w http.ResponseWriter, r *http.Request) {
 	udn := mux.Vars(r)["udn"]
 	object := mux.Vars(r)["object"]

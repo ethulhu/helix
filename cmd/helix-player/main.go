@@ -115,12 +115,12 @@ func getObjectByType(w http.ResponseWriter, r *http.Request) {
 
 	device, ok := directories.DeviceByUDN(udn)
 	if !ok {
-		http.Error(w, fmt.Sprintf("could not find device %q", udn), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("unknown ContentDirectory: %s", udn), http.StatusNotFound)
 		return
 	}
 	soapClient, ok := device.Client(contentdirectory.Version1)
 	if !ok {
-		http.Error(w, fmt.Sprintf("device %q is not a ContentDirectory", udn), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("UPnP device exists but is not a ContentDirectory: %s", udn), http.StatusInternalServerError)
 		return
 	}
 	directory := contentdirectory.NewClient(soapClient)

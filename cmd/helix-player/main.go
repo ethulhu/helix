@@ -165,8 +165,11 @@ func getObjectHTML(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, `<!DOCTYPE html>
 <html>
 <head><title>Helix Player</title></head>
-<body><ul>%s</ul></body>
-</html>`, strings.Join(childrenLIs, ""))
+<body>
+	<a href='/%s/%s'>back</a>
+	<ul>%s</ul>
+</body>
+</html>`, udn, self.Containers[0].ParentID, strings.Join(childrenLIs, ""))
 	case len(self.Items) > 0:
 		item := self.Items[0]
 
@@ -174,8 +177,11 @@ func getObjectHTML(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, `<!DOCTYPE html>
 <html>
 <head><title>Helix Player</title></head>
-<body><audio src='/%s/%s?accept=audio/*' controls></audio></body>
-</html>`, udn, item.ID)
+<body>
+	<a href='/%s/%s'>back</a>
+	<audio src='/%s/%s?accept=audio/*' controls></audio>
+</body>
+</html>`, udn, item.ParentID, udn, item.ID)
 	default:
 		// I think this is impossible, but I can't be sure.
 		http.Error(w, "object is neither item nor container?!", http.StatusInternalServerError)

@@ -140,7 +140,6 @@ func getObjectByType(w http.ResponseWriter, r *http.Request) {
 	item := self.Items[0]
 
 	uri := ""
-	contentType := ""
 	mimeParts := strings.Split(mimetype, "/")
 	for _, r := range item.Resources {
 		if r.ProtocolInfo.Protocol != upnpav.ProtocolHTTP {
@@ -149,13 +148,11 @@ func getObjectByType(w http.ResponseWriter, r *http.Request) {
 
 		if strings.HasPrefix(r.ProtocolInfo.ContentFormat, mimetype) {
 			uri = r.URI
-			contentType = mimetype
 			break
 		}
 
 		if mimeParts[1] == "*" && strings.HasPrefix(r.ProtocolInfo.ContentFormat, mimeParts[0]+"/") {
 			uri = r.URI
-			contentType = r.ProtocolInfo.ContentFormat
 			break
 		}
 	}
@@ -165,10 +162,10 @@ func getObjectByType(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	proxyGet(w, uri, contentType)
+	proxyGet(w, uri)
 }
 
-func proxyGet(w http.ResponseWriter, uri, contentType string) {
+func proxyGet(w http.ResponseWriter, uri string) {
 	rsp, err := http.Get(uri)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -181,7 +178,6 @@ func proxyGet(w http.ResponseWriter, uri, contentType string) {
 			w.Header().Add(k, v)
 		}
 	}
-	w.Header().Add("Content-Type", contentType)
 	w.WriteHeader(rsp.StatusCode)
 
 	io.Copy(w, rsp.Body)

@@ -2,7 +2,9 @@ import { elemGenerator } from './elems.js';
 
 const _audio  = elemGenerator( 'audio' );
 const _button = elemGenerator( 'button' );
+const _details  = elemGenerator( 'details' );
 const _li     = elemGenerator( 'li' );
+const _summary  = elemGenerator( 'summary' );
 const _ul     = elemGenerator( 'ul' );
 const _video  = elemGenerator( 'video' );
 
@@ -19,14 +21,15 @@ export class Player {
 			this.playNext();
 		} );
 
-		this._video = _video( { controls: true } );
+		this._video = _video( { controls: true, style: 'display: none;' } );
 		this._video.addEventListener( 'ended', e => {
 			this.playNext();
 		} );
 
+
 		this._element.appendChild( this._audio );
 		this._element.appendChild( this._video );
-		this._element.appendChild( this._tracklist );
+		this._element.appendChild( _details( _summary( 'playlist' ), this._tracklist ) );
 	}
 
 	_mimetype( item ) {
@@ -105,8 +108,12 @@ export class Player {
 		const [ enabled, disabled ] =
 			isAudioItem( this._current ) ?
 				[ this._audio, this._video ] : [ this._video, this._audio ];
+
+		disabled.style.display = 'none';
+
 		const mimetype = this._mimetype( this._current );
 		enabled.src = `/directories/${this._current.directory}/${this._current.id}?accept=${mimetype}`;
+		enabled.style.display = 'block';
 		enabled.play();
 	}
 }

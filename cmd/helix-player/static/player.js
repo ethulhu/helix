@@ -97,8 +97,6 @@ export class Player {
 		if ( ! this._current ) {
 			// start playing.
 			this._current = this._queue[ 0 ];
-			this._element.querySelector( `li[data-playlist-id='${this._current.playlistId}']` )
-				.classList.add( 'playing' );
 			this.play();
 			return;
 		}
@@ -114,12 +112,8 @@ export class Player {
 			return;
 		}
 
-		this._element.querySelector( `li[data-playlist-id='${this._current.playlistId}']` )
-			.classList.remove( 'playing' );
 		this._current = this._queue[ index + 1 ];
 		this.play();
-		this._element.querySelector( `li[data-playlist-id='${this._current.playlistId}']` )
-			.classList.add( 'playing' );
 	}
 
 	play() {
@@ -132,10 +126,15 @@ export class Player {
 				[ this._audio, this._video ] : [ this._video, this._audio ];
 
 		disabled.style.display = 'none';
+		this._element.querySelectorAll( 'li.playing' ).forEach( el => el.classList.remove( 'playing' ) );
 
 		const mimetype = this._mimetype( this._current );
 		enabled.src = `/directories/${this._current.directory}/${this._current.id}?accept=${mimetype}`;
+
 		enabled.style.display = 'block';
+		this._element.querySelector( `li[data-playlist-id='${this._current.playlistId}']` )
+			.classList.add( 'playing' );
+
 		enabled.play();
 	}
 }

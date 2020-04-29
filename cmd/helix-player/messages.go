@@ -18,8 +18,9 @@ func directoryFromDevice(device *ssdp.Device) directory {
 }
 
 type object struct {
-	ID    string `json:"id"`
-	Title string `json:"title"`
+	Directory string `json:"directory"`
+	ID        string `json:"id"`
+	Title     string `json:"title"`
 
 	ItemClass string `json:"itemClass"`
 
@@ -30,14 +31,15 @@ type object struct {
 	Children []object `json:"children,omitempty"`
 }
 
-func objectFromContainer(container upnpav.Container) object {
+func objectFromContainer(udn string, container upnpav.Container) object {
 	return object{
+		Directory: udn,
 		ID:        string(container.ID),
 		Title:     container.Title,
 		ItemClass: string(container.Class),
 	}
 }
-func objectFromItem(item upnpav.Item) object {
+func objectFromItem(udn string, item upnpav.Item) object {
 	var mimetypes []string
 	for _, r := range item.Resources {
 		if r.ProtocolInfo.Protocol != upnpav.ProtocolHTTP {
@@ -47,6 +49,7 @@ func objectFromItem(item upnpav.Item) object {
 	}
 
 	return object{
+		Directory: udn,
 		ID:        string(item.ID),
 		Title:     item.Title,
 		ItemClass: string(item.Class),

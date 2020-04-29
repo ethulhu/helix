@@ -18,6 +18,8 @@ input[type=checkbox]:checked ~ ul {
 		<div id='player'>
 			<audio autoplay controls></audio>
 			<video autoplay controls></video>
+			<ul>
+			</ul>
 		</div>
 	</main>
 
@@ -54,17 +56,98 @@ input[type=checkbox]:checked ~ ul {
 		}
 		API.rootObject = '0';
 
-		class UI {
-			constructor( api ) {
-				this._api = api;
+		class Playlist {
+			constructor( audio, video, tracklist ) {
+				this.queue = [];
+				this.current = null;
+
+				this.audio = audio;
+				this.video = video;
+				this.tracklist = tracklist;
+
+				this.audio.addEventListener( 'ended', e => {
+					this.playNext();
+				} );
+				this.video.addEventListener( 'ended', e => {
+					this.playNext();
+				} );
+			}
+
+			enqueue( item ) {
+				if ( ! [ 'object.item.audioItem', 'object.item.videoItem' ].some( k => item.itemClass.startsWith( k ) ) ) {
+					throw `invalid playlist item: directory ${item.directory}, id ${item.id}, class ${item.itemClass}`;
+				}
+
+				this.queue.push( item );
+				this.tracklist.appendChild( _li( item.title,
+					_button( '▶️', { click: () => this.skip( item ) } ),
+					_button( '🚮', { click: e => { this.dequeue( item ); e.target.parentElement.parentElement.removeChild( e.target.parentElement ); } } ),
+				) );
+
+				if ( ! this.current ) {
+					this.playNext();
+				}
+			}
+
+			dequeue( item ) {
+				if ( item === this.current ) {
+					// TODO: throw?
+					return;
+				}
+				this.queue = this.queue.filter( i => i !== item );
+			}
+
+			skip( item ) {
+				this.current = item;
+				this.play();
+			}
+
+			playNext() {
+				if ( ! this.queue ) {
+					// empty playlist.
+					return;
+				}
+
+				if ( ! this.current ) {
+					// start playing.
+					this.current = this.queue[ 0 ];
+					this.play();
+					return;
+				}
+
+				const index = this.queue.indexOf( this.current );
+
+				if ( index < 0 ) {
+					throw `item not in playlist`;
+				}
+
+				if ( index === ( this.queue.length - 1 ) ) {
+					// playlist ended.
+					return;
+				}
+
+				this.current = this.queue[ index + 1 ];
+				this.play();
+			}
+
+			play() {
+				// TODO: extract the proper mimetype.
+				const [ enabled, disabled, mimetype ] =
+					this.current.itemClass.startsWith( 'object.item.audioItem' ) ?
+						[ this.audio, this.video, 'audio/*' ] : [ this.video, this.audio, 'video/*' ];
+				enabled.src = `/directories/${this.current.directory}/${this.current.id}?accept=${mimetype}`;
+				enabled.play();
 			}
 		}
+
 
 		const main = document.querySelector( 'main' );
 		const audio = document.querySelector( '#player audio' );
 		const video = document.querySelector( '#player video' );
+		const tracklist = document.querySelector( '#player ul' );
 
 		const api = new API();
+		const playlist = new Playlist( audio, video, tracklist );
 
 		const newObject =
 			( parentID, o ) => (
@@ -101,9 +184,7 @@ input[type=checkbox]:checked ~ ul {
 				_button( o.title, {
 					'data-id': o.id,
 					'data-udn': udn,
-					// TODO: extract the proper mimetype.
-					'click': e => audio.src = `/directories/${udn}/${o.id}?accept=audio/*`,
-
+					'click': e => playlist.enqueue( o ),
 					disabled: ! o.mimetypes.some( m => audio.canPlayType( m ) ),
 				} ),
 			);
@@ -113,9 +194,7 @@ input[type=checkbox]:checked ~ ul {
 				_button( o.title, {
 					'data-id': o.id,
 					'data-udn': udn,
-					// TODO: extract the proper mimetype.
-					'click': e => video.src = `/directories/${udn}/${o.id}?accept=video/*`,
-
+					'click': e => playlist.enqueue( o ),
 					disabled: ! o.mimetypes.some( m => video.canPlayType( m ) ),
 				} ),
 			);

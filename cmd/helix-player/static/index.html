@@ -9,8 +9,7 @@
 	--callout-color:     hsl(0, 0%, 90%);
 
 	--foreground-color:  hsl(0, 0%, 0%);
-	--link-color:        hsl(0, 0%, 50%);
-	--link-hover-color:  hsl(205, 69%, 50%);
+	--highlight-color:   hsl(205, 69%, 50%);
 }
 @media (prefers-color-scheme: dark) {
 	:root {
@@ -18,8 +17,7 @@
 		--callout-color:     hsl(0, 0%, 24%);
 
 		--foreground-color:  hsl(0, 0%, 82%);
-		--link-color:        hsl(0, 0%, 65%);
-		--link-hover-color:  hsl(259, 49%, 65%);
+		--highlight-color:   hsl(259, 49%, 65%);
 	}
 }
 
@@ -72,6 +70,9 @@ main {
 }
 #player video {
 	width: 100%;
+}
+#player li.playing {
+	color: var(--highlight-color);
 }
 
 #directory {

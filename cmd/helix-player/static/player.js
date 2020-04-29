@@ -16,6 +16,9 @@ export class Player {
 		this._current = null;
 		this._tracklist = _ul();
 
+		// Incrementing this provides a source of unique IDs.
+		this._playlistIds = 0;
+
 		this._audio = _audio( { controls: true } );
 		this._audio.addEventListener( 'ended', e => {
 			this.playNext();
@@ -30,6 +33,10 @@ export class Player {
 		this._element.appendChild( this._audio );
 		this._element.appendChild( this._video );
 		this._element.appendChild( _details( _summary( 'playlist' ), this._tracklist ) );
+	}
+
+	_newPlaylistId() {
+		return this._playlistIds++;
 	}
 
 	_mimetype( item ) {
@@ -48,10 +55,19 @@ export class Player {
 			throw `cannot enqueue item: directory ${item.directory}, id ${item.id}, class ${item.itemClass}`;
 		}
 
-		this._queue.push( item );
-		this._tracklist.appendChild( _li( item.title,
-			_button( '▶️', { click: () => this.skip( item ) } ),
-			_button( '🚮', { click: e => { this.dequeue( item ); e.target.parentElement.parentElement.removeChild( e.target.parentElement ); } } ),
+		// Clone the item.
+		let playlistItem = {};
+		Object.assign( playlistItem, item );
+		playlistItem.playlistId = this._newPlaylistId();
+
+		this._queue.push( playlistItem );
+		this._tracklist.appendChild( _li( playlistItem.title,
+			{ 'data-playlist-id': playlistItem.playlistId },
+			_button( '▶️', { click: () => this.skip( playlistItem ) } ),
+			_button( '🚮', { click: e => {
+				this.dequeue( playlistItem );
+				e.target.parentElement.parentElement.removeChild( e.target.parentElement );
+			} } ),
 		) );
 
 		if ( ! this._current ) {
@@ -81,6 +97,8 @@ export class Player {
 		if ( ! this._current ) {
 			// start playing.
 			this._current = this._queue[ 0 ];
+			this._element.querySelector( `li[data-playlist-id='${this._current.playlistId}']` )
+				.classList.add( 'playing' );
 			this.play();
 			return;
 		}
@@ -96,8 +114,12 @@ export class Player {
 			return;
 		}
 
+		this._element.querySelector( `li[data-playlist-id='${this._current.playlistId}']` )
+			.classList.remove( 'playing' );
 		this._current = this._queue[ index + 1 ];
 		this.play();
+		this._element.querySelector( `li[data-playlist-id='${this._current.playlistId}']` )
+			.classList.add( 'playing' );
 	}
 
 	play() {

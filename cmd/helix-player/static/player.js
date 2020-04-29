@@ -51,6 +51,7 @@ export class Player {
 		this._element.appendChild( this._audio );
 		this._element.appendChild( this._video );
 		this._element.appendChild( _div(
+			{ class: 'controls' },
 			_button( '⏩', { click: () => this.playNext() } ),
 			_button( '⏯️', { click: () => this.playPause() } ),
 			range,

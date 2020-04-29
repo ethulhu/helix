@@ -7,10 +7,10 @@ const _li = elemGenerator( 'li' );
 const _ul = elemGenerator( 'ul' );
 
 export class Directory {
-	constructor( element, api, playlist ) {
+	constructor( element, api, player ) {
 		this._element = element;
 		this._api = api;
-		this._playlist = playlist;
+		this._player = player;
 	}
 
 	loadDirectories() {
@@ -78,8 +78,8 @@ export class Directory {
 			_button( o.title, {
 				'data-id': o.id,
 				'data-directory': o.directory,
-				'click': e => this._playlist.enqueue( o ),
-				disabled: ! this._playlist.canPlay( o ),
+				'click': e => this._player.enqueue( o ),
+				disabled: ! this._player.canPlay( o ),
 			} )
 		);
 	}

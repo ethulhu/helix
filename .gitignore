@@ -1,2 +1,4 @@
+*.gen.go
 *.xml
 /helix-control-point
+/helix-player

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+	<meta charset='utf-8'>
+	<title>Helix Player</title>
+	<style>
+input[type=checkbox] ~ ul {
+        visibility: hidden;
+}
+input[type=checkbox]:checked ~ ul {
+        visibility: visible;
+}
+	</style>
+</head>
+
+<body>
+	<main>
+	</main>
+
+	<script type='module'>
+		import { elemRegister } from './elems.js';
+
+		elemRegister( '_', null, 'audio', 'button', 'input', 'label', 'li', 'ul', 'video' );
+
+		class API {
+			async directories() {
+				const rsp = await fetch( '/directories/', {
+					headers: {
+						Accept: 'application/json',
+					}
+				} );
+				return rsp.json()
+			}
+
+			async object( directory, id ) {
+				const rsp = await fetch( `/directories/${directory}/${id}`, {
+					headers: {
+						Accept: 'application/json',
+					}
+				} );
+				return rsp.json()
+			}
+
+			async objectBlob( directory, id, mimetype ) {
+				const rsp = await fetch(
+					`/directories/${directory}/${id}?accept=${mimetype}`
+				);
+				return rsp.blob();
+			}
+		}
+		API.rootObject = '0';
+
+		class UI {
+			constructor( api ) {
+				this._api = api;
+			}
+		}
+
+		const main = document.querySelector( 'main' );
+
+		const api = new API();
+
+		const newObject =
+			( parentID, o ) => (
+				o.itemClass.startsWith( 'object.container' )      ? newContainer :
+				o.itemClass.startsWith( 'object.item.audioItem' ) ? newAudio     :
+				o.itemClass.startsWith( 'object.item.videoItem' ) ? newVideo     :
+				                                                    newNothing   )( parentID, o );
+
+		const newContainer =
+			( udn, o ) => _li(
+				_input( {
+					'data-id': o.id,
+					'data-udn': udn,
+					id: `${udn}/${o.id}`,
+					type: 'checkbox',
+					change: e => {
+						if ( e.target.checked ) {
+							api.object( udn, e.target.dataset.id )
+							   .then( o => e.target.parentElement.appendChild(
+								_ul( o.children.map( c => newObject( udn, c ) ) ) )
+							   )
+							   .catch( console.error );
+						} else {
+							const ul = e.target.parentElement.querySelector( 'ul' );
+							e.target.parentElement.removeChild( ul );
+						}
+					},
+				} ),
+				_label( o.title, { for: `${udn}/${o.id}` } ),
+			);
+
+		const newAudio =
+			( udn, o ) => _li(
+				_audio( o.title, {
+					'data-id': o.id,
+					'data-udn': udn,
+					src: `/directories/${udn}/${o.id}?accept=audio/*`,
+					controls: true,
+				} ) );
+
+		const newVideo =
+			( udn, o ) => _li(
+				_video( o.title, {
+					'data-id': o.id,
+					'data-udn': udn,
+					src: `/directories/${udn}/${o.id}?accept=video/mp4`,
+					controls: true,
+					preload: 'none',
+				} ) );
+
+		const newNothing =
+			( udn, o ) => _li( _button( o.title, { disabled: true } ) );
+
+
+		const newDirectory =
+			d => _li(
+				_input( {
+					'data-udn': d.udn,
+					id: d.udn,
+					type: 'checkbox',
+					change: e => {
+						if ( e.target.checked ) {
+							const udn = e.target.dataset.udn;
+							api.object( udn, API.rootObject )
+							   .then( o => e.target.parentElement.appendChild(
+								  _ul( newObject( d.udn, o ) ) )
+							   )
+							   .catch( console.error );
+						} else {
+							const ul = e.target.parentElement.querySelector( 'ul' );
+							e.target.parentElement.removeChild( ul );
+						}
+					},
+				} ),
+				_label( d.name, { for: d.udn } ),
+			);
+
+		api.directories()
+		   .then( ds => _ul( ds.map( newDirectory ) ) )
+		   .then( ul => main.appendChild( ul ) );
+	</script>
+</body>
+</html>

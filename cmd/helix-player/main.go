@@ -1,6 +1,8 @@
+//go:generate broccoli -src=static -o assets -var=assets
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -9,7 +11,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
@@ -23,9 +24,10 @@ var (
 	port   = flag.Uint("port", 0, "port to listen on")
 	socket = flag.String("socket", "", "path to socket to listen to")
 
-	upnpRefresh = flag.Duration("upnp-refresh", 30*time.Second, "how frequently to refresh the UPnP devices")
+	debugAssetsPath = flag.String("debug-assets-path", "", "path to assets to load from filesystem, for development")
 
-	ifaceName = flag.String("interface", "", "network interface to discover on (optional)")
+	ifaceName   = flag.String("interface", "", "network interface to discover on (optional)")
+	upnpRefresh = flag.Duration("upnp-refresh", 30*time.Second, "how frequently to refresh the UPnP devices")
 )
 
 var (
@@ -65,29 +67,42 @@ func main() {
 
 	m := mux.NewRouter()
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		msg := fmt.Sprintf("not found: %s %s %s", r.Method, r.URL, r.Form)
+		msg := fmt.Sprintf("not found: %v %v %v", r.Method, r.URL, r.Form)
 		if r.URL.Path != "/favicon.ico" {
 			log.Print(msg)
 		}
 		http.Error(w, msg, http.StatusNotFound)
 	})
 
-	m.Path("/").
+	m.Path("/directories/").
 		Methods("GET").
-		HandlerFunc(getIndexHTML)
+		HeadersRegexp("Accept", "(application|text)/json").
+		HandlerFunc(getDirectoriesJSON)
 
-	m.Path("/{udn}").
+	m.Path("/directories/{udn}").
 		Methods("GET").
-		HandlerFunc(getDirectoryHTML)
+		HeadersRegexp("Accept", "(application|text)/json").
+		HandlerFunc(getDirectoryJSON)
 
-	m.Path("/{udn}/{object}").
+	m.Path("/directories/{udn}/{object}").
+		Methods("GET").
+		HeadersRegexp("Accept", "(application|text)/json").
+		HandlerFunc(getObjectJSON)
+
+	m.Path("/directories/{udn}/{object}").
 		Methods("GET").
 		Queries("accept", "{mimetype}").
 		HandlerFunc(getObjectByType)
 
-	m.Path("/{udn}/{object}").
-		Methods("GET").
-		HandlerFunc(getObjectHTML)
+	if *debugAssetsPath != "" {
+		m.PathPrefix("/").
+			Methods("GET").
+			Handler(http.FileServer(http.Dir(*debugAssetsPath)))
+	} else {
+		m.PathPrefix("/").
+			Methods("GET").
+			Handler(assets.Serve("static"))
+	}
 
 	log.Printf("starting HTTP server on %v", conn.Addr())
 	if err := http.Serve(conn, m); err != nil {
@@ -95,38 +110,42 @@ func main() {
 	}
 }
 
-func getIndexHTML(w http.ResponseWriter, r *http.Request) {
+func getDirectoriesJSON(w http.ResponseWriter, r *http.Request) {
 	devices := directories.Devices()
-	sort.Slice(devices, func(i, j int) bool {
-		return devices[i].Name < devices[j].Name
-	})
 
-	var deviceLIs []string
+	data := []directory{}
 	for _, device := range devices {
-		deviceLIs = append(deviceLIs, fmt.Sprintf(`<li><a href='/%s'>%s</a></li>`, device.UDN, device.Name))
+		data = append(data, directoryFromDevice(device))
 	}
 
-	fmt.Fprintf(w, `<!DOCTYPE html>
-<html>
-<head><title>Helix Player</title></head>
-<body><ul>%s</ul></body>
-</html>`, strings.Join(deviceLIs, ""))
+	blob, err := json.Marshal(data)
+	if err != nil {
+		panic(fmt.Sprintf("could not marshal JSON: %v", err))
+	}
+	w.Write(blob)
 }
 
-func getDirectoryHTML(w http.ResponseWriter, r *http.Request) {
+func getDirectoryJSON(w http.ResponseWriter, r *http.Request) {
 	udn := mux.Vars(r)["udn"]
 
-	if _, ok := directories.DeviceByUDN(udn); !ok {
+	device, ok := directories.DeviceByUDN(udn)
+	if !ok {
 		http.Error(w, fmt.Sprintf("unknown ContentDirectory: %v", udn), http.StatusNotFound)
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("/%s/%s", udn, contentdirectory.Root), http.StatusFound)
+	data := directoryFromDevice(device)
+
+	blob, err := json.Marshal(data)
+	if err != nil {
+		panic(fmt.Sprintf("could not marshal JSON: %v", err))
+	}
+	w.Write(blob)
 }
 
-func getObjectHTML(w http.ResponseWriter, r *http.Request) {
+func getObjectJSON(w http.ResponseWriter, r *http.Request) {
 	udn := mux.Vars(r)["udn"]
-	object := mux.Vars(r)["object"]
+	objectID := mux.Vars(r)["object"]
 
 	device, ok := directories.DeviceByUDN(udn)
 	if !ok {
@@ -141,51 +160,42 @@ func getObjectHTML(w http.ResponseWriter, r *http.Request) {
 	directory := contentdirectory.NewClient(soapClient)
 
 	ctx := r.Context()
-
-	self, err := directory.BrowseMetadata(ctx, upnpav.Object(object))
+	self, err := directory.BrowseMetadata(ctx, upnpav.Object(objectID))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("could not fetch object metadata: %v", err), http.StatusInternalServerError)
 		return
 	}
 
+	data := object{}
 	switch {
-	case len(self.Containers) > 0:
-		children, err := directory.BrowseChildren(ctx, upnpav.Object(object))
+	case len(self.Containers) == 1 && len(self.Items) == 0:
+		data = objectFromContainer(self.Containers[0])
+
+		children, err := directory.BrowseChildren(ctx, upnpav.Object(objectID))
 		if err != nil {
 			http.Error(w, fmt.Sprintf("could not fetch object children: %v", err), http.StatusInternalServerError)
 			return
 		}
-		var childrenLIs []string
 		for _, container := range children.Containers {
-			childrenLIs = append(childrenLIs, fmt.Sprintf(`<li><a href='/%s/%s'>%s</a></li>`, udn, container.ID, container.Title))
+			data.Children = append(data.Children, objectFromContainer(container))
 		}
 		for _, item := range children.Items {
-			childrenLIs = append(childrenLIs, fmt.Sprintf(`<li><a href='/%s/%s'>%s</a></li>`, udn, item.ID, item.Title))
+			data.Children = append(data.Children, objectFromItem(item))
 		}
-		fmt.Fprintf(w, `<!DOCTYPE html>
-<html>
-<head><title>Helix Player</title></head>
-<body>
-	<a href='/%s/%s'>back</a>
-	<ul>%s</ul>
-</body>
-</html>`, udn, self.Containers[0].ParentID, strings.Join(childrenLIs, ""))
-	case len(self.Items) > 0:
-		item := self.Items[0]
 
-		// TODO: switch by itemClass, e.g. VideoItem, AudioItem.
-		fmt.Fprintf(w, `<!DOCTYPE html>
-<html>
-<head><title>Helix Player</title></head>
-<body>
-	<a href='/%s/%s'>back</a>
-	<audio src='/%s/%s?accept=audio/*' controls></audio>
-</body>
-</html>`, udn, item.ParentID, udn, item.ID)
+	case len(self.Containers) == 0 && len(self.Items) == 1:
+		data = objectFromItem(self.Items[0])
+
 	default:
-		// I think this is impossible, but I can't be sure.
-		http.Error(w, "object is neither item nor container?!", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("object has %v containers and %v items", len(self.Containers), len(self.Items)), http.StatusInternalServerError)
+		return
 	}
+
+	blob, err := json.Marshal(data)
+	if err != nil {
+		panic(fmt.Sprintf("could not marshal JSON: %v", err))
+	}
+	w.Write(blob)
 }
 
 func getObjectByType(w http.ResponseWriter, r *http.Request) {

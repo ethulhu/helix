@@ -1,12 +1,14 @@
 import { elemGenerator } from './elems.js';
 
-const _audio  = elemGenerator( 'audio' );
-const _button = elemGenerator( 'button' );
-const _details  = elemGenerator( 'details' );
-const _li     = elemGenerator( 'li' );
-const _summary  = elemGenerator( 'summary' );
-const _ul     = elemGenerator( 'ul' );
-const _video  = elemGenerator( 'video' );
+const _audio   = elemGenerator( 'audio' );
+const _button  = elemGenerator( 'button' );
+const _details = elemGenerator( 'details' );
+const _div     = elemGenerator( 'div' );
+const _input   = elemGenerator( 'input' );
+const _li      = elemGenerator( 'li' );
+const _summary = elemGenerator( 'summary' );
+const _ul      = elemGenerator( 'ul' );
+const _video   = elemGenerator( 'video' );
 
 export class Player {
 	constructor( element ) {
@@ -19,20 +21,45 @@ export class Player {
 		// Incrementing this provides a source of unique IDs.
 		this._playlistIds = 0;
 
-		this._audio = _audio( { controls: true } );
-		this._audio.addEventListener( 'ended', e => {
-			this.playNext();
+		const range = _input( {
+			type: 'range',
+			value: 0,
+			input: e => {
+				this._playingElement.currentTime = e.target.value;
+			},
 		} );
 
-		this._video = _video( { controls: true, style: 'display: none;' } );
-		this._video.addEventListener( 'ended', e => {
-			this.playNext();
+		this._audio = _audio( {
+			ended: () => this.playNext(),
+			durationchange: e => { range.max = e.target.duration; },
+			timeupdate: e => {
+				range.value = e.target.currentTime;
+			},
+		} );
+
+		this._video = _video( {
+			controls: true,
+			style: 'display: none;',
+			ended: () => this.playNext(),
+			durationchange: e => { range.max = e.target.duration; },
+			timeupdate: e => {
+				range.value = e.target.currentTime;
+			},
 		} );
 
 
 		this._element.appendChild( this._audio );
 		this._element.appendChild( this._video );
+		this._element.appendChild( _div(
+			_button( '⏩', { click: () => this.playNext() } ),
+			_button( '⏯️', { click: () => this.playPause() } ),
+			range,
+		) );
 		this._element.appendChild( _details( _summary( 'playlist' ), this._tracklist ) );
+	}
+
+	get _playingElement() {
+		return this._current && isVideoItem( this._current ) ? this._video : this._audio;
 	}
 
 	_newPlaylistId() {
@@ -89,6 +116,8 @@ export class Player {
 	}
 
 	playNext() {
+		this._playingElement.pause();
+
 		if ( ! this._queue ) {
 			// empty playlist.
 			return;
@@ -116,6 +145,14 @@ export class Player {
 		this.play();
 	}
 
+	playPause() {
+		if ( this._playingElement.paused ) {
+			this.play();
+		} else {
+			this._playingElement.pause();
+		}
+	}
+
 	play() {
 		if ( ! this._current ) {
 			return;
@@ -125,11 +162,16 @@ export class Player {
 			isAudioItem( this._current ) ?
 				[ this._audio, this._video ] : [ this._video, this._audio ];
 
+		const mimetype = this._mimetype( this._current );
+		const url = `/directories/${this._current.directory}/${this._current.id}?accept=${mimetype}`;
+		if ( enabled.src.endsWith( url ) ) {
+			enabled.play();
+			return;
+		}
+		enabled.src = url;
+
 		disabled.style.display = 'none';
 		this._element.querySelectorAll( 'li.playing' ).forEach( el => el.classList.remove( 'playing' ) );
-
-		const mimetype = this._mimetype( this._current );
-		enabled.src = `/directories/${this._current.directory}/${this._current.id}?accept=${mimetype}`;
 
 		enabled.style.display = 'block';
 		this._element.querySelector( `li[data-playlist-id='${this._current.playlistId}']` )

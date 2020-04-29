@@ -20,7 +20,7 @@ input[type=checkbox]:checked ~ ul {
 	<script type='module'>
 		import { elemRegister } from './elems.js';
 
-		elemRegister( '_', null, 'audio', 'button', 'input', 'label', 'li', 'ul', 'video' );
+		elemRegister( '_', null, 'audio', 'button', 'input', 'label', 'li', 's', 'ul', 'video' );
 
 		class API {
 			async directories() {
@@ -60,6 +60,9 @@ input[type=checkbox]:checked ~ ul {
 
 		const api = new API();
 
+		const testAudio = _audio();
+		const testVideo = _video();
+
 		const newObject =
 			( parentID, o ) => (
 				o.itemClass.startsWith( 'object.container' )      ? newContainer :
@@ -92,22 +95,30 @@ input[type=checkbox]:checked ~ ul {
 
 		const newAudio =
 			( udn, o ) => _li(
-				_audio( o.title, {
-					'data-id': o.id,
-					'data-udn': udn,
-					src: `/directories/${udn}/${o.id}?accept=audio/*`,
-					controls: true,
-				} ) );
+				o.mimetypes.some( m => testAudio.canPlayType( m ) ) ?
+					_audio( o.title, {
+						'data-id': o.id,
+						'data-udn': udn,
+						// TODO: extract the proper mimetype.
+						src: `/directories/${udn}/${o.id}?accept=audio/*`,
+						controls: true,
+					} ) :
+					_button( o.title, { disabled: true } ),
+			);
 
 		const newVideo =
 			( udn, o ) => _li(
-				_video( o.title, {
-					'data-id': o.id,
-					'data-udn': udn,
-					src: `/directories/${udn}/${o.id}?accept=video/mp4`,
-					controls: true,
-					preload: 'none',
-				} ) );
+				o.mimetypes.some( m => testVideo.canPlayType( m ) ) ?
+					_video( o.title, {
+						'data-id': o.id,
+						'data-udn': udn,
+						// TODO: extract the proper mimetype.
+						src: `/directories/${udn}/${o.id}?accept=video/*`,
+						controls: true,
+						preload: 'none',
+					} ) :
+					_button( o.title, { disabled: true } ),
+			);
 
 		const newNothing =
 			( udn, o ) => _li( _button( o.title, { disabled: true } ) );

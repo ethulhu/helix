@@ -24,7 +24,7 @@ type object struct {
 	ItemClass string `json:"itemClass"`
 
 	// Item fields.
-	MIMETypes []string `json:"mimeTypes,omitempty"`
+	MIMETypes []string `json:"mimetypes,omitempty"`
 
 	// Container fields.
 	Children []object `json:"children,omitempty"`

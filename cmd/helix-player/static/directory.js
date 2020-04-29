@@ -32,7 +32,9 @@ export class Directory {
 					if ( e.target.checked ) {
 						this._api.object( d.udn, this._api.rootObject )
 							.then( o => e.target.parentElement.appendChild(
-								_ul( this.newObject( o ) ) )
+								o.itemClass.startsWith( 'object.container' ) ?
+									_ul( o.children.map( this.newObject.bind( this ) ) ) :
+									_ul( this.newObject( o ) ) )
 							)
 							.catch( console.error );
 					} else {

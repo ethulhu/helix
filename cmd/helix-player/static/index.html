@@ -15,6 +15,10 @@ input[type=checkbox]:checked ~ ul {
 
 <body>
 	<main>
+		<div id='player'>
+			<audio autoplay controls></audio>
+			<video autoplay controls></video>
+		</div>
 	</main>
 
 	<script type='module'>
@@ -57,11 +61,10 @@ input[type=checkbox]:checked ~ ul {
 		}
 
 		const main = document.querySelector( 'main' );
+		const audio = document.querySelector( '#player audio' );
+		const video = document.querySelector( '#player video' );
 
 		const api = new API();
-
-		const testAudio = _audio();
-		const testVideo = _video();
 
 		const newObject =
 			( parentID, o ) => (
@@ -95,34 +98,30 @@ input[type=checkbox]:checked ~ ul {
 
 		const newAudio =
 			( udn, o ) => _li(
-				o.mimetypes.some( m => testAudio.canPlayType( m ) ) ?
-					_audio( o.title, {
-						'data-id': o.id,
-						'data-udn': udn,
-						// TODO: extract the proper mimetype.
-						src: `/directories/${udn}/${o.id}?accept=audio/*`,
-						controls: true,
-					} ) :
-					_button( o.title, { disabled: true } ),
+				_button( o.title, {
+					'data-id': o.id,
+					'data-udn': udn,
+					// TODO: extract the proper mimetype.
+					'click': e => audio.src = `/directories/${udn}/${o.id}?accept=audio/*`,
+
+					disabled: ! o.mimetypes.some( m => audio.canPlayType( m ) ),
+				} ),
 			);
 
 		const newVideo =
 			( udn, o ) => _li(
-				o.mimetypes.some( m => testVideo.canPlayType( m ) ) ?
-					_video( o.title, {
-						'data-id': o.id,
-						'data-udn': udn,
-						// TODO: extract the proper mimetype.
-						src: `/directories/${udn}/${o.id}?accept=video/*`,
-						controls: true,
-						preload: 'none',
-					} ) :
-					_button( o.title, { disabled: true } ),
+				_button( o.title, {
+					'data-id': o.id,
+					'data-udn': udn,
+					// TODO: extract the proper mimetype.
+					'click': e => video.src = `/directories/${udn}/${o.id}?accept=video/*`,
+
+					disabled: ! o.mimetypes.some( m => video.canPlayType( m ) ),
+				} ),
 			);
 
 		const newNothing =
 			( udn, o ) => _li( _button( o.title, { disabled: true } ) );
-
 
 		const newDirectory =
 			d => _li(

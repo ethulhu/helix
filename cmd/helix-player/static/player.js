@@ -29,10 +29,15 @@ export class Player {
 		this._element.appendChild( this._tracklist );
 	}
 
+	_mimetype( item ) {
+		// TODO: reorder item.mimetypes into [ canPlayType == 'probably' ] + [ canPlayType == 'maybe' ].
+		return isAudioItem( item ) ? item.mimetypes.filter( m => this._audio.canPlayType( m ) ).firstOrNull() :
+			isVideoItem( item ) ? item.mimetypes.filter( m => this._video.canPlayType( m ) ).firstOrNull() :
+			null;
+	}
+
 	canPlay( item ) {
-		return isAudioItem( item ) ? item.mimetypes.some( m => this._audio.canPlayType( m ) ) :
-		       isVideoItem( item ) ? item.mimetypes.some( m => this._video.canPlayType( m ) ) :
-		       false;
+		return !! this._mimetype( item );
 	}
 
 	enqueue( item ) {
@@ -93,13 +98,21 @@ export class Player {
 	}
 
 	play() {
-		// TODO: extract the proper mimetype.
-		const [ enabled, disabled, mimetype ] =
+		if ( ! this._current ) {
+			return;
+		}
+
+		const [ enabled, disabled ] =
 			isAudioItem( this._current ) ?
-				[ this._audio, this._video, 'audio/*' ] : [ this._video, this._audio, 'video/*' ];
+				[ this._audio, this._video ] : [ this._video, this._audio ];
+		const mimetype = this._mimetype( this._current );
 		enabled.src = `/directories/${this._current.directory}/${this._current.id}?accept=${mimetype}`;
 		enabled.play();
 	}
+}
+
+Array.prototype.firstOrNull = function() {
+	return this ? this[ 0 ] : null;
 }
 
 const isAudioItem = item => item.itemClass.startsWith( 'object.item.audioItem' );

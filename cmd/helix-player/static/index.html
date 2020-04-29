@@ -18,17 +18,23 @@ input[type=checkbox]:checked ~ ul {
 		<div id='player'>
 			<audio autoplay controls></audio>
 			<video autoplay controls></video>
-			<ul>
-			</ul>
+			<ul></ul>
+		</div>
+
+		<div id='directory'>
 		</div>
 	</main>
 
 	<script type='module'>
 		import { elemRegister } from './elems.js';
+		import { Directory } from './directory.js';
 
-		elemRegister( '_', null, 'audio', 'button', 'input', 'label', 'li', 's', 'ul', 'video' );
+		elemRegister( '_', null, 'button', 'input', 'label', 'li', 's', 'ul' );
 
 		class API {
+			constructor() {
+				this.rootObject = '0';
+			}
 			async directories() {
 				const rsp = await fetch( '/directories/', {
 					headers: {
@@ -54,7 +60,6 @@ input[type=checkbox]:checked ~ ul {
 				return rsp.blob();
 			}
 		}
-		API.rootObject = '0';
 
 		class Playlist {
 			constructor( audio, video, tracklist ) {
@@ -154,68 +159,9 @@ input[type=checkbox]:checked ~ ul {
 
 		const api = new API();
 		const playlist = new Playlist( audio, video, tracklist );
+		const directory = new Directory( document.querySelector( '#directory' ), api, playlist );
 
-		const newObject =
-			o => o.itemClass.startsWith( 'object.container' ) ? newContainer( o ) : newItem( o );
-
-		const newContainer =
-			o => _li(
-				_input( {
-					'data-id': o.id,
-					'data-directory': o.directory,
-					id: `${o.directory}/${o.id}`,
-					type: 'checkbox',
-					change: e => {
-						if ( e.target.checked ) {
-							api.object( o.directory, o.id )
-							   .then( o => e.target.parentElement.appendChild(
-								_ul( o.children.map( c => newObject( c ) ) ) )
-							   )
-							   .catch( console.error );
-						} else {
-							const ul = e.target.parentElement.querySelector( 'ul' );
-							e.target.parentElement.removeChild( ul );
-						}
-					},
-				} ),
-				_label( o.title, { for: `${o.directory}/${o.id}` } ),
-			);
-
-		const newItem = 
-			o => _li(
-				_button( o.title, {
-					'data-id': o.id,
-					'data-directory': o.directory,
-					'click': e => playlist.enqueue( o ),
-					disabled: ! playlist.canPlay( o ),
-				} ),
-			);
-
-		const newDirectory =
-			d => _li(
-				_input( {
-					'data-directory': d.udn,
-					id: d.udn,
-					type: 'checkbox',
-					change: e => {
-						if ( e.target.checked ) {
-							api.object( d.udn, API.rootObject )
-							   .then( o => e.target.parentElement.appendChild(
-								_ul( newObject( o ) ) )
-							   )
-							   .catch( console.error );
-						} else {
-							const ul = e.target.parentElement.querySelector( 'ul' );
-							e.target.parentElement.removeChild( ul );
-						}
-					},
-				} ),
-				_label( d.name, { for: d.udn } ),
-			);
-
-		api.directories()
-		   .then( ds => _ul( ds.map( newDirectory ) ) )
-		   .then( ul => main.appendChild( ul ) );
+		directory.loadDirectories();
 	</script>
 </body>
 </html>

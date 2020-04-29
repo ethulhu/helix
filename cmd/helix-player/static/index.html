@@ -156,20 +156,20 @@ input[type=checkbox]:checked ~ ul {
 		const playlist = new Playlist( audio, video, tracklist );
 
 		const newObject =
-			( parentID, o ) => ( o.itemClass.startsWith( 'object.container' ) ? newContainer : newItem )( parentID, o );
+			o => o.itemClass.startsWith( 'object.container' ) ? newContainer( o ) : newItem( o );
 
 		const newContainer =
-			( udn, o ) => _li(
+			o => _li(
 				_input( {
 					'data-id': o.id,
-					'data-udn': udn,
-					id: `${udn}/${o.id}`,
+					'data-directory': o.directory,
+					id: `${o.directory}/${o.id}`,
 					type: 'checkbox',
 					change: e => {
 						if ( e.target.checked ) {
-							api.object( udn, e.target.dataset.id )
+							api.object( o.directory, o.id )
 							   .then( o => e.target.parentElement.appendChild(
-								_ul( o.children.map( c => newObject( udn, c ) ) ) )
+								_ul( o.children.map( c => newObject( c ) ) ) )
 							   )
 							   .catch( console.error );
 						} else {
@@ -178,14 +178,14 @@ input[type=checkbox]:checked ~ ul {
 						}
 					},
 				} ),
-				_label( o.title, { for: `${udn}/${o.id}` } ),
+				_label( o.title, { for: `${o.directory}/${o.id}` } ),
 			);
 
 		const newItem = 
-			( udn, o ) => _li(
+			o => _li(
 				_button( o.title, {
 					'data-id': o.id,
-					'data-udn': udn,
+					'data-directory': o.directory,
 					'click': e => playlist.enqueue( o ),
 					disabled: ! playlist.canPlay( o ),
 				} ),
@@ -194,15 +194,14 @@ input[type=checkbox]:checked ~ ul {
 		const newDirectory =
 			d => _li(
 				_input( {
-					'data-udn': d.udn,
+					'data-directory': d.udn,
 					id: d.udn,
 					type: 'checkbox',
 					change: e => {
 						if ( e.target.checked ) {
-							const udn = e.target.dataset.udn;
-							api.object( udn, API.rootObject )
+							api.object( d.udn, API.rootObject )
 							   .then( o => e.target.parentElement.appendChild(
-								  _ul( newObject( d.udn, o ) ) )
+								_ul( newObject( o ) ) )
 							   )
 							   .catch( console.error );
 						} else {

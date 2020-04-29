@@ -73,9 +73,15 @@ input[type=checkbox]:checked ~ ul {
 				} );
 			}
 
+			canPlay( item ) {
+				return item.itemClass.startsWith( 'object.item.audioItem' ) ? item.mimetypes.some( m => this.audio.canPlayType( m ) ) :
+				       item.itemClass.startsWith( 'object.item.videoItem' ) ? item.mimetypes.some( m => this.video.canPlayType( m ) ) :
+				       false;
+			}
+
 			enqueue( item ) {
-				if ( ! [ 'object.item.audioItem', 'object.item.videoItem' ].some( k => item.itemClass.startsWith( k ) ) ) {
-					throw `invalid playlist item: directory ${item.directory}, id ${item.id}, class ${item.itemClass}`;
+				if ( ! this.canPlay( item ) ) {
+					throw `cannot enqueue item: directory ${item.directory}, id ${item.id}, class ${item.itemClass}`;
 				}
 
 				this.queue.push( item );
@@ -150,11 +156,7 @@ input[type=checkbox]:checked ~ ul {
 		const playlist = new Playlist( audio, video, tracklist );
 
 		const newObject =
-			( parentID, o ) => (
-				o.itemClass.startsWith( 'object.container' )      ? newContainer :
-				o.itemClass.startsWith( 'object.item.audioItem' ) ? newAudio     :
-				o.itemClass.startsWith( 'object.item.videoItem' ) ? newVideo     :
-				                                                    newNothing   )( parentID, o );
+			( parentID, o ) => ( o.itemClass.startsWith( 'object.container' ) ? newContainer : newItem )( parentID, o );
 
 		const newContainer =
 			( udn, o ) => _li(
@@ -179,28 +181,15 @@ input[type=checkbox]:checked ~ ul {
 				_label( o.title, { for: `${udn}/${o.id}` } ),
 			);
 
-		const newAudio =
+		const newItem = 
 			( udn, o ) => _li(
 				_button( o.title, {
 					'data-id': o.id,
 					'data-udn': udn,
 					'click': e => playlist.enqueue( o ),
-					disabled: ! o.mimetypes.some( m => audio.canPlayType( m ) ),
+					disabled: ! playlist.canPlay( o ),
 				} ),
 			);
-
-		const newVideo =
-			( udn, o ) => _li(
-				_button( o.title, {
-					'data-id': o.id,
-					'data-udn': udn,
-					'click': e => playlist.enqueue( o ),
-					disabled: ! o.mimetypes.some( m => video.canPlayType( m ) ),
-				} ),
-			);
-
-		const newNothing =
-			( udn, o ) => _li( _button( o.title, { disabled: true } ) );
 
 		const newDirectory =
 			d => _li(

@@ -118,3 +118,5 @@ export class HelixDirectoryTree extends HTMLElement {
 		);
 	}
 }
+
+customElements.define( 'helix-directory-tree', HelixDirectoryTree );

@@ -109,8 +109,6 @@ helix-directory-tree {
 
 		const player = new Player( document.querySelector( '#player' ) );
 
-		customElements.define( 'helix-directory-tree', HelixDirectoryTree );
-
 		customElements.whenDefined( 'helix-directory-tree' ).then( () => {
 			document.querySelector( 'helix-directory-tree' ).addEventListener( 'enqueue', e => {
 				player.enqueue( e.detail );

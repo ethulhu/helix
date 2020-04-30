@@ -1,37 +1,68 @@
 import { elemGenerator } from './elems.js';
 
-const _button = elemGenerator( 'button' );
-const _input = elemGenerator( 'input' );
-const _label = elemGenerator( 'label' );
-const _li = elemGenerator( 'li' );
-const _ul = elemGenerator( 'ul' );
+const _button   = elemGenerator( 'button' );
+const _input    = elemGenerator( 'input' );
+const _label    = elemGenerator( 'label' );
+const _li       = elemGenerator( 'li' );
+const _style    = elemGenerator( 'style' );
+const _template = elemGenerator( 'template' );
+const _ul       = elemGenerator( 'ul' );
 
-export class Directory {
-	constructor( element, api, player ) {
-		this._element = element;
-		this._api = api;
-		this._player = player;
+async function _fetchDirectories() {
+	const rsp = await fetch( '/directories/', {
+		headers: { Accept: 'application/json' },
+	} );
+	return rsp.json()
+}
+async function _fetchObject( directory, id ) {
+	const rsp = await fetch( `/directories/${directory}/${id}`, {
+		headers: { Accept: 'application/json' },
+	} );
+	return rsp.json()
+}
+const rootObject = '0';
+
+const template = _template(
+	_style( `
+		button:disabled {
+			text-decoration: line-through;
+		}
+		input[type=checkbox] ~ ul {
+			visibility: hidden;
+		}
+		input[type=checkbox]:checked ~ ul {
+			visibility: visible;
+		}
+	` ),
+);
+
+export class HelixDirectoryTree extends HTMLElement {
+	constructor() {
+		super();
+
+		this.attachShadow( { mode: 'open' } );
+		this.shadowRoot.appendChild( template.content.cloneNode( true ) );
+
+		_fetchDirectories()
+			.then( ds => _ul( ds.map( this.newDirectory.bind( this ) ) ) )
+			.then( ul => this.shadowRoot.appendChild( ul ) );
 	}
 
-	loadDirectories() {
-		this._api.directories()
-			.then( ds => _ul( ds.map( this.newDirectory.bind( this ) ) ) )
-			.then( ul => {
-				this._element.innerHTML = '';
-				this._element.appendChild( ul );
-			} );
+	_sendEvent( name, payload ) {
+		const e = new CustomEvent( name, { detail: payload } );
+		this.dispatchEvent( e );
 	}
 
 	newDirectory( d ) {
 		return _li(
 			_input( {
-				'data-directory': d.udn,
 				id: d.udn,
 				type: 'checkbox',
 				change: e => {
 					if ( e.target.checked ) {
-						this._api.object( d.udn, this._api.rootObject )
-							.then( o => e.target.parentElement.appendChild(
+						const target = e.target;
+						_fetchObject( d.udn, rootObject )
+							.then( o => target.parentElement.appendChild(
 								o.itemClass.startsWith( 'object.container' ) ?
 									_ul( o.children.map( this.newObject.bind( this ) ) ) :
 									_ul( this.newObject( o ) ) )
@@ -54,14 +85,13 @@ export class Directory {
 	newContainer( o ) {
 		return _li(
 			_input( {
-				'data-id': o.id,
-				'data-directory': o.directory,
 				id: `${o.directory}/${o.id}`,
 				type: 'checkbox',
 				change: e => {
 					if ( e.target.checked ) {
-						this._api.object( o.directory, o.id )
-							.then( o => e.target.parentElement.appendChild(
+						const target = e.target;
+						_fetchObject( o.directory, o.id )
+							.then( o => target.parentElement.appendChild(
 								_ul( o.children.map( this.newObject.bind( this ) ) ) )
 							)
 							.catch( console.error );
@@ -78,10 +108,12 @@ export class Directory {
 	newItem( o ) {
 		return _li(
 			_button( o.title, {
-				'data-id': o.id,
-				'data-directory': o.directory,
-				'click': e => this._player.enqueue( o ),
-				disabled: ! this._player.canPlay( o ),
+				'click': e => this._sendEvent( 'enqueue', o ),
+				// TODO: figure out what to do with this.
+				// While there are things a browser cannot play,
+				// a transport might be able to,
+				// and this is supposed to be reusable.
+				// disabled: ! this._player.canPlay( o ),
 			} )
 		);
 	}

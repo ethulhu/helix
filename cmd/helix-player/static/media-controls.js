@@ -27,14 +27,14 @@ const template = documentFragment(
 
 export class HelixMediaControls extends HTMLElement {
 	static get observedAttributes() {
-		return [ 'duration' ];
+		return [ 'duration', 'current-time' ];
 	}
 
 	attributeChangedCallback( attr, oldValue, newValue ) {
 		switch ( attr ) {
 			case 'duration':
 				this._slider.max = newValue;
-			case 'currentTime':
+			case 'current-time':
 				this._slider.value = newValue;
 		}
 	}

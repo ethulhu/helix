@@ -1,11 +1,10 @@
-import { elemGenerator } from './elems.js';
+import { documentFragment, elemGenerator } from './elems.js';
 
 const _button   = elemGenerator( 'button' );
 const _input    = elemGenerator( 'input' );
 const _label    = elemGenerator( 'label' );
 const _li       = elemGenerator( 'li' );
 const _style    = elemGenerator( 'style' );
-const _template = elemGenerator( 'template' );
 const _ul       = elemGenerator( 'ul' );
 
 async function _fetchDirectories() {
@@ -22,7 +21,7 @@ async function _fetchObject( directory, id ) {
 }
 const rootObject = '0';
 
-const template = _template(
+const template = documentFragment(
 	_style( `
 		button:disabled {
 			text-decoration: line-through;
@@ -41,7 +40,7 @@ export class HelixDirectoryTree extends HTMLElement {
 		super();
 
 		this.attachShadow( { mode: 'open' } );
-		this.shadowRoot.appendChild( template.content.cloneNode( true ) );
+		this.shadowRoot.appendChild( template.cloneNode( true ) );
 
 		_fetchDirectories()
 			.then( ds => _ul( ds.map( this.newDirectory.bind( this ) ) ) )

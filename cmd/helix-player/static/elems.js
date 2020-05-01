@@ -59,6 +59,25 @@
  *   ) )
  * ) );
  */
+
+export function documentFragment( ...args )
+{
+	const fragment = new DocumentFragment();
+
+	if ( ! ( args instanceof Array ) )
+	{
+		args = [ args ];
+	}
+	else
+	{
+		args = args.flat( 3 );
+	}
+
+	args.forEach( arg => fragment.appendChild( arg ) );
+
+	return fragment;
+}
+
 export function elemGenerator(tag, ns)
 {
 	return ( ...args ) =>

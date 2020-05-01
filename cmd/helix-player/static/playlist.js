@@ -95,11 +95,7 @@ export class HelixPlaylist extends HTMLElement {
 					return;
 				}
 
-				if ( this._current ) {
-					this._current.removeAttribute( 'current' );
-				}
 				this._current = this.listItems[ newValue - 1 ];
-				this._current.setAttribute( 'current', '' );
 				this._sendEvent( 'trackchanged' );
 		}
 	}

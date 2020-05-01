@@ -98,9 +98,10 @@ helix-directory-tree {
 <body>
 	<main>
 		<div id='player'>
+			<helix-media-player></helix-media-player>
+			<helix-media-controls duration='100'></helix-media-controls>
 		</div>
 
-		<helix-media-controls></helix-media-controls>
 
 		<helix-directory-tree></helix-directory-tree>
 	</main>
@@ -108,44 +109,51 @@ helix-directory-tree {
 	<script type='module'>
 		import './directory.js';
 		import './media-controls.js';
+		import './media-player.js';
 		import { Player             } from './player.js';
 
-		const player = new Player( document.querySelector( '#player' ) );
+		const elements = [
+			'helix-directory-tree',
+			'helix-media-controls',
+			'helix-media-player',
+		];
 
-		customElements.whenDefined( 'helix-directory-tree' ).then( () => {
-			document.querySelector( 'helix-directory-tree' ).addEventListener( 'enqueue', e => {
-				player.enqueue( e.detail );
-			} );
-		} );
-
-		customElements.whenDefined( 'helix-media-controls' ).then( () => {
-
+		Promise.all( elements.map( e => customElements.whenDefined( e ) ) ).then( () => {
+			const directoryTree = document.querySelector( 'helix-directory-tree' );
 			const controls = document.querySelector( 'helix-media-controls' );
-			const playerElement = document.querySelector( '#player' );
-			//const playerElement = document.querySelector( 'audio' );
+			const player = document.querySelector( 'helix-media-player' );
 
-			controls.duration = 100;
+			const playlist = new Player( document.querySelector( '#player' ), player );
+
+
+			directoryTree.addEventListener( 'enqueue', e => {
+				playlist.enqueue( e.detail );
+			} );
+
 			controls.addEventListener( 'playpause', e => {
-				player.playPause();
+				if ( player.paused ) {
+					player.play();
+				} else {
+					player.pause();
+				}
 			} );
 			controls.addEventListener( 'skip', e => {
-				player.skip();
+				playlist.skip();
 			} );
 			controls.addEventListener( 'seek', e => {
 				player.currentTime = e.detail;
 			} );
 
-			playerElement.addEventListener( 'durationchange', e => {
+			player.addEventListener( 'durationchange', e => {
 				console.log( 'duration changed' );
-				// TODO: replace with e.target when player is a CustomElement.
-				// controls.duration = e.target.duration;
-				controls.duration = player.duration;
+				controls.duration = e.target.duration;
 			} );
-			playerElement.addEventListener( 'timeupdate', e => {
+			player.addEventListener( 'timeupdate', e => {
 				console.log( 'playback happens' );
-				// TODO: replace with e.target when player is a CustomElement.
-				// controls.currentTime = e.target.currentTime;
-				controls.currentTime = player.currentTime;
+				controls.currentTime = e.target.currentTime;
+			} );
+			player.addEventListener( 'ended', e => {
+				playlist.skip();
 			} );
 		} );
 	</script>

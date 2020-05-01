@@ -1,6 +1,5 @@
 import { elemGenerator } from './elems.js';
 
-const _audio   = elemGenerator( 'audio' );
 const _button  = elemGenerator( 'button' );
 const _details = elemGenerator( 'details' );
 const _div     = elemGenerator( 'div' );
@@ -11,13 +10,9 @@ const _video   = elemGenerator( 'video' );
 
 export class Player {
 
-	get currentTime() { return this._playingElement.currentTime; }
-	set currentTime( v ) { this._playingElement.currentTime = v; }
-
-	get duration() { return this._playingElement.duration; }
-
-	constructor( element ) {
+	constructor( element, player ) {
 		this._element = element;
+		this._player = player;
 
 		this._queue = [];
 		this._current = null;
@@ -27,21 +22,6 @@ export class Player {
 		this._playlistIds = 0;
 
 
-		this._audio = _audio( {
-			ended: () => this.skip(),
-			timeupdate: () => this._sendEvent( 'timeupdate', null ),
-			durationchange: () => this._sendEvent( 'durationchange', null ),
-		} );
-
-		this._video = _video( {
-			controls: true,
-			style: 'display: none;',
-			ended: () => this.skip(),
-		} );
-
-
-		this._element.appendChild( this._audio );
-		this._element.appendChild( this._video );
 		this._element.appendChild( _details( _summary( 'playlist' ), this._tracklist ) );
 	}
 
@@ -50,19 +30,12 @@ export class Player {
 		this._element.dispatchEvent( e );
 	}
 
-	get _playingElement() {
-		return this._current && isVideoItem( this._current ) ? this._video : this._audio;
-	}
-
 	_newPlaylistId() {
 		return this._playlistIds++;
 	}
 
 	_mimetype( item ) {
-		// TODO: reorder item.mimetypes into [ canPlayType == 'probably' ] + [ canPlayType == 'maybe' ].
-		return isAudioItem( item ) ? item.mimetypes.filter( m => this._audio.canPlayType( m ) ).firstOrNull() :
-			isVideoItem( item ) ? item.mimetypes.filter( m => this._video.canPlayType( m ) ).firstOrNull() :
-			null;
+		return item.mimetypes.filter( m => this._player.canPlayType( m ) ).firstOrNull();
 	}
 
 	canPlay( item ) {
@@ -108,8 +81,6 @@ export class Player {
 	}
 
 	skip() {
-		this._playingElement.pause();
-
 		if ( ! this._queue ) {
 			// empty playlist.
 			return;
@@ -137,45 +108,29 @@ export class Player {
 		this.play();
 	}
 
-	playPause() {
-		if ( this._playingElement.paused ) {
-			this.play();
-		} else {
-			this._playingElement.pause();
-		}
-	}
-
 	play() {
 		if ( ! this._current ) {
 			return;
 		}
 
-		const [ enabled, disabled ] =
-			isAudioItem( this._current ) ?
-				[ this._audio, this._video ] : [ this._video, this._audio ];
-
 		const mimetype = this._mimetype( this._current );
 		const url = `/directories/${this._current.directory}/${this._current.id}?accept=${mimetype}`;
-		if ( enabled.src.endsWith( url ) ) {
-			enabled.play();
+
+		if ( this._player.src.endsWith( url ) ) {
+			this._player.play();
 			return;
 		}
-		enabled.src = url;
+		this._player.src = url;
 
-		disabled.style.display = 'none';
 		this._element.querySelectorAll( 'li.playing' ).forEach( el => el.classList.remove( 'playing' ) );
 
-		enabled.style.display = 'block';
 		this._element.querySelector( `li[data-playlist-id='${this._current.playlistId}']` )
 			.classList.add( 'playing' );
 
-		enabled.play();
+		this._player.play();
 	}
 }
 
 Array.prototype.firstOrNull = function() {
 	return this ? this[ 0 ] : null;
 }
-
-const isAudioItem = item => item.itemClass.startsWith( 'object.item.audioItem' );
-const isVideoItem = item => item.itemClass.startsWith( 'object.item.videoItem' );

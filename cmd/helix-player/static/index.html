@@ -54,10 +54,6 @@ button:active {
 	filter:     drop-shadow(1px 1px 0.5px black);
 	transform:  translateY(1px);
 }
-details * {
-	font-size:    12pt;
-	font-family:  sans-serif;
-}
 
 main {
 	height: 100vh;
@@ -69,7 +65,7 @@ main {
 #player {
 	grid-area: player;
 }
-#player li.playing {
+#player li[current] {
 	color: var(--highlight-color);
 }
 
@@ -85,6 +81,10 @@ helix-directory-tree {
 		<div id='player'>
 			<helix-media-player></helix-media-player>
 			<helix-media-controls duration='100'></helix-media-controls>
+			<details>
+				<summary>playlist</summary>
+				<helix-playlist></helix-playlist>
+			</details>
 		</div>
 
 
@@ -92,27 +92,36 @@ helix-directory-tree {
 	</main>
 
 	<script type='module'>
+		import { elemGenerator } from './elems.js';
+
 		import './directory.js';
 		import './media-controls.js';
 		import './media-player.js';
-		import { Player             } from './player.js';
+		import './playlist.js';
+
+		const _li     = elemGenerator( 'li' );
+		const _source = elemGenerator( 'source' );
 
 		const elements = [
 			'helix-directory-tree',
 			'helix-media-controls',
 			'helix-media-player',
+			'helix-playlist',
 		];
 
 		Promise.all( elements.map( e => customElements.whenDefined( e ) ) ).then( () => {
-			const directoryTree = document.querySelector( 'helix-directory-tree' );
 			const controls = document.querySelector( 'helix-media-controls' );
+			const directoryTree = document.querySelector( 'helix-directory-tree' );
 			const player = document.querySelector( 'helix-media-player' );
-
-			const playlist = new Player( document.querySelector( '#player' ), player );
-
+			const playlist = document.querySelector( 'helix-playlist' );
 
 			directoryTree.addEventListener( 'enqueue', e => {
-				playlist.enqueue( e.detail );
+				const item = e.detail;
+
+				const mimetype = item.mimetypes.filter( m => player.canPlayType( m ) )[ 0 ];
+				const url = `/directories/${item.directory}/${item.id}?accept=${mimetype}`;
+
+				playlist.appendChild( _li( item.title, _source( { src: url } ) ) );
 			} );
 
 			controls.addEventListener( 'playpause', e => {
@@ -130,15 +139,20 @@ helix-directory-tree {
 			} );
 
 			player.addEventListener( 'durationchange', e => {
-				console.log( 'duration changed' );
 				controls.duration = e.target.duration;
 			} );
 			player.addEventListener( 'timeupdate', e => {
-				console.log( 'playback happens' );
 				controls.currentTime = e.target.currentTime;
 			} );
 			player.addEventListener( 'ended', e => {
+				console.log( 'track ended' );
 				playlist.skip();
+			} );
+
+			playlist.addEventListener( 'trackchanged', e => {
+				console.log( 'track changed' );
+				player.src = e.detail.getElementsByTagName( 'source' )[ 0 ].src;
+				player.play();
 			} );
 		} );
 	</script>

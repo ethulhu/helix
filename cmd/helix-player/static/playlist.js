@@ -1,208 +1,114 @@
-import { elemGenerator } from './elems.js';
+import { documentFragment, elemGenerator } from './elems.js';
+
+const _slot  = elemGenerator( 'slot' );
+const _style = elemGenerator( 'style' );
+const _ul    = elemGenerator( 'ul' );
 
 // <helix-playlist>
-// 	<helix-playlist-item data-title='foo bar'>
+// 	<li data-album='an album'>
+// 		display text
 //		<source src='…' type='…'>
-// 	</helix-playlist-item>
+// 	</li>
 // </helix-playlist>
 
 export class HelixPlaylist extends HTMLElement {
+
 	constructor() {
 		super();
-	}
-}
 
-export class HelixPlaylistItem extends HTMLElement {
-	constructor() {
-		super();
-	}
-}
+		this._current = this.querySelector( 'li' );
+		this.currentItem = this.currentItem;
 
-const _audio   = elemGenerator( 'audio' );
-const _button  = elemGenerator( 'button' );
-const _details = elemGenerator( 'details' );
-const _div     = elemGenerator( 'div' );
-const _input   = elemGenerator( 'input' );
-const _li      = elemGenerator( 'li' );
-const _summary = elemGenerator( 'summary' );
-const _ul      = elemGenerator( 'ul' );
-const _video   = elemGenerator( 'video' );
-
-export class Player {
-	constructor( element ) {
-		this._element = element;
-
-		this._queue = [];
-		this._current = null;
-		this._tracklist = _ul();
-
-		// Incrementing this provides a source of unique IDs.
-		this._playlistIds = 0;
-
-		const range = _input( {
-			type: 'range',
-			value: 0,
-			input: e => {
-				this._playingElement.currentTime = e.target.value;
-			},
-		} );
-
-		this._audio = _audio( {
-			ended: () => this.playNext(),
-			durationchange: e => { range.max = e.target.duration; },
-			timeupdate: e => {
-				range.value = e.target.currentTime;
-			},
-		} );
-
-		this._video = _video( {
-			controls: true,
-			style: 'display: none;',
-			ended: () => this.playNext(),
-			durationchange: e => { range.max = e.target.duration; },
-			timeupdate: e => {
-				range.value = e.target.currentTime;
-			},
-		} );
-
-
-		this._element.appendChild( this._audio );
-		this._element.appendChild( this._video );
-		this._element.appendChild( _div(
-			{ class: 'controls' },
-			_button( '⏩', { click: () => this.playNext() } ),
-			_button( '⏯️', { click: () => this.playPause() } ),
-			range,
-		) );
-		this._element.appendChild( _details( _summary( 'playlist' ), this._tracklist ) );
-	}
-
-	get _playingElement() {
-		return this._current && isVideoItem( this._current ) ? this._video : this._audio;
-	}
-
-	_newPlaylistId() {
-		return this._playlistIds++;
-	}
-
-	_mimetype( item ) {
-		// TODO: reorder item.mimetypes into [ canPlayType == 'probably' ] + [ canPlayType == 'maybe' ].
-		return isAudioItem( item ) ? item.mimetypes.filter( m => this._audio.canPlayType( m ) ).firstOrNull() :
-			isVideoItem( item ) ? item.mimetypes.filter( m => this._video.canPlayType( m ) ).firstOrNull() :
-			null;
-	}
-
-	canPlay( item ) {
-		return !! this._mimetype( item );
-	}
-
-	enqueue( item ) {
-		if ( ! this.canPlay( item ) ) {
-			throw `cannot enqueue item: directory ${item.directory}, id ${item.id}, class ${item.itemClass}`;
-		}
-
-		// Clone the item.
-		let playlistItem = {};
-		Object.assign( playlistItem, item );
-		playlistItem.playlistId = this._newPlaylistId();
-
-		this._queue.push( playlistItem );
-		this._tracklist.appendChild( _li( playlistItem.title,
-			{ 'data-playlist-id': playlistItem.playlistId },
-			_button( '▶️', { click: () => this.skip( playlistItem ) } ),
-			_button( '🚮', { click: e => {
-				this.dequeue( playlistItem );
-				e.target.parentElement.parentElement.removeChild( e.target.parentElement );
-			} } ),
+		this.attachShadow( { mode: 'open' } );
+		this.shadowRoot.appendChild( documentFragment (
+			_style( `
+				#tracklist li[current] {
+					font-weight: bold;
+				}
+			` ),
+			_ul( { id: 'tracklist' }, _slot() ),
 		) );
 
-		if ( ! this._current ) {
-			this.playNext();
+		// TODO: maybe put observe() in connectedCallback() and disconnect() in disconnectedCallback()?
+		const observer = new MutationObserver( changes => {
+			changes.forEach( c => {
+				if ( c.target === this && c.type === 'childList' ) {
+					let current = this._current;
+					if ( Array.from( c.removedNodes ).includes( this._current ) ) {
+						current = c.nextSibling;
+						while ( current && current.tagName !== 'LI' ) {
+							current = current.nextElementSibling;
+						}
+					}
+					if ( ! current && c.addedNodes ) {
+						current = c.addedNodes[ 0 ];
+						while ( current && current.tagName !== 'LI' ) {
+							current = current.nextElementSibling;
+						}
+					}
+					this.currentItem = this.indexOf( current ) + 1;
+				} else if ( c.target === this._current ) {
+					this._sendEvent( 'currenttrackupdated' );
+				}
+			} );
+		} );
+		observer.observe( this, { subtree: true, childList: true, attributes: true } );
+	}
+
+	// events:
+	// - trackchanged
+	// - currenttrackupdated
+	_sendEvent( name ) {
+		this.dispatchEvent( new CustomEvent( name, { detail: this._current } ) );
+	}
+
+	static get observedAttributes() {
+		return [ 'current-item' ];
+	}
+	attributeChangedCallback( name, oldValue, newValue ) {
+		switch ( name ) {
+			case 'current-item':
+				if ( ! ( 1 <= newValue && newValue <= this.listItems.length ) ) {
+					return;
+				}
+				if ( this.listItems[ newValue - 1 ] === this._current ) {
+					return;
+				}
+
+				if ( this._current ) {
+					this._current.removeAttribute( 'current' );
+				}
+				this._current = this.listItems[ newValue - 1 ];
+				this._current.setAttribute( 'current', '' );
+				this._sendEvent( 'trackchanged' );
 		}
 	}
 
-	dequeue( item ) {
-		if ( item === this._current ) {
-			// TODO: throw?
-			return;
-		}
-		this._queue = this._queue.filter( i => i !== item );
+	indexOf( node ) {
+		return Array.from( this.children )
+			.filter( el => el.tagName === 'LI' )
+			.indexOf( node );
 	}
 
-	skip( item ) {
-		this._current = item;
-		this.play();
+	get currentItem() {
+		return this.indexOf( this._current ) + 1;
+	}
+	set currentItem( value ) {
+		this.setAttribute( 'current-item', value );
 	}
 
-	playNext() {
-		this._playingElement.pause();
-
-		if ( ! this._queue ) {
-			// empty playlist.
-			return;
-		}
-
-		if ( ! this._current ) {
-			// start playing.
-			this._current = this._queue[ 0 ];
-			this.play();
-			return;
-		}
-
-		const index = this._queue.indexOf( this._current );
-
-		if ( index < 0 ) {
-			throw `item not in playlist`;
-		}
-
-		if ( index === ( this._queue.length - 1 ) ) {
-			// playlist ended.
-			return;
-		}
-
-		this._current = this._queue[ index + 1 ];
-		this.play();
+	get listItems() {
+		return this.getElementsByTagName( 'li' );
 	}
 
-	playPause() {
-		if ( this._playingElement.paused ) {
-			this.play();
-		} else {
-			this._playingElement.pause();
-		}
+	skip() {
+		this.currentItem++;
 	}
-
-	play() {
-		if ( ! this._current ) {
-			return;
+	back() {
+		if ( this.currentItem > 0 ) {
+			this.currentItem--;
 		}
-
-		const [ enabled, disabled ] =
-			isAudioItem( this._current ) ?
-				[ this._audio, this._video ] : [ this._video, this._audio ];
-
-		const mimetype = this._mimetype( this._current );
-		const url = `/directories/${this._current.directory}/${this._current.id}?accept=${mimetype}`;
-		if ( enabled.src.endsWith( url ) ) {
-			enabled.play();
-			return;
-		}
-		enabled.src = url;
-
-		disabled.style.display = 'none';
-		this._element.querySelectorAll( 'li.playing' ).forEach( el => el.classList.remove( 'playing' ) );
-
-		enabled.style.display = 'block';
-		this._element.querySelector( `li[data-playlist-id='${this._current.playlistId}']` )
-			.classList.add( 'playing' );
-
-		enabled.play();
 	}
 }
 
-Array.prototype.firstOrNull = function() {
-	return this ? this[ 0 ] : null;
-}
-
-const isAudioItem = item => item.itemClass.startsWith( 'object.item.audioItem' );
-const isVideoItem = item => item.itemClass.startsWith( 'object.item.videoItem' );
+customElements.define( 'helix-playlist', HelixPlaylist );

@@ -1,76 +1,85 @@
 import { documentFragment, elemGenerator } from './elems.js';
 
-const _audio = elemGenerator( 'audio' );
-const _style = elemGenerator( 'style' );
-const _video = elemGenerator( 'video' );
+const _audio  = elemGenerator( 'audio' );
+const _source = elemGenerator( 'source' );
+const _video  = elemGenerator( 'video' );
+
+// <helix-media-player>
+// 	<source src='…'>
+// </helix-media-player>
 
 export class HelixMediaPlayer extends HTMLElement {
-	// First send to <video>.
-	// If that fails, send to <audio>.
-	// If that fails, report error.
-
-	static get observedAttributes() {
-		// TODO: add autoplay and controls?
-		return [ 'src' ];
-	}
-
-	attributeChangedCallback( attr, oldValue, newValue ) {
-		switch ( attr ) {
-			case 'src':
-				this._playingElement.pause();
-				this._video.src = newValue;
-				this._playingElement = this._video;
-		}
-	}
-
-	get src() {
-		return this._playingElement.src;
-	}
-	set src( v ) {
-		this.setAttribute( 'src', v );
-	}
 
 	constructor() {
 		super();
 
 		this.attachShadow( { mode: 'open' } );
 		this.shadowRoot.appendChild( documentFragment(
-			_style( `
-				audio, video {
-					display: none;
-					width: 100%;
+			_audio( { id: 'player' } ),
+		) );
+
+		// TODO: maybe put observe() in connectedCallback() and disconnect() in disconnectedCallback()?
+		const observer = new MutationObserver( changes => {
+			// just fix up all sources with mimetypes.
+			Promise.all( this._sources.map( async s => {
+				if ( ! s.src ) {
+					return;  // wtf?
 				}
-			` ),
-			_audio( {
-				id: 'audio',
-				durationchange: () => {
-					this._audio.style.display = 'block';
-					this._video.style.display = 'none';
-					this._sendEvent( 'durationchange' );
-				},
+				if ( s.type ) {
+					return;
+				}
+
+				const rsp = await fetch( s.src, { method: 'HEAD' } );
+				s.type = rsp.headers.get( 'Content-Type' );
+			} ) ).then( () => this._render() );
+		} );
+		observer.observe( this, { childList: true } );
+	}
+
+	_render() {
+		const element = this.videoTracks.length ? _video : _audio;
+		const player = element( {
+				id: 'player',
+			style: 'width: 100%;',
+				durationchange: () => this._sendEvent( 'durationchange' ),
 				timeupdate: () => this._sendEvent( 'timeupdate' ),
 				ended: () => this._sendEvent( 'ended' ),
 				error: e => this._sendEvent( 'error' ),
-			} ),
-			_video( {
-				id: 'video',
-				durationchange: () => {
-					this._audio.style.display = 'none';
-					this._video.style.display = 'block';
-					this._sendEvent( 'durationchange' );
-				},
-				timeupdate: () => this._sendEvent( 'timeupdate' ),
-				ended: () => this._sendEvent( 'ended' ),
-				error: e => {
-					const src = e.target.src;
-					// e.target.src = '';
-					this._audio.src = src;
-					this._playingElement = this._audio;
-				},
-			} ),
-		) );
+			},
+			Array.from( this.children ).map( el => el.cloneNode( true ) ),
+		);
 
-		this._playingElement = this._video;
+		const wasPaused = this.paused;
+		this.shadowRoot.innerHTML = '';
+		this.shadowRoot.appendChild( player );
+		if ( ! wasPaused ) {
+			this.play();
+		}
+	}
+
+	_sendEvent( name, payload ) {
+		const e = new CustomEvent( name, { detail: payload } );
+		this.dispatchEvent( e );
+	}
+
+	get _sources() { return Array.from( this.getElementsByTagName( 'source' ) ); }
+	get audioTracks() {
+		return this._sources.filter( s => s.type.startsWith( 'audio/' ) );
+	}
+	get videoTracks() {
+		return this._sources.filter( s => s.type.startsWith( 'video/' ) );
+	}
+	get textTracks() {
+		return this.getElementsByTagName( 'track' );
+	}
+	set src( value ) {
+		this.innerHTML = '';
+		this.appendChild( _source( { src: value } ) );
+	}
+
+
+	get _playingElement() {
+		return this.shadowRoot.getElementById( 'player' );
 	}
 
 	play() {
@@ -79,8 +88,10 @@ export class HelixMediaPlayer extends HTMLElement {
 	pause() {
 		this._playingElement.pause();
 	}
+
+	// TODO: maybe replace with an <audio> and <video> for testing?
 	canPlayType( t ) {
-		return this._video.canPlayType( t ) || this._audio.canPlayType( t );
+		return this._playingElement.canPlayType( t );
 	}
 	get paused() {
 		return this._playingElement.paused;
@@ -94,14 +105,6 @@ export class HelixMediaPlayer extends HTMLElement {
 	set currentTime( v ) {
 		return this._playingElement.currentTime = v;
 	}
-
-	_sendEvent( name, payload ) {
-		const e = new CustomEvent( name, { detail: payload } );
-		this.dispatchEvent( e );
-	}
-
-	get _audio() { return this.shadowRoot.getElementById( 'audio' ); }
-	get _video() { return this.shadowRoot.getElementById( 'video' ); }
 }
 
 customElements.define( 'helix-media-player', HelixMediaPlayer );

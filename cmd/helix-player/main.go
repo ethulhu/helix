@@ -90,7 +90,7 @@ func main() {
 		HandlerFunc(getObjectJSON)
 
 	m.Path("/directories/{udn}/{object}").
-		Methods("GET").
+		Methods("GET", "HEAD").
 		Queries("accept", "{mimetype}").
 		HandlerFunc(getObjectByType)
 
@@ -203,7 +203,7 @@ func getObjectByType(w http.ResponseWriter, r *http.Request) {
 	object := mux.Vars(r)["object"]
 	mimetypeRaw := mux.Vars(r)["mimetype"]
 
-	log.Printf("GET udn %q object %q MIME-type %q", udn, object, mimetypeRaw)
+	log.Printf("%v udn %q object %q MIME-type %q", r.Method, udn, object, mimetypeRaw)
 
 	mimetype, _, err := mime.ParseMediaType(mimetypeRaw)
 	if err != nil {
@@ -260,11 +260,16 @@ func getObjectByType(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	proxyGet(w, uri)
+	proxyDo(w, r.Method, uri)
 }
 
-func proxyGet(w http.ResponseWriter, uri string) {
-	rsp, err := http.Get(uri)
+func proxyDo(w http.ResponseWriter, method, uri string) {
+	req, err := http.NewRequest(method, uri, nil)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	rsp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

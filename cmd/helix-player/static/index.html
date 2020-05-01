@@ -100,11 +100,14 @@ helix-directory-tree {
 		<div id='player'>
 		</div>
 
+		<helix-media-controls></helix-media-controls>
+
 		<helix-directory-tree></helix-directory-tree>
 	</main>
 
 	<script type='module'>
-		import { HelixDirectoryTree } from './directory.js';
+		import './directory.js';
+		import './media-controls.js';
 		import { Player             } from './player.js';
 
 		const player = new Player( document.querySelector( '#player' ) );
@@ -112,6 +115,37 @@ helix-directory-tree {
 		customElements.whenDefined( 'helix-directory-tree' ).then( () => {
 			document.querySelector( 'helix-directory-tree' ).addEventListener( 'enqueue', e => {
 				player.enqueue( e.detail );
+			} );
+		} );
+
+		customElements.whenDefined( 'helix-media-controls' ).then( () => {
+
+			const controls = document.querySelector( 'helix-media-controls' );
+			const playerElement = document.querySelector( '#player' );
+			//const playerElement = document.querySelector( 'audio' );
+
+			controls.duration = 100;
+			controls.addEventListener( 'playpause', e => {
+				player.playPause();
+			} );
+			controls.addEventListener( 'skip', e => {
+				player.skip();
+			} );
+			controls.addEventListener( 'seek', e => {
+				player.currentTime = e.detail;
+			} );
+
+			playerElement.addEventListener( 'durationchange', e => {
+				console.log( 'duration changed' );
+				// TODO: replace with e.target when player is a CustomElement.
+				// controls.duration = e.target.duration;
+				controls.duration = player.duration;
+			} );
+			playerElement.addEventListener( 'timeupdate', e => {
+				console.log( 'playback happens' );
+				// TODO: replace with e.target when player is a CustomElement.
+				// controls.currentTime = e.target.currentTime;
+				controls.currentTime = player.currentTime;
 			} );
 		} );
 	</script>

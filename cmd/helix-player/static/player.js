@@ -4,13 +4,18 @@ const _audio   = elemGenerator( 'audio' );
 const _button  = elemGenerator( 'button' );
 const _details = elemGenerator( 'details' );
 const _div     = elemGenerator( 'div' );
-const _input   = elemGenerator( 'input' );
 const _li      = elemGenerator( 'li' );
 const _summary = elemGenerator( 'summary' );
 const _ul      = elemGenerator( 'ul' );
 const _video   = elemGenerator( 'video' );
 
 export class Player {
+
+	get currentTime() { return this._playingElement.currentTime; }
+	set currentTime( v ) { this._playingElement.currentTime = v; }
+
+	get duration() { return this._playingElement.duration; }
+
 	constructor( element ) {
 		this._element = element;
 
@@ -21,42 +26,28 @@ export class Player {
 		// Incrementing this provides a source of unique IDs.
 		this._playlistIds = 0;
 
-		const range = _input( {
-			type: 'range',
-			value: 0,
-			input: e => {
-				this._playingElement.currentTime = e.target.value;
-			},
-		} );
 
 		this._audio = _audio( {
-			ended: () => this.playNext(),
-			durationchange: e => { range.max = e.target.duration; },
-			timeupdate: e => {
-				range.value = e.target.currentTime;
-			},
+			ended: () => this.skip(),
+			timeupdate: () => this._sendEvent( 'timeupdate', null ),
+			durationchange: () => this._sendEvent( 'durationchange', null ),
 		} );
 
 		this._video = _video( {
 			controls: true,
 			style: 'display: none;',
-			ended: () => this.playNext(),
-			durationchange: e => { range.max = e.target.duration; },
-			timeupdate: e => {
-				range.value = e.target.currentTime;
-			},
+			ended: () => this.skip(),
 		} );
 
 
 		this._element.appendChild( this._audio );
 		this._element.appendChild( this._video );
-		this._element.appendChild( _div(
-			{ class: 'controls' },
-			_button( '⏩', { click: () => this.playNext() } ),
-			_button( '⏯️', { click: () => this.playPause() } ),
-			range,
-		) );
 		this._element.appendChild( _details( _summary( 'playlist' ), this._tracklist ) );
+	}
+
+	_sendEvent( name, payload ) {
+		const e = new CustomEvent( name, { detail: payload } );
+		this._element.dispatchEvent( e );
 	}
 
 	get _playingElement() {
@@ -99,7 +90,7 @@ export class Player {
 		) );
 
 		if ( ! this._current ) {
-			this.playNext();
+			this.skip();
 		}
 	}
 
@@ -116,7 +107,7 @@ export class Player {
 		this.play();
 	}
 
-	playNext() {
+	skip() {
 		this._playingElement.pause();
 
 		if ( ! this._queue ) {

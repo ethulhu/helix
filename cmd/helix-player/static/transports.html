@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+	<meta charset='utf-8'>
+	<title>Helix Player - Transports</title>
+	<style>
+	</style>
+</head>
+
+<body>
+	<main>
+		<ul id='transports'></ul>
+	</main>
+	<script type='module'>
+		import { elemGenerator } from './elems.js';
+		import { fetchTransports, fetchTransport, playTransport, pauseTransport, stopTransport } from './api.js';
+
+		const _button = elemGenerator( 'button' );
+		const _li     = elemGenerator( 'li' );
+
+		const transports = document.getElementById( 'transports' );
+
+		fetchTransports()
+			.then( ts => { ts.sort( ( a, b ) => a.name.localeCompare( b.name ) ); return ts; } )
+			.then( ts => ts.forEach(
+				t => transports.appendChild(
+					_li(
+						`${t.name} (${t.state})`,
+						_button( '▶️', {
+							click: () => playTransport( t.id ),
+						} ),
+						_button( '⏸️', {
+							click: () => pauseTransport( t.id ),
+						} ),
+						_button( '⏹️', {
+							click: () => stopTransport( t.id ),
+						} ),
+					),
+				)
+			)
+		);
+	</script>
+</body>
+</html>

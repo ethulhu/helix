@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ethulhu/helix/cmd/helix-control-point/internal"
+	"github.com/ethulhu/helix/httputil"
 	"github.com/gorilla/mux"
 )
 
@@ -94,23 +95,23 @@ func main() {
 
 	m.Path("/queue").
 		Methods("POST").
-		MatcherFunc(FormValues("transport", "{transport}")).
+		MatcherFunc(httputil.FormValues("transport", "{transport}")).
 		HandlerFunc(redirectReferer(setQueueTransport))
 	m.Path("/queue").
 		Methods("POST").
-		MatcherFunc(FormValues("state", "play")).
+		MatcherFunc(httputil.FormValues("state", "play")).
 		HandlerFunc(redirectReferer(playQueue))
 	m.Path("/queue").
 		Methods("POST").
-		MatcherFunc(FormValues("state", "pause")).
+		MatcherFunc(httputil.FormValues("state", "pause")).
 		HandlerFunc(redirectReferer(pauseQueue))
 	m.Path("/queue").
 		Methods("POST").
-		MatcherFunc(FormValues("state", "stop")).
+		MatcherFunc(httputil.FormValues("state", "stop")).
 		HandlerFunc(redirectReferer(stopQueue))
 	m.Path("/queue").
 		Methods("POST").
-		MatcherFunc(FormValues(
+		MatcherFunc(httputil.FormValues(
 			"action", "add",
 			"position", "last",
 			"directory", "{directory}",
@@ -119,7 +120,7 @@ func main() {
 		HandlerFunc(redirectReferer(addObjectToQueue))
 	m.Path("/queue").
 		Methods("POST").
-		MatcherFunc(FormValues(
+		MatcherFunc(httputil.FormValues(
 			"action", "remove",
 			"position", "all",
 		)).
@@ -135,17 +136,17 @@ func main() {
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
-		MatcherFunc(FormValues("action", "stop")).
+		MatcherFunc(httputil.FormValues("action", "stop")).
 		HandlerFunc(redirectReferer(stop))
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
-		MatcherFunc(FormValues("action", "pause")).
+		MatcherFunc(httputil.FormValues("action", "pause")).
 		HandlerFunc(redirectReferer(pause))
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
-		MatcherFunc(FormValues(
+		MatcherFunc(httputil.FormValues(
 			"action", "play",
 			"directory", "{directory}",
 			"object", "{object}",
@@ -154,7 +155,7 @@ func main() {
 
 	m.Path("/renderer/{udn}").
 		Methods("POST").
-		MatcherFunc(FormValues("action", "play")).
+		MatcherFunc(httputil.FormValues("action", "play")).
 		HandlerFunc(redirectReferer(play))
 
 	log.Printf("starting HTTP server on %v", conn.Addr())

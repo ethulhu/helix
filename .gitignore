@@ -2,3 +2,4 @@
 *.xml
 /helix-control-point
 /helix-player
+/cmd/helix-player/helix-player

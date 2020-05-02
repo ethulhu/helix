@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -9,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/ethulhu/helix/httputil"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/avtransport"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
@@ -25,11 +25,7 @@ func getDirectoriesJSON(w http.ResponseWriter, r *http.Request) {
 		data = append(data, directoryFromDevice(device))
 	}
 
-	blob, err := json.Marshal(data)
-	if err != nil {
-		panic(fmt.Sprintf("could not marshal JSON: %v", err))
-	}
-	w.Write(blob)
+	httputil.MustWriteJSON(w, data)
 }
 
 func getDirectoryJSON(w http.ResponseWriter, r *http.Request) {
@@ -43,11 +39,7 @@ func getDirectoryJSON(w http.ResponseWriter, r *http.Request) {
 
 	data := directoryFromDevice(device)
 
-	blob, err := json.Marshal(data)
-	if err != nil {
-		panic(fmt.Sprintf("could not marshal JSON: %v", err))
-	}
-	w.Write(blob)
+	httputil.MustWriteJSON(w, data)
 }
 
 func getObjectJSON(w http.ResponseWriter, r *http.Request) {
@@ -94,11 +86,7 @@ func getObjectJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blob, err := json.Marshal(data)
-	if err != nil {
-		panic(fmt.Sprintf("could not marshal JSON: %v", err))
-	}
-	w.Write(blob)
+	httputil.MustWriteJSON(w, data)
 }
 
 func getObjectByType(w http.ResponseWriter, r *http.Request) {
@@ -205,11 +193,7 @@ func getTransportsJSON(w http.ResponseWriter, r *http.Request) {
 		data = append(data, transportFromDeviceAndInfo(device, state))
 	}
 
-	blob, err := json.Marshal(data)
-	if err != nil {
-		panic(fmt.Sprintf("could not marshal JSON: %v", err))
-	}
-	w.Write(blob)
+	httputil.MustWriteJSON(w, data)
 }
 func getTransportJSON(w http.ResponseWriter, r *http.Request) {
 	udn := mux.Vars(r)["udn"]
@@ -231,11 +215,7 @@ func getTransportJSON(w http.ResponseWriter, r *http.Request) {
 
 	data := transportFromDeviceAndInfo(device, state)
 
-	blob, err := json.Marshal(data)
-	if err != nil {
-		panic(fmt.Sprintf("could not marshal JSON: %v", err))
-	}
-	w.Write(blob)
+	httputil.MustWriteJSON(w, data)
 }
 
 func playTransport(w http.ResponseWriter, r *http.Request) {

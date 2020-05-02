@@ -1,4 +1,5 @@
 import { documentFragment, elemGenerator } from './elems.js';
+import { fetchDirectories, fetchObject, rootObject } from './api.js';
 
 const _button   = elemGenerator( 'button' );
 const _input    = elemGenerator( 'input' );
@@ -6,20 +7,6 @@ const _label    = elemGenerator( 'label' );
 const _li       = elemGenerator( 'li' );
 const _style    = elemGenerator( 'style' );
 const _ul       = elemGenerator( 'ul' );
-
-async function _fetchDirectories() {
-	const rsp = await fetch( '/directories/', {
-		headers: { Accept: 'application/json' },
-	} );
-	return rsp.json()
-}
-async function _fetchObject( directory, id ) {
-	const rsp = await fetch( `/directories/${directory}/${id}`, {
-		headers: { Accept: 'application/json' },
-	} );
-	return rsp.json()
-}
-const rootObject = '0';
 
 const template = documentFragment(
 	_style( `
@@ -42,7 +29,7 @@ export class HelixDirectoryTree extends HTMLElement {
 		this.attachShadow( { mode: 'open' } );
 		this.shadowRoot.appendChild( template.cloneNode( true ) );
 
-		_fetchDirectories()
+		fetchDirectories()
 			.then( ds => _ul( ds.map( this.newDirectory.bind( this ) ) ) )
 			.then( ul => this.shadowRoot.appendChild( ul ) );
 	}
@@ -60,7 +47,7 @@ export class HelixDirectoryTree extends HTMLElement {
 				change: e => {
 					if ( e.target.checked ) {
 						const target = e.target;
-						_fetchObject( d.udn, rootObject )
+						fetchObject( d.udn, rootObject )
 							.then( o => target.parentElement.appendChild(
 								o.itemClass.startsWith( 'object.container' ) ?
 									_ul( o.children.map( this.newObject.bind( this ) ) ) :
@@ -89,7 +76,7 @@ export class HelixDirectoryTree extends HTMLElement {
 				change: e => {
 					if ( e.target.checked ) {
 						const target = e.target;
-						_fetchObject( o.directory, o.id )
+						fetchObject( o.directory, o.id )
 							.then( o => target.parentElement.appendChild(
 								_ul( o.children.map( this.newObject.bind( this ) ) ) )
 							)

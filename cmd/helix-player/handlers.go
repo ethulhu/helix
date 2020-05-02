@@ -10,9 +10,12 @@ import (
 	"strings"
 
 	"github.com/ethulhu/helix/upnpav"
+	"github.com/ethulhu/helix/upnpav/avtransport"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
 	"github.com/gorilla/mux"
 )
+
+// ContentDirectory handlers.
 
 func getDirectoriesJSON(w http.ResponseWriter, r *http.Request) {
 	devices := directories.Devices()
@@ -180,4 +183,109 @@ func proxyDo(w http.ResponseWriter, method, uri string) {
 	w.WriteHeader(rsp.StatusCode)
 
 	io.Copy(w, rsp.Body)
+}
+
+// AVTransport handlers.
+
+func getTransportsJSON(w http.ResponseWriter, r *http.Request) {
+	devices := transports.Devices()
+
+	data := []transport{}
+	ctx := r.Context()
+	for _, device := range devices {
+		client, ok := device.SOAPClient(avtransport.Version1)
+		if !ok {
+			continue
+		}
+		transport := avtransport.NewClient(client)
+		state, _, err := transport.TransportInfo(ctx)
+		if err != nil {
+			continue
+		}
+		data = append(data, transportFromDeviceAndInfo(device, state))
+	}
+
+	blob, err := json.Marshal(data)
+	if err != nil {
+		panic(fmt.Sprintf("could not marshal JSON: %v", err))
+	}
+	w.Write(blob)
+}
+func getTransportJSON(w http.ResponseWriter, r *http.Request) {
+	udn := mux.Vars(r)["udn"]
+
+	device, _ := transports.DeviceByUDN(udn)
+	client, ok := device.SOAPClient(avtransport.Version1)
+	if !ok {
+		http.Error(w, fmt.Sprintf("unknown AVTransport: %v", udn), http.StatusNotFound)
+		return
+	}
+	transport := avtransport.NewClient(client)
+
+	ctx := r.Context()
+	state, _, err := transport.TransportInfo(ctx)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("could not get status from AVTransport: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	data := transportFromDeviceAndInfo(device, state)
+
+	blob, err := json.Marshal(data)
+	if err != nil {
+		panic(fmt.Sprintf("could not marshal JSON: %v", err))
+	}
+	w.Write(blob)
+}
+
+func playTransport(w http.ResponseWriter, r *http.Request) {
+	udn := mux.Vars(r)["udn"]
+
+	device, _ := transports.DeviceByUDN(udn)
+	client, ok := device.SOAPClient(avtransport.Version1)
+	if !ok {
+		http.Error(w, fmt.Sprintf("unknown AVTransport: %v", udn), http.StatusNotFound)
+		return
+	}
+	transport := avtransport.NewClient(client)
+
+	ctx := r.Context()
+	if err := transport.Play(ctx); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+func pauseTransport(w http.ResponseWriter, r *http.Request) {
+	udn := mux.Vars(r)["udn"]
+
+	device, _ := transports.DeviceByUDN(udn)
+	client, ok := device.SOAPClient(avtransport.Version1)
+	if !ok {
+		http.Error(w, fmt.Sprintf("unknown AVTransport: %v", udn), http.StatusNotFound)
+		return
+	}
+	transport := avtransport.NewClient(client)
+
+	ctx := r.Context()
+	if err := transport.Pause(ctx); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+func stopTransport(w http.ResponseWriter, r *http.Request) {
+	udn := mux.Vars(r)["udn"]
+
+	device, _ := transports.DeviceByUDN(udn)
+	client, ok := device.SOAPClient(avtransport.Version1)
+	if !ok {
+		http.Error(w, fmt.Sprintf("unknown AVTransport: %v", udn), http.StatusNotFound)
+		return
+	}
+	transport := avtransport.NewClient(client)
+
+	ctx := r.Context()
+	if err := transport.Stop(ctx); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

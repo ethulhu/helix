@@ -10,7 +10,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/ethulhu/helix/httputil"
 	"github.com/ethulhu/helix/upnp"
+	"github.com/ethulhu/helix/upnpav/avtransport"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
 	"github.com/gorilla/mux"
 )
@@ -27,6 +29,7 @@ var (
 
 var (
 	directories *upnp.DeviceCache
+	transports  *upnp.DeviceCache
 )
 
 func main() {
@@ -59,6 +62,7 @@ func main() {
 	defer conn.Close()
 
 	directories = upnp.NewDeviceCache(contentdirectory.Version1, *upnpRefresh, iface)
+	transports = upnp.NewDeviceCache(avtransport.Version1, *upnpRefresh, iface)
 
 	m := mux.NewRouter()
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -88,6 +92,31 @@ func main() {
 		Methods("GET", "HEAD").
 		Queries("accept", "{mimetype}").
 		HandlerFunc(getObjectByType)
+
+	m.Path("/transports/").
+		Methods("GET").
+		HeadersRegexp("Accept", "(application|text)/json").
+		HandlerFunc(getTransportsJSON)
+
+	m.Path("/transports/{udn}").
+		Methods("GET").
+		HeadersRegexp("Accept", "(application|text)/json").
+		HandlerFunc(getTransportJSON)
+
+	m.Path("/transports/{udn}").
+		Methods("POST").
+		MatcherFunc(httputil.FormValues("action", "play")).
+		HandlerFunc(playTransport)
+
+	m.Path("/transports/{udn}").
+		Methods("POST").
+		MatcherFunc(httputil.FormValues("action", "pause")).
+		HandlerFunc(pauseTransport)
+
+	m.Path("/transports/{udn}").
+		Methods("POST").
+		MatcherFunc(httputil.FormValues("action", "stop")).
+		HandlerFunc(stopTransport)
 
 	if *debugAssetsPath != "" {
 		m.PathPrefix("/").

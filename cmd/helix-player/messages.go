@@ -3,7 +3,10 @@ package main
 import (
 	"github.com/ethulhu/helix/upnp/ssdp"
 	"github.com/ethulhu/helix/upnpav"
+	"github.com/ethulhu/helix/upnpav/avtransport"
 )
+
+// ContentDirectory messages.
 
 type directory struct {
 	UDN  string `json:"udn"`
@@ -55,5 +58,23 @@ func objectFromItem(udn string, item upnpav.Item) object {
 		ItemClass: string(item.Class),
 
 		MIMETypes: mimetypes,
+	}
+}
+
+// AVTransport messages.
+
+type transport struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+
+	State string `json:"state"`
+}
+
+func transportFromDeviceAndInfo(device *ssdp.Device, state avtransport.State) transport {
+	return transport{
+		ID:   device.UDN,
+		Name: device.Name,
+
+		State: string(state),
 	}
 }

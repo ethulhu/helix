@@ -136,3 +136,11 @@ func (item *Item) URIForProtocolInfos(infos []*ProtocolInfo) (string, bool) {
 	}
 	return "", false
 }
+func (item *Item) HasURI(uri string) bool {
+	for _, resource := range item.Resources {
+		if uri == resource.URI {
+			return true
+		}
+	}
+	return false
+}

@@ -14,6 +14,7 @@ import (
 	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav/avtransport"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
+	"github.com/ethulhu/helix/upnpav/controlpoint"
 	"github.com/gorilla/mux"
 )
 
@@ -30,6 +31,9 @@ var (
 var (
 	directories *upnp.DeviceCache
 	transports  *upnp.DeviceCache
+
+	controlLoop = controlpoint.NewControlLoop()
+	trackList   = controlpoint.NewTrackList()
 )
 
 func main() {
@@ -64,6 +68,9 @@ func main() {
 	directories = upnp.NewDeviceCache(contentdirectory.Version1, *upnpRefresh, iface)
 	transports = upnp.NewDeviceCache(avtransport.Version1, *upnpRefresh, iface)
 
+	// TODO: support multiple Queues.
+	controlLoop.SetQueue(trackList)
+
 	m := mux.NewRouter()
 	m.NotFoundHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		msg := fmt.Sprintf("not found: %v %v %v", r.Method, r.URL, r.Form)
@@ -72,6 +79,8 @@ func main() {
 		}
 		http.Error(w, msg, http.StatusNotFound)
 	})
+
+	// ContentDirectory routes.
 
 	m.Path("/directories/").
 		Methods("GET").
@@ -92,6 +101,8 @@ func main() {
 		Methods("GET", "HEAD").
 		Queries("accept", "{mimetype}").
 		HandlerFunc(getObjectByType)
+
+	// AVTransport routes.
 
 	m.Path("/transports/").
 		Methods("GET").
@@ -117,6 +128,43 @@ func main() {
 		Methods("POST").
 		MatcherFunc(httputil.FormValues("action", "stop")).
 		HandlerFunc(stopTransport)
+
+	// Control Point routes.
+
+	m.Path("/queue/").
+		Methods("GET").
+		HeadersRegexp("Accept", "(application|text)/json").
+		HandlerFunc(getQueueJSON)
+
+	m.Path("/queue/").
+		Methods("POST").
+		MatcherFunc(httputil.FormValues("transport", "{udn}")).
+		HandlerFunc(setQueueTransport)
+
+	m.Path("/queue/").
+		Methods("POST").
+		MatcherFunc(httputil.FormValues("state", "playing")).
+		HandlerFunc(playQueue)
+
+	m.Path("/queue/").
+		Methods("POST").
+		MatcherFunc(httputil.FormValues("state", "paused")).
+		HandlerFunc(pauseQueue)
+
+	m.Path("/queue/").
+		Methods("POST").
+		MatcherFunc(httputil.FormValues("state", "stopped")).
+		HandlerFunc(stopQueue)
+
+	m.Path("/queue/").
+		Methods("POST").
+		MatcherFunc(httputil.FormValues(
+			"directory", "{udn}",
+			"object", "{object}",
+		)).
+		HandlerFunc(appendToTrackList)
+
+	// Assets routes.
 
 	if *debugAssetsPath != "" {
 		m.PathPrefix("/").

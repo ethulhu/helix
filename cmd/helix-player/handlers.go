@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/ethulhu/helix/httputil"
+	"github.com/ethulhu/helix/upnp/ssdp"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/avtransport"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
@@ -268,4 +269,68 @@ func stopTransport(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
+
+// Control Point handlers.
+
+func getQueueJSON(w http.ResponseWriter, r *http.Request) {
+	data := queueFromControlLoop(controlLoop)
+
+	httputil.MustWriteJSON(w, data)
+}
+
+func setQueueTransport(w http.ResponseWriter, r *http.Request) {
+	udn := mux.Vars(r)["udn"]
+
+	// "none" is a magic value to unset the transport.
+	var device *ssdp.Device
+	if udn != "none" {
+		var ok bool
+		device, ok = transports.DeviceByUDN(udn)
+		if !ok {
+			http.Error(w, fmt.Sprintf("unknown AVTransport: %v", udn), http.StatusNotFound)
+			return
+		}
+	}
+
+	if err := controlLoop.SetTransport(device); err != nil {
+		http.Error(w, fmt.Sprintf("found device, but was invalid transport: %v", err), http.StatusInternalServerError)
+		return
+	}
+}
+
+func playQueue(w http.ResponseWriter, r *http.Request) {
+	controlLoop.Play()
+}
+func pauseQueue(w http.ResponseWriter, r *http.Request) {
+	controlLoop.Pause()
+}
+func stopQueue(w http.ResponseWriter, r *http.Request) {
+	controlLoop.Stop()
+}
+
+func appendToTrackList(w http.ResponseWriter, r *http.Request) {
+	udn := mux.Vars(r)["udn"]
+	object := mux.Vars(r)["object"]
+
+	device, _ := directories.DeviceByUDN(udn)
+	client, ok := device.SOAPClient(contentdirectory.Version1)
+	if !ok {
+		http.Error(w, fmt.Sprintf("unknown ContentDirectory: %v", udn), http.StatusNotFound)
+		return
+	}
+	directory := contentdirectory.NewClient(client)
+
+	ctx := r.Context()
+	didl, err := directory.BrowseMetadata(ctx, upnpav.Object(object))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if !(len(didl.Containers) == 0 && len(didl.Items) == 1) {
+		http.Error(w, "found object, but was not an Item", http.StatusNotFound)
+		return
+	}
+
+	trackList.Append(didl.Items[0])
 }

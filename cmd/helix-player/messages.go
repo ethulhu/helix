@@ -4,7 +4,21 @@ import (
 	"github.com/ethulhu/helix/upnp/ssdp"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/avtransport"
+	"github.com/ethulhu/helix/upnpav/controlpoint"
 )
+
+func humanReadableState(state avtransport.State) string {
+	switch state {
+	case avtransport.StatePlaying:
+		return "playing"
+	case avtransport.StatePaused:
+		return "paused"
+	case avtransport.StateStopped:
+		return "stopped"
+	default:
+		return string(state)
+	}
+}
 
 // ContentDirectory messages.
 
@@ -75,6 +89,29 @@ func transportFromDeviceAndInfo(device *ssdp.Device, state avtransport.State) tr
 		ID:   device.UDN,
 		Name: device.Name,
 
-		State: string(state),
+		State: humanReadableState(state),
+	}
+}
+
+// Control Point messages.
+
+type queue struct {
+	TransportID   string `json:"transport"`
+	TransportName string `json:"transportName,omitempty"`
+	State         string `json:"state"`
+}
+
+func queueFromControlLoop(cl *controlpoint.ControlLoop) queue {
+	transportID := "none"
+	transportName := ""
+	if t := controlLoop.Transport(); t != nil {
+		transportID = t.UDN
+		transportName = t.Name
+	}
+
+	return queue{
+		TransportID:   transportID,
+		TransportName: transportName,
+		State:         humanReadableState(controlLoop.State()),
 	}
 }

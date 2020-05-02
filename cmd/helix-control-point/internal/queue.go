@@ -212,11 +212,11 @@ func (q *Queue) SetTransport(device *ssdp.Device) error {
 		return nil
 	}
 
-	connMgr, ok := device.Client(connectionmanager.Version1)
+	connMgr, ok := device.SOAPClient(connectionmanager.Version1)
 	if !ok {
 		return errors.New("device does not expose ConnectionManager")
 	}
-	transport, ok := device.Client(avtransport.Version1)
+	transport, ok := device.SOAPClient(avtransport.Version1)
 	if !ok {
 		return errors.New("device does not expose AVTransport")
 	}

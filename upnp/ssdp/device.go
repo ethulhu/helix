@@ -64,8 +64,13 @@ func newDevice(manifestURL *url.URL, rawManifest []byte) (*Device, error) {
 	}, nil
 }
 
-// Client returns a SOAP client for the given URN, and whether or not that client exists.
-func (d *Device) Client(urn URN) (soap.Client, bool) {
+// SOAPClient returns a SOAP client for the given URN, and whether or not that client exists.
+// A nil Device always returns (nil, false).
+func (d *Device) SOAPClient(urn URN) (soap.Client, bool) {
+	if d == nil {
+		return nil, false
+	}
+
 	baseURL, ok := d.services[urn]
 	if !ok {
 		return nil, false
@@ -74,7 +79,12 @@ func (d *Device) Client(urn URN) (soap.Client, bool) {
 }
 
 // Services lists URNs advertised by the device.
+// A nil Device always returns nil.
 func (d *Device) Services() []URN {
+	if d == nil {
+		return nil
+	}
+
 	var urns []URN
 	for urn := range d.services {
 		urns = append(urns, urn)

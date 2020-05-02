@@ -41,19 +41,19 @@ func main() {
 		log.Fatalf("could not discover ConnectionManager clients: %v", err)
 	}
 
-	var client connectionmanager.Client
+	var manager connectionmanager.Client
 	for _, device := range devices {
-		if soapClient, ok := device.Client(connectionmanager.Version1); ok && device.Name == *server {
-			client = connectionmanager.NewClient(soapClient)
+		if client, ok := device.SOAPClient(connectionmanager.Version1); ok && device.Name == *server {
+			manager = connectionmanager.NewClient(client)
 			break
 		}
 	}
-	if client == nil {
+	if manager == nil {
 		log.Fatalf("could not find ConnectionManager server %v", *server)
 	}
 
 	ctx, _ = context.WithTimeout(context.Background(), 1*time.Second)
-	sources, sinks, err := client.ProtocolInfo(ctx)
+	sources, sinks, err := manager.ProtocolInfo(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}

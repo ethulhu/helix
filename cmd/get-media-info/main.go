@@ -35,27 +35,27 @@ func main() {
 	}
 
 	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
-	clients, _, err := ssdp.Discover(ctx, avtransport.Version1, iface)
+	devices, _, err := ssdp.Discover(ctx, avtransport.Version1, iface)
 	if err != nil {
 		log.Fatalf("could not discover AVTransport clients: %v", err)
 	}
 
-	var client avtransport.Client
-	for _, c := range clients {
-		if c.Name != *server {
+	var transport avtransport.Client
+	for _, device := range devices {
+		if device.Name != *server {
 			continue
 		}
-		if soapClient, ok := c.Client(avtransport.Version1); ok {
-			client = avtransport.NewClient(soapClient)
+		if client, ok := device.SOAPClient(avtransport.Version1); ok {
+			transport = avtransport.NewClient(client)
 			break
 		}
 	}
-	if client == nil {
+	if transport == nil {
 		log.Fatalf("could not find AVTransport server %v", *server)
 	}
 
 	ctx, _ = context.WithTimeout(context.Background(), 1*time.Second)
-	uri, metadata, _, _, err := client.MediaInfo(ctx)
+	uri, metadata, _, _, err := transport.MediaInfo(ctx)
 	if err != nil {
 		log.Fatalf("could not get media info: %v", err)
 	}

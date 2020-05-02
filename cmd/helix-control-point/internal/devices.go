@@ -62,22 +62,22 @@ func (d *Devices) AVTransportByUDN(udn string) (avtransport.Client, bool) {
 	if !ok {
 		return nil, false
 	}
-	soapClient, ok := device.Client(avtransport.Version1)
+	client, ok := device.SOAPClient(avtransport.Version1)
 	if !ok {
 		return nil, false
 	}
-	return avtransport.NewClient(soapClient), true
+	return avtransport.NewClient(client), true
 }
 func (d *Devices) ContentDirectoryByUDN(udn string) (contentdirectory.Client, bool) {
 	device, ok := d.DeviceByUDN(udn)
 	if !ok {
 		return nil, false
 	}
-	soapClient, ok := device.Client(contentdirectory.Version1)
+	client, ok := device.SOAPClient(contentdirectory.Version1)
 	if !ok {
 		return nil, false
 	}
-	return contentdirectory.NewClient(soapClient), true
+	return contentdirectory.NewClient(client), true
 }
 
 func (d *Devices) DeviceByUDN(udn string) (*ssdp.Device, bool) {
@@ -94,7 +94,7 @@ func (d *Devices) DevicesByURN(urn ssdp.URN) []*ssdp.Device {
 
 	var devices []*ssdp.Device
 	for _, device := range d.devices {
-		if _, ok := device.Client(urn); ok {
+		if _, ok := device.SOAPClient(urn); ok {
 			devices = append(devices, device)
 		}
 	}

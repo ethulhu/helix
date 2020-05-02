@@ -42,19 +42,19 @@ func main() {
 		log.Fatalf("could not discover ContentDirectory clients: %v", err)
 	}
 
-	var client contentdirectory.Client
+	var directory contentdirectory.Client
 	for _, device := range devices {
-		if soapClient, ok := device.Client(contentdirectory.Version1); ok && device.Name == *server {
-			client = contentdirectory.NewClient(soapClient)
+		if client, ok := device.SOAPClient(contentdirectory.Version1); ok && device.Name == *server {
+			directory = contentdirectory.NewClient(client)
 			break
 		}
 	}
-	if client == nil {
+	if directory == nil {
 		log.Fatalf("could not find ContentDirectory server %v", *server)
 	}
 
 	ctx, _ = context.WithTimeout(context.Background(), 1*time.Second)
-	didl, err := client.BrowseChildren(ctx, upnpav.Object(*object))
+	didl, err := directory.BrowseChildren(ctx, upnpav.Object(*object))
 	if err != nil {
 		log.Fatalf("could not list ContentDirectory root: %v", err)
 	}

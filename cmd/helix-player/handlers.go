@@ -51,17 +51,13 @@ func getObjectJSON(w http.ResponseWriter, r *http.Request) {
 	udn := mux.Vars(r)["udn"]
 	objectID := mux.Vars(r)["object"]
 
-	device, ok := directories.DeviceByUDN(udn)
+	device, _ := directories.DeviceByUDN(udn)
+	client, ok := device.SOAPClient(contentdirectory.Version1)
 	if !ok {
 		http.Error(w, fmt.Sprintf("unknown ContentDirectory: %s", udn), http.StatusNotFound)
 		return
 	}
-	soapClient, ok := device.Client(contentdirectory.Version1)
-	if !ok {
-		http.Error(w, fmt.Sprintf("UPnP device exists but is not a ContentDirectory: %s", udn), http.StatusInternalServerError)
-		return
-	}
-	directory := contentdirectory.NewClient(soapClient)
+	directory := contentdirectory.NewClient(client)
 
 	ctx := r.Context()
 	self, err := directory.BrowseMetadata(ctx, upnpav.Object(objectID))
@@ -116,17 +112,13 @@ func getObjectByType(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	device, ok := directories.DeviceByUDN(udn)
+	device, _ := directories.DeviceByUDN(udn)
+	client, ok := device.SOAPClient(contentdirectory.Version1)
 	if !ok {
 		http.Error(w, fmt.Sprintf("unknown ContentDirectory: %s", udn), http.StatusNotFound)
 		return
 	}
-	soapClient, ok := device.Client(contentdirectory.Version1)
-	if !ok {
-		http.Error(w, fmt.Sprintf("UPnP device exists but is not a ContentDirectory: %s", udn), http.StatusInternalServerError)
-		return
-	}
-	directory := contentdirectory.NewClient(soapClient)
+	directory := contentdirectory.NewClient(client)
 
 	// find the object.
 	ctx := r.Context()

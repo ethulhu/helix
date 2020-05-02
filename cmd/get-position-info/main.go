@@ -40,19 +40,19 @@ func main() {
 		log.Fatalf("could not discover AVTransport clients: %v", err)
 	}
 
-	var client avtransport.Client
+	var transport avtransport.Client
 	for _, device := range devices {
-		if soapClient, ok := device.Client(avtransport.Version1); ok && device.Name == *server {
-			client = avtransport.NewClient(soapClient)
+		if client, ok := device.SOAPClient(avtransport.Version1); ok && device.Name == *server {
+			transport = avtransport.NewClient(client)
 			break
 		}
 	}
-	if client == nil {
+	if transport == nil {
 		log.Fatalf("could not find AVTransport server %v", *server)
 	}
 
 	ctx, _ = context.WithTimeout(context.Background(), 1*time.Second)
-	uri, metadata, duration, reltime, err := client.PositionInfo(ctx)
+	uri, metadata, duration, reltime, err := transport.PositionInfo(ctx)
 	if err != nil {
 		log.Fatalf("could not get media info: %v", err)
 	}

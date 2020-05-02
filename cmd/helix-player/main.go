@@ -121,11 +121,11 @@ func main() {
 	if *debugAssetsPath != "" {
 		m.PathPrefix("/").
 			Methods("GET").
-			Handler(http.FileServer(http.Dir(*debugAssetsPath)))
+			Handler(http.FileServer(httputil.TryFiles{http.Dir(*debugAssetsPath)}))
 	} else {
 		m.PathPrefix("/").
 			Methods("GET").
-			Handler(assets.Serve("static"))
+			Handler(http.FileServer(httputil.TryFiles{httputil.BroccoliFS{"static", assets}}))
 	}
 
 	log.Printf("starting HTTP server on %v", conn.Addr())

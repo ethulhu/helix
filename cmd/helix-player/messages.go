@@ -95,14 +95,13 @@ func transportFromDeviceAndInfo(device *ssdp.Device, state avtransport.State) tr
 
 // Control Point messages.
 
-type queue struct {
-	TransportID   string   `json:"transport"`
-	TransportName string   `json:"transportName,omitempty"`
-	State         string   `json:"state"`
-	Tracks        []string `json:"trackList"`
+type controlPoint struct {
+	TransportID   string `json:"transport"`
+	TransportName string `json:"transportName,omitempty"`
+	State         string `json:"state"`
 }
 
-func queueFromControlLoopAndTrackList(cl *controlpoint.Loop, tl *controlpoint.TrackList) queue {
+func controlPointFromLoop(cl *controlpoint.Loop) controlPoint {
 	transportID := "none"
 	transportName := ""
 	if t := controlLoop.Transport(); t != nil {
@@ -110,15 +109,24 @@ func queueFromControlLoopAndTrackList(cl *controlpoint.Loop, tl *controlpoint.Tr
 		transportName = t.Name
 	}
 
+	return controlPoint{
+		TransportID:   transportID,
+		TransportName: transportName,
+		State:         humanReadableState(controlLoop.State()),
+	}
+}
+
+type queue struct {
+	Tracks []string `json:"tracks"`
+}
+
+func queueFromTrackList(tl *controlpoint.TrackList) queue {
 	tracks := []string{}
 	for _, item := range tl.Items() {
 		tracks = append(tracks, item.Title)
 	}
 
 	return queue{
-		TransportID:   transportID,
-		TransportName: transportName,
-		State:         humanReadableState(controlLoop.State()),
-		Tracks:        tracks,
+		Tracks: tracks,
 	}
 }

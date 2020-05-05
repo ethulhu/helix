@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+	<meta charset='utf-8'>
+	<title>Helix Player - Control Point</title>
+	<style>
+	</style>
+</head>
+
+<body>
+	<main>
+		<select id='transports'>
+			<option value='none'>no transport</option>
+			<option disabled>────────────</option>
+		</select>
+
+		<button id='play'>▶️</button>
+		<button id='pause'>⏸️</button>
+		<button id='stop'>⏹️</button>
+	</main>
+
+	<script type='module'>
+		import { elemGenerator } from './elems.js';
+		import { fetchTransports, fetchControlPoint, playControlPoint, pauseControlPoint, stopControlPoint, setControlPointTransport } from './api.js';
+
+		const _option = elemGenerator( 'option' );
+
+		const selectTransports = document.getElementById( 'transports' );
+		selectTransports.addEventListener( 'change', e => {
+			setControlPointTransport( e.target.value );
+		} );
+
+		document.getElementById( 'play' ).addEventListener( 'click', playControlPoint );
+		document.getElementById( 'pause' ).addEventListener( 'click', pauseControlPoint );
+		document.getElementById( 'stop' ).addEventListener( 'click', stopControlPoint );
+
+		async function renderControlPoint() {
+			const transports = await fetchTransports();
+			const queue = await fetchControlPoint();
+
+			transports.sort( ( a, b ) => a.name.localeCompare( b.name ) );
+			transports.forEach(
+				t => selectTransports.appendChild( _option( t.name, { value: t.id } ) )
+			);
+
+			selectTransports.value = queue.transport;
+		}
+
+		renderControlPoint()
+			.catch( console.error );
+	</script>
+</body>
+</html>

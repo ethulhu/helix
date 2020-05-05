@@ -273,13 +273,12 @@ func stopTransport(w http.ResponseWriter, r *http.Request) {
 
 // Control Point handlers.
 
-func getQueueJSON(w http.ResponseWriter, r *http.Request) {
-	data := queueFromControlLoopAndTrackList(controlLoop, trackList)
-
+func getControlPointJSON(w http.ResponseWriter, r *http.Request) {
+	data := controlPointFromLoop(controlLoop)
 	httputil.MustWriteJSON(w, data)
 }
 
-func setQueueTransport(w http.ResponseWriter, r *http.Request) {
+func setControlPointTransport(w http.ResponseWriter, r *http.Request) {
 	udn := mux.Vars(r)["udn"]
 
 	// "none" is a magic value to unset the transport.
@@ -299,17 +298,24 @@ func setQueueTransport(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func playQueue(w http.ResponseWriter, r *http.Request) {
+func playControlPoint(w http.ResponseWriter, r *http.Request) {
 	controlLoop.Play()
 }
-func pauseQueue(w http.ResponseWriter, r *http.Request) {
+func pauseControlPoint(w http.ResponseWriter, r *http.Request) {
 	controlLoop.Pause()
 }
-func stopQueue(w http.ResponseWriter, r *http.Request) {
+func stopControlPoint(w http.ResponseWriter, r *http.Request) {
 	controlLoop.Stop()
 }
 
-func appendToTrackList(w http.ResponseWriter, r *http.Request) {
+// Queue handlers.
+
+func getQueueJSON(w http.ResponseWriter, r *http.Request) {
+	data := queueFromTrackList(trackList)
+	httputil.MustWriteJSON(w, data)
+}
+
+func appendToQueue(w http.ResponseWriter, r *http.Request) {
 	udn := mux.Vars(r)["udn"]
 	object := mux.Vars(r)["object"]
 
@@ -334,6 +340,6 @@ func appendToTrackList(w http.ResponseWriter, r *http.Request) {
 
 	trackList.Append(didl.Items[0])
 }
-func removeAllFromTrackList(w http.ResponseWriter, r *http.Request) {
+func removeAllFromQueue(w http.ResponseWriter, r *http.Request) {
 	trackList.RemoveAll()
 }

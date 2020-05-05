@@ -131,32 +131,32 @@ func main() {
 
 	// Control Point routes.
 
-	m.Path("/queue/").
+	m.Path("/control-point/").
 		Methods("GET").
 		HeadersRegexp("Accept", "(application|text)/json").
-		HandlerFunc(getQueueJSON)
+		HandlerFunc(getControlPointJSON)
 
-	m.Path("/queue/").
+	m.Path("/control-point/").
 		Methods("POST").
 		MatcherFunc(httputil.FormValues("transport", "{udn}")).
-		HandlerFunc(setQueueTransport)
+		HandlerFunc(setControlPointTransport)
 
-	m.Path("/queue/").
+	m.Path("/control-point/").
 		Methods("POST").
 		MatcherFunc(httputil.FormValues("state", "playing")).
-		HandlerFunc(playQueue)
+		HandlerFunc(playControlPoint)
 
-	m.Path("/queue/").
+	m.Path("/control-point/").
 		Methods("POST").
 		MatcherFunc(httputil.FormValues("state", "paused")).
-		HandlerFunc(pauseQueue)
+		HandlerFunc(pauseControlPoint)
 
-	m.Path("/queue/").
+	m.Path("/control-point/").
 		Methods("POST").
 		MatcherFunc(httputil.FormValues("state", "stopped")).
-		HandlerFunc(stopQueue)
+		HandlerFunc(stopControlPoint)
 
-	m.Path("/queue/").
+	m.Path("/control-point/").
 		Methods("POST").
 		MatcherFunc(httputil.FormValues("state", "{unknown}")).
 		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -164,13 +164,21 @@ func main() {
 			http.Error(w, fmt.Sprintf("unknown state: %v", state), http.StatusBadRequest)
 		})
 
+	// Queue routes.
+
+	m.Path("/queue/").
+		Methods("GET").
+		HeadersRegexp("Accept", "(application|text)/json").
+		HandlerFunc(getQueueJSON)
+
+	// TODO: support multiple queues.
 	m.Path("/queue/").
 		Methods("POST").
 		MatcherFunc(httputil.FormValues(
 			"directory", "{udn}",
 			"object", "{object}",
 		)).
-		HandlerFunc(appendToTrackList)
+		HandlerFunc(appendToQueue)
 
 	m.Path("/queue/").
 		Methods("POST").
@@ -188,7 +196,7 @@ func main() {
 		MatcherFunc(httputil.FormValues(
 			"remove", "all",
 		)).
-		HandlerFunc(removeAllFromTrackList)
+		HandlerFunc(removeAllFromQueue)
 
 	m.Path("/queue/").
 		Methods("POST").

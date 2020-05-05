@@ -50,3 +50,20 @@ export async function pauseTransport( udn ) {
 export async function stopTransport( udn ) {
 	return postForm( `/transports/${udn}`, { action: 'stop' } );
 }
+
+// Control Point APIs.
+export async function fetchControlPoint() {
+	return getJSON( `/control-point/` );
+}
+export async function playControlPoint() {
+	return postForm( `/control-point/`, { state: 'playing' } );
+}
+export async function pauseControlPoint() {
+	return postForm( `/control-point/`, { state: 'paused' } );
+}
+export async function stopControlPoint() {
+	return postForm( `/control-point/`, { state: 'stopped' } );
+}
+export async function setControlPointTransport( udn ) {
+	return postForm( `/control-point/`, { transport: udn } );
+}

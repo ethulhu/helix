@@ -1,6 +1,7 @@
 package controlpoint
 
 import (
+	"errors"
 	"math/rand"
 	"sync"
 
@@ -80,7 +81,15 @@ func (t *TrackList) Append(item upnpav.Item) int {
 
 	return id
 }
-
+func (t *TrackList) SetCurrent(id int) error {
+	for i := range t.order {
+		if t.order[i] == id {
+			t.current = i
+			return nil
+		}
+	}
+	return errors.New("unknown id")
+}
 func (t *TrackList) Remove(id int) {
 	t.mu.Lock()
 	defer t.mu.Unlock()

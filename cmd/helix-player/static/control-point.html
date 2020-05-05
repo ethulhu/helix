@@ -4,8 +4,22 @@
 	<meta charset='utf-8'>
 	<title>Helix Player - Control Point</title>
 	<style>
-helix-playlist::part(current) {
-	font-weight: bold;
+@import url( "common.css" );
+
+main {
+	height: 100vh;
+
+	display: grid;
+	grid-template-areas: "controls" "directory";
+	grid-template-rows: auto 1fr;
+}
+#controls {
+	grid-area: controls;
+}
+
+helix-directory-tree {
+	grid-area: directory;
+	overflow-y: scroll;
 }
 	</style>
 </head>

@@ -24,8 +24,9 @@ var (
 
 	debugAssetsPath = flag.String("debug-assets-path", "", "path to assets to load from filesystem, for development")
 
-	ifaceName   = flag.String("interface", "", "network interface to discover on (optional)")
-	upnpRefresh = flag.Duration("upnp-refresh", 30*time.Second, "how frequently to refresh the UPnP devices")
+	ifaceName      = flag.String("interface", "", "network interface to discover on (optional)")
+	initialRefresh = flag.Duration("initial-upnp-refresh", 5*time.Second, "how frequently discover new UPnP devices when the server hasn't found any yet")
+	stableRefresh  = flag.Duration("stable-upnp-refresh", 30*time.Second, "how frequently discover new UPnP devices when the server has found some already")
 )
 
 var (
@@ -65,8 +66,13 @@ func main() {
 	}
 	defer conn.Close()
 
-	directories = upnp.NewDeviceCache(contentdirectory.Version1, *upnpRefresh, iface)
-	transports = upnp.NewDeviceCache(avtransport.Version1, *upnpRefresh, iface)
+	deviceCacheOptions := upnp.DeviceCacheOptions{
+		InitialRefresh: *initialRefresh,
+		StableRefresh:  *stableRefresh,
+		Interface:      iface,
+	}
+	directories = upnp.NewDeviceCache(contentdirectory.Version1, deviceCacheOptions)
+	transports = upnp.NewDeviceCache(avtransport.Version1, deviceCacheOptions)
 
 	// TODO: support multiple Queues.
 	controlLoop.SetQueue(trackList)

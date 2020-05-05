@@ -19,6 +19,13 @@ type (
 		mu      sync.Mutex
 		devices map[string]*ssdp.Device
 	}
+
+	DeviceCacheOptions struct {
+		InitialRefresh time.Duration
+		StableRefresh  time.Duration
+
+		Interface *net.Interface
+	}
 )
 
 const (
@@ -26,18 +33,29 @@ const (
 )
 
 // NewDeviceCache returns a DeviceCache searching for the given URN, every refresh period, optionally on a specific network interface.
-func NewDeviceCache(urn ssdp.URN, refresh time.Duration, iface *net.Interface) *DeviceCache {
+func NewDeviceCache(urn ssdp.URN, options DeviceCacheOptions) *DeviceCache {
 	d := &DeviceCache{
 		urn:   urn,
-		iface: iface,
+		iface: options.Interface,
 
 		devices: map[string]*ssdp.Device{},
 	}
 
 	go d.Refresh()
 	go func() {
-		for _ = range time.Tick(refresh) {
-			d.Refresh()
+		for {
+			for range time.Tick(options.InitialRefresh) {
+				d.Refresh()
+				if len(d.Devices()) > 0 {
+					break
+				}
+			}
+			for range time.Tick(options.StableRefresh) {
+				d.Refresh()
+				if len(d.Devices()) == 0 {
+					break
+				}
+			}
 		}
 	}()
 

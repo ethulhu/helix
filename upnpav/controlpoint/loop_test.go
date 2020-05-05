@@ -276,6 +276,86 @@ func TestLoop(t *testing.T) {
 			wantManagerActions:   []string{"protocolInfo"},
 		},
 		{
+			comment: "playing to stopped to skipping many to playing",
+
+			prevObservedState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				elapsed: 5 * time.Second,
+			},
+			currObservedState: transportState{
+				state: avtransport.StateStopped,
+			},
+			desiredState: avtransport.StatePlaying,
+			queueItems: []upnpav.Item{
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr1.mp3", "audio/mpeg"),
+				}},
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr2.mp3", "audio/flac"),
+				}},
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr3.mp3", "audio/flac"),
+				}},
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr4.mp3", "audio/flac"),
+				}},
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr5.mp3", "audio/mpeg"),
+				}},
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr6.mp3", "audio/mpeg"),
+				}},
+			},
+
+			wantDesiredState:     avtransport.StatePlaying,
+			wantTransportActions: []string{"setCurrentURI http://mew/purr5.mp3", "play", "seek 0"},
+			wantManagerActions:   []string{"protocolInfo"},
+		},
+		{
+			comment: "playing to stopped to skipping many to stopping",
+
+			prevObservedState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				elapsed: 5 * time.Second,
+			},
+			currObservedState: transportState{
+				state: avtransport.StateStopped,
+			},
+			desiredState: avtransport.StatePlaying,
+			queueItems: []upnpav.Item{
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr1.mp3", "audio/mpeg"),
+				}},
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr2.mp3", "audio/flac"),
+				}},
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr3.mp3", "audio/flac"),
+				}},
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr4.mp3", "audio/flac"),
+				}},
+			},
+
+			wantDesiredState:     avtransport.StateStopped,
+			wantTransportActions: nil,
+			wantManagerActions:   []string{"protocolInfo"},
+		},
+		{
+			comment: "playing an empty queue to stopped",
+
+			prevObservedState: transportState{},
+			currObservedState: transportState{},
+			desiredState:      avtransport.StatePlaying,
+			queueItems:        nil,
+
+			wantDesiredState:     avtransport.StateStopped,
+			wantTransportActions: nil,
+			wantManagerActions:   nil,
+		},
+		{
 			comment: "playing to playing a different track",
 
 			prevObservedState: transportState{},

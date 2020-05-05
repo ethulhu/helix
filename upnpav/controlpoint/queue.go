@@ -38,3 +38,7 @@ func (t *TrackList) Current() (upnpav.Item, bool) {
 	}
 	return upnpav.Item{}, false
 }
+func (t *TrackList) RemoveAll() {
+	t.items = nil
+	t.current = 0
+}

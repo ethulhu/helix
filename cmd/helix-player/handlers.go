@@ -274,7 +274,7 @@ func stopTransport(w http.ResponseWriter, r *http.Request) {
 // Control Point handlers.
 
 func getQueueJSON(w http.ResponseWriter, r *http.Request) {
-	data := queueFromControlLoop(controlLoop)
+	data := queueFromControlLoopAndTrackList(controlLoop, trackList)
 
 	httputil.MustWriteJSON(w, data)
 }
@@ -333,4 +333,7 @@ func appendToTrackList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	trackList.Append(didl.Items[0])
+}
+func removeAllFromTrackList(w http.ResponseWriter, r *http.Request) {
+	trackList.RemoveAll()
 }

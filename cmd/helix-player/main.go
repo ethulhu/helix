@@ -172,6 +172,33 @@ func main() {
 		)).
 		HandlerFunc(appendToTrackList)
 
+	m.Path("/queue/").
+		Methods("POST").
+		MatcherFunc(httputil.FormValues(
+			"directory", "{udn}",
+			"object", "{object}",
+			"position", "{position}",
+		)).
+		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "not implemented", http.StatusNotImplemented)
+		})
+
+	m.Path("/queue/").
+		Methods("POST").
+		MatcherFunc(httputil.FormValues(
+			"remove", "all",
+		)).
+		HandlerFunc(removeAllFromTrackList)
+
+	m.Path("/queue/").
+		Methods("POST").
+		MatcherFunc(httputil.FormValues(
+			"remove", "{item}",
+		)).
+		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "not implemented", http.StatusNotImplemented)
+		})
+
 	// Assets routes.
 
 	if *debugAssetsPath != "" {

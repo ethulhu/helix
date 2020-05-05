@@ -9,27 +9,98 @@
 
 <body>
 	<main>
-		<helix-transport-select></helix-transport-select>
+		<div id='controls'>
+			<helix-transport-select></helix-transport-select>
+			<button id='play'>▶️</button>
+			<button id='pause'>⏸️</button>
+			<button id='stop'>⏹️</button>
+			<span id='state'></span>
+			<details>
+				<summary>playlist</summary>
+				<helix-playlist></helix-playlist>
+			</details>
+		</div>
 
-		<button id='play'>▶️</button>
-		<button id='pause'>⏸️</button>
-		<button id='stop'>⏹️</button>
-
-		<div id='state'></div>
+		<helix-directory-tree></helix-directory-tree>
 	</main>
 
 	<script type='module'>
+		import './directory.js';
+		import './playlist.js';
 		import './transport-select.js';
+
 		import { elemGenerator } from './elems.js';
-		import { fetchControlPoint, playControlPoint, pauseControlPoint, stopControlPoint } from './api.js';
+		const _li = elemGenerator( 'li' );
+
+		import {
+			fetchControlPoint,
+			playControlPoint,
+			pauseControlPoint,
+			stopControlPoint,
+			setControlPointTransport,
+
+			fetchQueue,
+			appendToQueue,
+			setCurrentQueueTrack,
+			removeTrackFromQueue,
+		} from './api.js';
+
+		CustomElementRegistry.prototype.whenAllDefined = function( kinds ) {
+			return Promise.all( kinds.map( k => this.whenDefined( k ) ) );
+		}
+		const elementKinds = [
+			'helix-directory-tree',
+			'helix-transport-select',
+			'helix-playlist',
+		];
+		customElements.whenAllDefined( elementKinds ).then( () => {
+			const directoryTree = document.querySelector( 'helix-directory-tree' );
+			const playlist = document.querySelector( 'helix-playlist' );
+			const transportSelect = document.querySelector( 'helix-transport-select' );
+
+			transportSelect.addEventListener( 'change', e => {
+				console.log( `setting control-point transport to ${e.target.value}` );
+				setControlPointTransport( e.target.value );
+			} );
+
+			directoryTree.addEventListener( 'enqueue', e => {
+				const item = e.detail;
+				appendToQueue( item.directory, item.id )
+					.then( addedItem => {
+						playlist.appendChild( _li(
+							item.title,
+							{ 'data-id': addedItem.id }
+						) );
+					} );
+			} );
+
+			playlist.addEventListener( 'trackremoved', e => {
+				const id = e.detail.dataset.id;
+				console.log( `removing track ${id} from queue` );
+				removeTrackFromQueue( id );
+			} );
+			playlist.addEventListener( 'trackchanged', e => {
+				const id = e.detail.dataset.id;
+				console.log( `setting current queue track to ${id}` );
+				setCurrentQueueTrack( id );
+			} );
+
+			fetchQueue().then( q => {
+				q.history.forEach( t => {
+					playlist.appendChild( _li( t.title, { 'data-id': t.id } ) );
+				} ),
+				q.upcoming.forEach( t => {
+					playlist.appendChild( _li( t.title, { 'data-id': t.id } ) );
+				} );
+				playlist.currentItem = q.history.length + 1;
+			} );
+		} );
 
 		document.getElementById( 'play' ).addEventListener( 'click', playControlPoint );
 		document.getElementById( 'pause' ).addEventListener( 'click', pauseControlPoint );
 		document.getElementById( 'stop' ).addEventListener( 'click', stopControlPoint );
-
 		fetchControlPoint()
 			.then( cp => { document.getElementById( 'state' ).textContent = cp.state; } );
-
 	</script>
 </body>
 </html>

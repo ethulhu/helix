@@ -75,7 +75,11 @@ export async function fetchQueue() {
 	return getJSON( `/queue/` );
 }
 export async function appendToQueue( directory, id ) {
-	return postForm( `/queue/`, { directory: directory, object: id } );
+	return postForm( `/queue/`, { directory: directory, object: id } )
+		.then( rsp => rsp.json() );
+}
+export async function setCurrentQueueTrack( id ) {
+	return postForm( `/queue/`, { current: id } );
 }
 export async function removeAllFromQueue() {
 	return postForm( `/queue/`, { remove: 'all' } );

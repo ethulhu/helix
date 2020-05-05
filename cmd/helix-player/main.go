@@ -200,6 +200,13 @@ func main() {
 	m.Path("/queue/").
 		Methods("POST").
 		MatcherFunc(httputil.FormValues(
+			"current", "{id}",
+		)).
+		HandlerFunc(setCurrentQueueTrack)
+
+	m.Path("/queue/").
+		Methods("POST").
+		MatcherFunc(httputil.FormValues(
 			"remove", "all",
 		)).
 		HandlerFunc(removeAllFromQueue)

@@ -345,10 +345,23 @@ func appendToQueue(w http.ResponseWriter, r *http.Request) {
 	data := queueItemFromQueueItem(controlpoint.QueueItem{id, didl.Items[0]})
 	httputil.MustWriteJSON(w, data)
 }
+func setCurrentQueueTrack(w http.ResponseWriter, r *http.Request) {
+	idRaw := mux.Vars(r)["id"]
+
+	id, err := strconv.Atoi(idRaw)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("id must be a number, got %q", idRaw), http.StatusBadRequest)
+		return
+	}
+
+	if err := trackList.SetCurrent(id); err != nil {
+		http.Error(w, fmt.Sprintf("could not set current track: %v", err), http.StatusBadRequest)
+	}
+}
 func removeAllFromQueue(w http.ResponseWriter, r *http.Request) {
 	trackList.RemoveAll()
 }
-func removeIDFromQueue(w http.ResponseWriter, r *http.Request) {
+func removeTrackFromQueue(w http.ResponseWriter, r *http.Request) {
 	idRaw := mux.Vars(r)["id"]
 
 	id, err := strconv.Atoi(idRaw)

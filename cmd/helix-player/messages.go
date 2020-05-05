@@ -117,16 +117,35 @@ func controlPointFromLoop(cl *controlpoint.Loop) controlPoint {
 }
 
 type queue struct {
-	Tracks []string `json:"tracks"`
+	Upcoming []queueItem `json:"upcoming"`
+	History  []queueItem `json:"history"`
 }
 
 func queueFromTrackList(tl *controlpoint.TrackList) queue {
-	tracks := []string{}
-	for _, item := range tl.Items() {
-		tracks = append(tracks, item.Title)
+	upcoming := []queueItem{}
+	for _, qi := range tl.Upcoming() {
+		upcoming = append(upcoming, queueItemFromQueueItem(qi))
+	}
+
+	history := []queueItem{}
+	for _, qi := range tl.History() {
+		history = append(history, queueItemFromQueueItem(qi))
 	}
 
 	return queue{
-		Tracks: tracks,
+		Upcoming: upcoming,
+		History:  history,
+	}
+}
+
+type queueItem struct {
+	ID    int    `json:"id"`
+	Title string `json:"title"`
+}
+
+func queueItemFromQueueItem(qi controlpoint.QueueItem) queueItem {
+	return queueItem{
+		ID:    qi.ID,
+		Title: qi.Item.Title,
 	}
 }

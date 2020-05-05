@@ -51,8 +51,14 @@ export class HelixPlaylist extends HTMLElement {
 						}
 					}
 					this.currentItem = this.indexOf( current ) + 1;
+
+					c.removedNodes.forEach( n => {
+						if ( n.tagName === 'LI' ) {
+							this._sendEvent( 'trackremoved', n );
+						}
+					} );
 				} else if ( c.target === this._current ) {
-					this._sendEvent( 'currenttrackupdated' );
+					this._sendEvent( 'currenttrackupdated', this._current );
 				}
 			} );
 			this.render();
@@ -78,8 +84,9 @@ export class HelixPlaylist extends HTMLElement {
 	// events:
 	// - trackchanged
 	// - currenttrackupdated
-	_sendEvent( name ) {
-		this.dispatchEvent( new CustomEvent( name, { detail: this._current } ) );
+	// - trackremoved
+	_sendEvent( name, payload ) {
+		this.dispatchEvent( new CustomEvent( name, { detail: payload } ) );
 	}
 
 	static get observedAttributes() {
@@ -96,7 +103,7 @@ export class HelixPlaylist extends HTMLElement {
 				}
 
 				this._current = this.listItems[ newValue - 1 ];
-				this._sendEvent( 'trackchanged' );
+				this._sendEvent( 'trackchanged', this._current );
 		}
 	}
 

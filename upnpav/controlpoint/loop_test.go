@@ -381,7 +381,10 @@ func TestLoop(t *testing.T) {
 		transport := &fakeAVTransport{}
 		manager := &fakeConnectionManager{}
 
-		queue := &TrackList{items: tt.queueItems}
+		queue := NewTrackList()
+		for _, item := range tt.queueItems {
+			queue.Append(item)
+		}
 
 		gotDesiredState, err := tick(nil, tt.prevObservedState, tt.currObservedState, transport, manager, tt.desiredState, queue, tt.transportChanged)
 		if err != nil {

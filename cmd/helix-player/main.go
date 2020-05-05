@@ -207,11 +207,9 @@ func main() {
 	m.Path("/queue/").
 		Methods("POST").
 		MatcherFunc(httputil.FormValues(
-			"remove", "{item}",
+			"remove", "{id}",
 		)).
-		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			http.Error(w, "not implemented", http.StatusNotImplemented)
-		})
+		HandlerFunc(removeTrackFromQueue)
 
 	// Assets routes.
 

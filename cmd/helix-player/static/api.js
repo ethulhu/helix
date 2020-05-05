@@ -80,3 +80,6 @@ export async function appendToQueue( directory, id ) {
 export async function removeAllFromQueue() {
 	return postForm( `/queue/`, { remove: 'all' } );
 }
+export async function removeTrackFromQueue( id ) {
+	return postForm( `/queue/`, { remove: id } );
+}

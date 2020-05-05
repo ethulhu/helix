@@ -6,6 +6,7 @@ import (
 	"log"
 	"mime"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/ethulhu/helix/httputil"
@@ -13,6 +14,7 @@ import (
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/avtransport"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
+	"github.com/ethulhu/helix/upnpav/controlpoint"
 	"github.com/gorilla/mux"
 )
 
@@ -338,8 +340,22 @@ func appendToQueue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	trackList.Append(didl.Items[0])
+	id := trackList.Append(didl.Items[0])
+
+	data := queueItemFromQueueItem(controlpoint.QueueItem{id, didl.Items[0]})
+	httputil.MustWriteJSON(w, data)
 }
 func removeAllFromQueue(w http.ResponseWriter, r *http.Request) {
 	trackList.RemoveAll()
+}
+func removeIDFromQueue(w http.ResponseWriter, r *http.Request) {
+	idRaw := mux.Vars(r)["id"]
+
+	id, err := strconv.Atoi(idRaw)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("id must be a number, got %q", idRaw), http.StatusBadRequest)
+		return
+	}
+
+	trackList.Remove(id)
 }

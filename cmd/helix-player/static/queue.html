@@ -17,7 +17,7 @@
 		import './directory.js';
 		import './playlist.js';
 
-		import { fetchQueue, appendToQueue, removeAllFromQueue } from './api.js';
+		import { fetchQueue, appendToQueue, removeAllFromQueue, removeTrackFromQueue } from './api.js';
 
 		import { elemGenerator } from './elems.js';
 		const _li     = elemGenerator( 'li' );
@@ -49,10 +49,18 @@
 					} );
 			} );
 
+			playlist.addEventListener( 'trackremoved', e => {
+				removeTrackFromQueue( e.detail.dataset.id );
+			} );
+
 			fetchQueue().then( q => {
-				q.tracks.forEach( t => {
-					playlist.appendChild( _li( t ) );
+				q.history.forEach( t => {
+					playlist.appendChild( _li( t.title, { 'data-id': t.id } ) );
+				} ),
+				q.upcoming.forEach( t => {
+					playlist.appendChild( _li( t.title, { 'data-id': t.id } ) );
 				} );
+				playlist.currentItem = q.history.length + 1;
 			} );
 		} );
 	</script>

@@ -101,6 +101,8 @@ helix-playlist::part(current) {
 				} );
 			}
 			refresh();
+
+			setInterval( refresh, 5000 );
 		} );
 
 		document.getElementById( 'play' ).addEventListener( 'click', playControlPoint );

@@ -92,24 +92,27 @@ helix-directory-tree {
 	</main>
 
 	<script type='module'>
-		import { elemGenerator } from './elems.js';
-
 		import './directory.js';
 		import './media-controls.js';
 		import './media-player.js';
 		import './playlist.js';
 
+		import { elemGenerator } from './elems.js';
 		const _li     = elemGenerator( 'li' );
 		const _source = elemGenerator( 'source' );
 
-		const elements = [
+		CustomElementRegistry.prototype.whenAllDefined = function( kinds ) {
+			return Promise.all( kinds.map( k => this.whenDefined( k ) ) );
+		}
+
+		const elementKinds = [
 			'helix-directory-tree',
 			'helix-media-controls',
 			'helix-media-player',
 			'helix-playlist',
 		];
 
-		Promise.all( elements.map( e => customElements.whenDefined( e ) ) ).then( () => {
+		customElements.whenAllDefined( elementKinds ).then( () => {
 			const controls = document.querySelector( 'helix-media-controls' );
 			const directoryTree = document.querySelector( 'helix-directory-tree' );
 			const player = document.querySelector( 'helix-media-player' );
@@ -124,7 +127,7 @@ helix-directory-tree {
 				playlist.appendChild( _li( item.title, _source( { src: url } ) ) );
 			} );
 
-			controls.addEventListener( 'playpause', e => {
+	controls.addEventListener( 'playpause', e => {
 				if ( player.paused ) {
 					player.play();
 				} else {

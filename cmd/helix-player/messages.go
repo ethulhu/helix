@@ -101,7 +101,7 @@ type queue struct {
 	State         string `json:"state"`
 }
 
-func queueFromControlLoop(cl *controlpoint.ControlLoop) queue {
+func queueFromControlLoop(cl *controlpoint.Loop) queue {
 	transportID := "none"
 	transportName := ""
 	if t := controlLoop.Transport(); t != nil {

@@ -32,7 +32,7 @@ var (
 	directories *upnp.DeviceCache
 	transports  *upnp.DeviceCache
 
-	controlLoop = controlpoint.NewControlLoop()
+	controlLoop = controlpoint.NewLoop()
 	trackList   = controlpoint.NewTrackList()
 )
 
@@ -155,6 +155,14 @@ func main() {
 		Methods("POST").
 		MatcherFunc(httputil.FormValues("state", "stopped")).
 		HandlerFunc(stopQueue)
+
+	m.Path("/queue/").
+		Methods("POST").
+		MatcherFunc(httputil.FormValues("state", "{unknown}")).
+		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			state := mux.Vars(r)["unknown"]
+			http.Error(w, fmt.Sprintf("unknown state: %v", state), http.StatusBadRequest)
+		})
 
 	m.Path("/queue/").
 		Methods("POST").

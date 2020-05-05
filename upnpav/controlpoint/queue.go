@@ -6,7 +6,7 @@ import (
 
 type (
 	Queue interface {
-		Skip()
+		Skip() (upnpav.Item, bool)
 		Current() (upnpav.Item, bool)
 	}
 	TrackList struct {
@@ -15,21 +15,22 @@ type (
 	}
 )
 
-func NewTrackList() *TrackList{
+func NewTrackList() *TrackList {
 	return &TrackList{}
 }
 
-func (t *TrackList) Items() []upnpav.Item{
+func (t *TrackList) Items() []upnpav.Item {
 	return t.items
 }
 func (t *TrackList) Append(item upnpav.Item) {
 	t.items = append(t.items, item)
 }
 
-func (t *TrackList) Skip() {
+func (t *TrackList) Skip() (upnpav.Item, bool) {
 	if t.current < len(t.items) {
 		t.current++
 	}
+	return t.Current()
 }
 func (t *TrackList) Current() (upnpav.Item, bool) {
 	if t.current < len(t.items) {

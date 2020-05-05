@@ -9,45 +9,27 @@
 
 <body>
 	<main>
-		<select id='transports'>
-			<option value='none'>no transport</option>
-			<option disabled>────────────</option>
-		</select>
+		<helix-transport-select></helix-transport-select>
 
 		<button id='play'>▶️</button>
 		<button id='pause'>⏸️</button>
 		<button id='stop'>⏹️</button>
+
+		<div id='state'></div>
 	</main>
 
 	<script type='module'>
+		import './transport-select.js';
 		import { elemGenerator } from './elems.js';
-		import { fetchTransports, fetchControlPoint, playControlPoint, pauseControlPoint, stopControlPoint, setControlPointTransport } from './api.js';
-
-		const _option = elemGenerator( 'option' );
-
-		const selectTransports = document.getElementById( 'transports' );
-		selectTransports.addEventListener( 'change', e => {
-			setControlPointTransport( e.target.value );
-		} );
+		import {  fetchControlPoint, playControlPoint, pauseControlPoint, stopControlPoint } from './api.js';
 
 		document.getElementById( 'play' ).addEventListener( 'click', playControlPoint );
 		document.getElementById( 'pause' ).addEventListener( 'click', pauseControlPoint );
 		document.getElementById( 'stop' ).addEventListener( 'click', stopControlPoint );
 
-		async function renderControlPoint() {
-			const transports = await fetchTransports();
-			const queue = await fetchControlPoint();
+		fetchControlPoint()
+			.then( cp => { document.getElementById( 'state' ).textContent = cp.state; } );
 
-			transports.sort( ( a, b ) => a.name.localeCompare( b.name ) );
-			transports.forEach(
-				t => selectTransports.appendChild( _option( t.name, { value: t.id } ) )
-			);
-
-			selectTransports.value = queue.transport;
-		}
-
-		renderControlPoint()
-			.catch( console.error );
 	</script>
 </body>
 </html>

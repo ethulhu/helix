@@ -25,10 +25,17 @@ export class HelixPlaylist extends HTMLElement {
 			_table( { id: 'tracklist' } ),
 		) );
 
-		this.render();
+		// this._updating is a flag set by `set listItems()` and unset by the mutation observer.
+		this._updating = false;
+
+		this._render();
 
 		// TODO: maybe put observe() in connectedCallback() and disconnect() in disconnectedCallback()?
 		const observer = new MutationObserver( changes => {
+			if ( this._updating ) {
+				this._updating = false;
+				return;
+			}
 			changes.forEach( c => {
 				if ( c.target === this && c.type === 'childList' ) {
 					let current = this._current;
@@ -55,13 +62,13 @@ export class HelixPlaylist extends HTMLElement {
 					this._sendEvent( 'currenttrackupdated', this._current );
 				}
 			} );
-			this.render();
+			this._render();
 		} );
 		observer.observe( this, { subtree: true, childList: true, attributes: true } );
 	}
 
 	// TODO: make this not rewrite the entire thing every time.
-	render() {
+	_render() {
 		const table = this.shadowRoot.getElementById( 'tracklist' );
 		const df = documentFragment(
 			Array.from( this.listItems ).map( ( li, i ) => _tr(
@@ -116,6 +123,15 @@ export class HelixPlaylist extends HTMLElement {
 
 	get listItems() {
 		return this.getElementsByTagName( 'li' );
+	}
+	// TODO: set fire to my own house in penance for this hack.
+	set listItems( lis ) {
+		this._updating = true;
+		const idx = this.currentItem;
+		this.innerHTML = '';
+		this.appendChild( documentFragment( lis ) );
+		this.currentItem = idx;
+		this._render();
 	}
 
 	skip() {

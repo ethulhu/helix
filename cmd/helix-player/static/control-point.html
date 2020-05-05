@@ -4,6 +4,9 @@
 	<meta charset='utf-8'>
 	<title>Helix Player - Control Point</title>
 	<style>
+helix-playlist::part(current) {
+	font-weight: bold;
+}
 	</style>
 </head>
 
@@ -29,7 +32,7 @@
 		import './playlist.js';
 		import './transport-select.js';
 
-		import { elemGenerator } from './elems.js';
+		import { documentFragment, elemGenerator } from './elems.js';
 		const _li = elemGenerator( 'li' );
 
 		import {
@@ -65,13 +68,10 @@
 
 			directoryTree.addEventListener( 'enqueue', e => {
 				const item = e.detail;
+				console.log( `appending track (${item.directory}, ${item.id}) to queue` );
 				appendToQueue( item.directory, item.id )
-					.then( addedItem => {
-						playlist.appendChild( _li(
-							item.title,
-							{ 'data-id': addedItem.id }
-						) );
-					} );
+					.then( rsp => console.log( `appended track has id ${rsp.id}` ) )
+					.then( refresh );
 			} );
 
 			playlist.addEventListener( 'trackremoved', e => {
@@ -85,22 +85,27 @@
 				setCurrentQueueTrack( id );
 			} );
 
-			fetchQueue().then( q => {
-				q.history.forEach( t => {
-					playlist.appendChild( _li( t.title, { 'data-id': t.id } ) );
-				} ),
-				q.upcoming.forEach( t => {
-					playlist.appendChild( _li( t.title, { 'data-id': t.id } ) );
+			function refresh() {
+				fetchControlPoint().then( cp => {
+					document.getElementById( 'state' ).textContent = cp.state;
+					transportSelect.value = cp.transport;
 				} );
-				playlist.currentItem = q.history.length + 1;
-			} );
+
+				fetchQueue().then( q => {
+					const tracks = [];
+					tracks.push( ...q.history );
+					tracks.push( ...q.upcoming );
+
+					playlist.listItems = tracks.map( t => _li( t.title, { 'data-id': t.id } ) );
+					playlist.currentItem = q.history.length + 1;
+				} );
+			}
+			refresh();
 		} );
 
 		document.getElementById( 'play' ).addEventListener( 'click', playControlPoint );
 		document.getElementById( 'pause' ).addEventListener( 'click', pauseControlPoint );
 		document.getElementById( 'stop' ).addEventListener( 'click', stopControlPoint );
-		fetchControlPoint()
-			.then( cp => { document.getElementById( 'state' ).textContent = cp.state; } );
 	</script>
 </body>
 </html>

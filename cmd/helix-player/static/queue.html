@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+	<meta charset='utf-8'>
+	<title>Helix Player - Queue</title>
+	<style>
+	</style>
+</head>
+
+<body>
+	<main>
+		<button id='remove-all'>remove all</button>
+		<helix-playlist></helix-playlist>
+		<helix-directory-tree></helix-directory-tree>
+	</main>
+	<script type='module'>
+		import './directory.js';
+		import './playlist.js';
+
+		import { fetchQueue, appendToQueue, removeAllFromQueue } from './api.js';
+
+		import { elemGenerator } from './elems.js';
+		const _li     = elemGenerator( 'li' );
+		const _source = elemGenerator( 'source' );
+
+		document.getElementById( 'remove-all' ).addEventListener( 'click', e => {
+			removeAllFromQueue();
+		} );
+
+		CustomElementRegistry.prototype.whenAllDefined = function( kinds ) {
+			return Promise.all( kinds.map( k => this.whenDefined( k ) ) );
+		}
+		const elementKinds = [
+			'helix-directory-tree',
+			'helix-playlist',
+		];
+		customElements.whenAllDefined( elementKinds ).then( () => {
+			const directoryTree = document.querySelector( 'helix-directory-tree' );
+			const playlist = document.querySelector( 'helix-playlist' );
+
+			directoryTree.addEventListener( 'enqueue', e => {
+				const item = e.detail;
+				appendToQueue( item.directory, item.id )
+					.then( () => {
+						playlist.appendChild( _li(
+							item.title,
+							// TODO: add playlist item info as a data-* attribute.
+						) );
+					} );
+			} );
+
+			fetchQueue().then( q => {
+				q.tracks.forEach( t => {
+					playlist.appendChild( _li( t ) );
+				} );
+			} );
+		} );
+	</script>
+</body>
+</html>

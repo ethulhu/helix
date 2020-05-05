@@ -52,6 +52,7 @@ export async function stopTransport( udn ) {
 }
 
 // Control Point APIs.
+
 export async function fetchControlPoint() {
 	return getJSON( `/control-point/` );
 }
@@ -66,4 +67,16 @@ export async function stopControlPoint() {
 }
 export async function setControlPointTransport( udn ) {
 	return postForm( `/control-point/`, { transport: udn } );
+}
+
+// Control Point APIs.
+
+export async function fetchQueue() {
+	return getJSON( `/queue/` );
+}
+export async function appendToQueue( directory, id ) {
+	return postForm( `/queue/`, { directory: directory, object: id } );
+}
+export async function removeAllFromQueue() {
+	return postForm( `/queue/`, { remove: 'all' } );
 }

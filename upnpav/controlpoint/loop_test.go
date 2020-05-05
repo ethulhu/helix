@@ -358,7 +358,11 @@ func TestLoop(t *testing.T) {
 		{
 			comment: "playing to playing a different track",
 
-			prevObservedState: transportState{},
+			prevObservedState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				elapsed: 5 * time.Second,
+			},
 			currObservedState: transportState{
 				state:   avtransport.StatePlaying,
 				uri:     "http://mew/purr1.mp3",

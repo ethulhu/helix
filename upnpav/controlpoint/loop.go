@@ -207,10 +207,13 @@ func tick(ctx context.Context,
 			}
 		}
 
-		seek := prev.elapsed
 		if !transportChanged && currentItem.HasURI(prev.uri) { // TODO: && prev.state == avtransport.StatePlaying ?
 			log.Print("controller has fallen behind, skipping track")
 			currentItem, ok = queue.Skip()
+		}
+
+		seek := prev.elapsed
+		if !transportChanged && !currentItem.HasURI(curr.uri) {
 			seek = 0
 		}
 
@@ -262,7 +265,7 @@ func tick(ctx context.Context,
 			return desiredState, fmt.Errorf("could not play: %w", err)
 		}
 
-		log.Printf("seeking transport to %v", prev.elapsed)
+		log.Printf("seeking transport to %v", seek)
 		if err := transport.Seek(ctx, seek); err != nil {
 			return desiredState, fmt.Errorf("could not seek: %w", err)
 		}

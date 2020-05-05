@@ -1,7 +1,6 @@
 import { documentFragment, elemGenerator } from './elems.js';
 
 const _button = elemGenerator( 'table' );
-const _style  = elemGenerator( 'style' );
 const _table  = elemGenerator( 'table' );
 const _td     = elemGenerator( 'td' );
 const _tr     = elemGenerator( 'tr' );
@@ -23,11 +22,6 @@ export class HelixPlaylist extends HTMLElement {
 
 		this.attachShadow( { mode: 'open' } );
 		this.shadowRoot.appendChild( documentFragment (
-			_style( `
-				#tracklist tr[current] {
-					color: var(--highlight-color);
-				}
-			` ),
 			_table( { id: 'tracklist' } ),
 		) );
 
@@ -71,7 +65,7 @@ export class HelixPlaylist extends HTMLElement {
 		const table = this.shadowRoot.getElementById( 'tracklist' );
 		const df = documentFragment(
 			Array.from( this.listItems ).map( ( li, i ) => _tr(
-				{ current: i === ( this.currentItem - 1 ) },
+				{ part: i === ( this.currentItem - 1 ) ? 'current' : null },
 				_td( li.textContent ),
 				_td( _button( '▶️', { click: () => this.currentItem = ( i + 1 ) } ) ),
 				_td( _button( '🚮', { click: () => this.removeChild( this.listItems[ i ] ) } ) ),

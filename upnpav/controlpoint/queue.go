@@ -92,6 +92,7 @@ func (t *TrackList) Remove(id int) {
 	for i := range t.order {
 		if t.order[i] == id {
 			t.order = append(t.order[:i], t.order[i+1:]...)
+			break
 		}
 	}
 	delete(t.items, id)

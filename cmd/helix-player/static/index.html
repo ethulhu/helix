@@ -26,15 +26,19 @@ helix-directory-tree {
 
 <body>
 	<main>
-		<div id='player'>
-			<helix-media-player></helix-media-player>
-			<helix-media-controls duration='100'></helix-media-controls>
-			<details>
-				<summary>playlist</summary>
-				<helix-playlist></helix-playlist>
-			</details>
-		</div>
-
+		<helix-tabs id='player'>
+			<helix-tab id='local' title='local' active>
+				<helix-media-player></helix-media-player>
+				<helix-media-controls duration='100'></helix-media-controls>
+				<details>
+					<summary>playlist</summary>
+					<helix-playlist></helix-playlist>
+				</details>
+			</helix-tab>
+			<helix-tab id='remote' title='remote'>
+				<p>combined UI coming soon.</p>
+			</helix-tab>
+		</helix-tabs>
 
 		<helix-directory-tree></helix-directory-tree>
 	</main>
@@ -44,6 +48,7 @@ helix-directory-tree {
 		import './media-controls.js';
 		import './media-player.js';
 		import './playlist.js';
+		import './tabs.js';
 
 		import { elemGenerator } from './elems.js';
 		const _li     = elemGenerator( 'li' );
@@ -58,6 +63,8 @@ helix-directory-tree {
 			'helix-media-controls',
 			'helix-media-player',
 			'helix-playlist',
+			'helix-tab',
+			'helix-tabs',
 		];
 
 		customElements.whenAllDefined( elementKinds ).then( () => {

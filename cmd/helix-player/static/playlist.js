@@ -99,12 +99,15 @@ export class HelixPlaylist extends HTMLElement {
 				if ( ! ( 1 <= newValue && newValue <= this.listItems.length ) ) {
 					return;
 				}
-				if ( this.listItems[ newValue - 1 ] === this._current ) {
+				if ( this.listItems[ newValue - 1 ].isSameNode( this._current ) ) {
 					return;
 				}
 
+				const old = this._current;
 				this._current = this.listItems[ newValue - 1 ];
-				this._sendEvent( 'trackchanged', this._current );
+				if ( ! this._current.isEqualNode( old ) ) {
+					this._sendEvent( 'trackchanged', this._current );
+				}
 		}
 	}
 

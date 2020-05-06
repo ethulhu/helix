@@ -36,7 +36,15 @@ helix-directory-tree {
 				</details>
 			</helix-tab>
 			<helix-tab id='remote' title='remote'>
-				<p>combined UI coming soon.</p>
+				<helix-transport-select></helix-transport-select>
+				<button id='remote-play'>▶️</button>
+				<button id='remote-pause'>⏸️</button>
+				<button id='remote-stop'>⏹️</button>
+				<span id='remote-state'></span>
+				<details>
+					<summary>playlist</summary>
+					<helix-playlist></helix-playlist>
+				</details>
 			</helix-tab>
 		</helix-tabs>
 
@@ -49,10 +57,24 @@ helix-directory-tree {
 		import './media-player.js';
 		import './playlist.js';
 		import './tabs.js';
+		import './transport-select.js';
 
 		import { elemGenerator } from './elems.js';
 		const _li     = elemGenerator( 'li' );
 		const _source = elemGenerator( 'source' );
+
+		import {
+			fetchControlPoint,
+			playControlPoint,
+			pauseControlPoint,
+			stopControlPoint,
+			setControlPointTransport,
+
+			fetchQueue,
+			appendToQueue,
+			setCurrentQueueTrack,
+			removeTrackFromQueue,
+		} from './api.js';
 
 		CustomElementRegistry.prototype.whenAllDefined = function( kinds ) {
 			return Promise.all( kinds.map( k => this.whenDefined( k ) ) );
@@ -67,22 +89,14 @@ helix-directory-tree {
 			'helix-tabs',
 		];
 
-		customElements.whenAllDefined( elementKinds ).then( () => {
-			const controls = document.querySelector( 'helix-media-controls' );
+		function localWiring() {
 			const directoryTree = document.querySelector( 'helix-directory-tree' );
-			const player = document.querySelector( 'helix-media-player' );
-			const playlist = document.querySelector( 'helix-playlist' );
 
-			directoryTree.addEventListener( 'enqueue', e => {
-				const item = e.detail;
+			const controls = document.querySelector( '#local helix-media-controls' );
+			const player   = document.querySelector( '#local helix-media-player' );
+			const playlist = document.querySelector( '#local helix-playlist' );
 
-				const mimetype = item.mimetypes.filter( m => player.canPlayType( m ) )[ 0 ];
-				const url = `/directories/${item.directory}/${item.id}?accept=${mimetype}`;
-
-				playlist.appendChild( _li( item.title, _source( { src: url } ) ) );
-			} );
-
-	controls.addEventListener( 'playpause', e => {
+			controls.addEventListener( 'playpause', e => {
 				if ( player.paused ) {
 					player.play();
 				} else {
@@ -109,9 +123,98 @@ helix-directory-tree {
 
 			playlist.addEventListener( 'trackchanged', e => {
 				console.log( 'track changed' );
-				player.src = e.detail.getElementsByTagName( 'source' )[ 0 ].src;
+				player.sources = e.detail.getElementsByTagName( 'source' );
 				player.play();
 			} );
+		}
+		function remoteWiring() {
+			const directoryTree = document.querySelector( 'helix-directory-tree' );
+
+			const play            = document.querySelector( '#remote-play' );
+			const pause           = document.querySelector( '#remote-pause' );
+			const stop            = document.querySelector( '#remote-stop' );
+			const state           = document.querySelector( '#remote-state' );
+			const playlist        = document.querySelector( '#remote helix-playlist' );
+			const transportSelect = document.querySelector( '#remote helix-transport-select' );
+
+			transportSelect.addEventListener( 'change', e => {
+				console.log( `setting control-point transport to ${e.target.value}` );
+				setControlPointTransport( e.target.value );
+			} );
+
+			playlist.addEventListener( 'trackremoved', e => {
+				const id = e.detail.dataset.id;
+				console.log( `removing track ${id} from queue` );
+				removeTrackFromQueue( id );
+			} );
+			playlist.addEventListener( 'trackchanged', e => {
+				const id = e.detail.dataset.id;
+				console.log( `setting current queue track to ${id}` );
+				setCurrentQueueTrack( id );
+			} );
+
+			function refresh() {
+				fetchControlPoint().then( cp => {
+					state.textContent = cp.state;
+					transportSelect.value = cp.transport;
+				} );
+
+				fetchQueue().then( q => {
+					const tracks = [];
+					tracks.push( ...q.history );
+					tracks.push( ...q.upcoming );
+
+					playlist.listItems = tracks.map( t => _li( t.title, { 'data-id': t.id } ) );
+					playlist.currentItem = q.history.length + 1;
+				} );
+			}
+			return refresh;
+		}
+
+		customElements.whenAllDefined( elementKinds ).then( () => {
+			localWiring();
+			const remoteRefresh = remoteWiring();
+
+			const directoryTree = document.querySelector( 'helix-directory-tree' );
+			const localPlaylist = document.querySelector( '#local helix-playlist' );
+			const tabs          = document.querySelector( '#player' );
+
+			directoryTree.addEventListener( 'enqueue', e => {
+				const item = e.detail;
+
+				switch ( tabs.tab ) {
+					case 'local':
+						console.log( `appending track (${item.directory}, ${item.id}) to local queue` );
+
+						localPlaylist.appendChild( _li(
+							item.title, 
+							item.mimetypes.map( t =>
+								_source( {
+									src: `/directories/${item.directory}/${item.id}?accept=${t}`,
+									type: t,
+								} )
+							),
+						) );
+
+						break;
+
+					case 'remote':
+						console.log( `appending track (${item.directory}, ${item.id}) to remote queue` );
+
+						appendToQueue( item.directory, item.id )
+							.then( rsp => console.log( `appended track has id ${rsp.id}` ) )
+							.then( remoteRefresh );
+
+						break;
+
+					default:
+						console.error( `player tab is ${tabs.tab}, should be in [ 'local', 'remote' ]` )
+				}
+			} );
+
+			remoteRefresh();
+			setInterval( remoteRefresh, 5000 );
+
 		} );
 	</script>
 </body>

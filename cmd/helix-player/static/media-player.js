@@ -21,7 +21,7 @@ export class HelixMediaPlayer extends HTMLElement {
 		// TODO: maybe put observe() in connectedCallback() and disconnect() in disconnectedCallback()?
 		const observer = new MutationObserver( changes => {
 			// just fix up all sources with mimetypes.
-			Promise.all( this._sources.map( async s => {
+			Promise.all( this.sources.map( async s => {
 				if ( ! s.src ) {
 					return;  // wtf?
 				}
@@ -62,12 +62,18 @@ export class HelixMediaPlayer extends HTMLElement {
 		this.dispatchEvent( e );
 	}
 
-	get _sources() { return Array.from( this.getElementsByTagName( 'source' ) ); }
+	get sources() { return Array.from( this.getElementsByTagName( 'source' ) ); }
+	set sources( srcs ) {
+		const df = documentFragment( Array.from( srcs ) );
+		this.innerHTML = '';
+		this.appendChild( df );
+	}
+
 	get audioTracks() {
-		return this._sources.filter( s => s.type.startsWith( 'audio/' ) );
+		return this.sources.filter( s => s.type.startsWith( 'audio/' ) );
 	}
 	get videoTracks() {
-		return this._sources.filter( s => s.type.startsWith( 'video/' ) );
+		return this.sources.filter( s => s.type.startsWith( 'video/' ) );
 	}
 	get textTracks() {
 		return this.getElementsByTagName( 'track' );

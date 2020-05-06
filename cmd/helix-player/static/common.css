@@ -53,3 +53,8 @@ button:active {
 helix-playlist::part(current) {
 	color: var(--highlight-color);
 }
+helix-tabs::part(active) {
+	color: var(--highlight-color);
+}
+helix-tabs::part(tab) {
+}

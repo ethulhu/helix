@@ -1,3 +1,7 @@
+import { documentFragment, elemGenerator } from './elems.js';
+
+const _button = elemGenerator( 'button' );
+
 // <helix-tabs tab='tab-13'>
 // 	<helix-tab id='tab-12' title='tab 1?'>
 // 		<p>hello I am content</p>
@@ -66,8 +70,7 @@ export class HelixTabs extends HTMLElement {
 					display: block;
 				}
 			</style>
-			<ul id='buttons'>
-			</ul>
+			<div id='buttons'></div>
 			<slot></slot>
 		`;
 
@@ -88,17 +91,19 @@ export class HelixTabs extends HTMLElement {
 	}
 
 	_render() {
+		const df = documentFragment(
+			this.tabs.map( tab => _button(
+				tab.title,
+				{
+					part: tab.id === this.tab ? 'tab active' : 'tab',
+					click: () => this.tabs.forEach( t => {
+						t.active = t.isSameNode( tab );
+					} ),
+				}
+			) ),
+		)
 		this._buttons.innerHTML = '';
-		Array.from( this.tabs ).forEach( tab => {
-			const li = document.createElement( 'li' );
-			const button = document.createElement( 'button' );
-			button.textContent = tab.title;
-			button.addEventListener( 'click', e => {
-				this.tabs.forEach( t => { t.active = t.isSameNode( tab ); } );
-			} );
-			li.appendChild( button );
-			this._buttons.appendChild( li );
-		} );
+		this._buttons.appendChild( df );
 		this.tab = this.tab;
 	}
 

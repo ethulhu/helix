@@ -190,6 +190,13 @@ helix-directory-tree {
 			const localPlaylist = document.querySelector( '#local helix-playlist' );
 			const tabs          = document.querySelector( '#player' );
 
+			if ( localStorage.getItem( 'player-tab' ) ) {
+				tabs.tab = localStorage.getItem( 'player-tab' );
+			}
+			tabs.addEventListener( 'tabchanged', e => {
+				localStorage.setItem( 'player-tab', e.target.tab );
+			} );
+
 			directoryTree.addEventListener( 'enqueue', e => {
 				const item = e.detail;
 

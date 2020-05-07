@@ -90,6 +90,10 @@ export class HelixTabs extends HTMLElement {
 		this._render();
 	}
 
+	_sendEvent( name, payload ) {
+		this.dispatchEvent( new CustomEvent( name, { detail: payload } ) );
+	}
+
 	_render() {
 		const df = documentFragment(
 			this.tabs.map( tab => _button(
@@ -124,6 +128,7 @@ export class HelixTabs extends HTMLElement {
 				// before the setter exists.
 				customElements.whenDefined( 'helix-tab' ).then( () => {
 					this.tabs.forEach( t => { t.active = t.isSameNode( newActive ) } )
+					this._sendEvent( 'tabchanged', null );
 				} );
 		}
 	}

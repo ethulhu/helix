@@ -154,6 +154,16 @@ helix-directory-tree {
 				setCurrentQueueTrack( id );
 			} );
 
+			play.addEventListener( 'click', e => {
+				playControlPoint().then( refresh );
+			} );
+			pause.addEventListener( 'click', e => {
+				pauseControlPoint().then( refresh );
+			} );
+			stop.addEventListener( 'click', e => {
+				stopControlPoint().then( refresh );
+			} );
+
 			function refresh() {
 				fetchControlPoint().then( cp => {
 					state.textContent = cp.state;

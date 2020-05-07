@@ -1,12 +1,12 @@
 import { documentFragment, elemGenerator } from './elems.js';
 import { fetchDirectories, fetchObject, rootObject } from './api.js';
 
-const _button   = elemGenerator( 'button' );
-const _input    = elemGenerator( 'input' );
-const _label    = elemGenerator( 'label' );
-const _li       = elemGenerator( 'li' );
-const _style    = elemGenerator( 'style' );
-const _ul       = elemGenerator( 'ul' );
+const _button = elemGenerator( 'button' );
+const _input  = elemGenerator( 'input' );
+const _label  = elemGenerator( 'label' );
+const _li     = elemGenerator( 'li' );
+const _style  = elemGenerator( 'style' );
+const _ul     = elemGenerator( 'ul' );
 
 const template = documentFragment(
 	_style( `
@@ -49,7 +49,7 @@ export class HelixDirectoryTree extends HTMLElement {
 						const target = e.target;
 						fetchObject( d.udn, rootObject )
 							.then( o => target.parentElement.appendChild(
-								o.itemClass.startsWith( 'object.container' ) ?
+								isContainer( o ) ?
 									_ul( o.children.map( this.newObject.bind( this ) ) ) :
 									_ul( this.newObject( o ) ) )
 							)
@@ -65,7 +65,7 @@ export class HelixDirectoryTree extends HTMLElement {
 	}
 
 	newObject( o ) {
-		return o.itemClass.startsWith( 'object.container' ) ? this.newContainer( o ) : this.newItem( o );
+		return isContainer( o ) ? this.newContainer( o ) : this.newItem( o );
 	}
 
 	newContainer( o ) {
@@ -78,8 +78,11 @@ export class HelixDirectoryTree extends HTMLElement {
 						const target = e.target;
 						fetchObject( o.directory, o.id )
 							.then( o => target.parentElement.appendChild(
-								_ul( o.children.map( this.newObject.bind( this ) ) ) )
-							)
+								_ul(
+									o.children.some( isItem ) ? this.addAll( o.children ) : '',
+									o.children.map( this.newObject.bind( this ) ),
+								),
+							) )
 							.catch( console.error );
 					} else {
 						const ul = e.target.parentElement.querySelector( 'ul' );
@@ -94,15 +97,28 @@ export class HelixDirectoryTree extends HTMLElement {
 	newItem( o ) {
 		return _li(
 			_button( o.title, {
-				'click': e => this._sendEvent( 'enqueue', o ),
+				'click': () => this._sendEvent( 'enqueue', o ),
 				// TODO: figure out what to do with this.
 				// While there are things a browser cannot play,
 				// a transport might be able to,
 				// and this is supposed to be reusable.
 				// disabled: ! this._player.canPlay( o ),
-			} )
+			} ),
+		);
+	}
+
+	addAll( os ) {
+		return _li(
+			_button( '[ add all ]', {
+				'click': () => {
+					os.filter( isItem ).forEach( o => this._sendEvent( 'enqueue', o ) );
+				},
+			} ),
 		);
 	}
 }
+
+const isContainer = o => o.itemClass.startsWith( 'object.container' );
+const isItem      = o => o.itemClass.startsWith( 'object.item' );
 
 customElements.define( 'helix-directory-tree', HelixDirectoryTree );

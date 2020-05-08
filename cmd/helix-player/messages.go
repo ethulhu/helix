@@ -20,6 +20,36 @@ func humanReadableState(state avtransport.State) string {
 	}
 }
 
+type objectMetadata struct {
+	Title     string `json:"title"`
+	ItemClass string `json:"itemClass"`
+
+	// Item fields.
+	MIMETypes []string `json:"mimetypes,omitempty"`
+}
+
+func objectMetadataFromItem(item upnpav.Item) objectMetadata {
+	var mimetypes []string
+	for _, r := range item.Resources {
+		if r.ProtocolInfo.Protocol != upnpav.ProtocolHTTP {
+			continue
+		}
+		mimetypes = append(mimetypes, r.ProtocolInfo.ContentFormat)
+	}
+
+	return objectMetadata{
+		Title:     item.Title,
+		ItemClass: string(item.Class),
+		MIMETypes: mimetypes,
+	}
+}
+func objectMetadataFromContainer(container upnpav.Container) objectMetadata {
+	return objectMetadata{
+		Title:     container.Title,
+		ItemClass: string(container.Class),
+	}
+}
+
 // ContentDirectory messages.
 
 type directory struct {
@@ -34,44 +64,28 @@ func directoryFromDevice(device *ssdp.Device) directory {
 	}
 }
 
-type object struct {
+type directoryObject struct {
 	Directory string `json:"directory"`
 	ID        string `json:"id"`
-	Title     string `json:"title"`
 
-	ItemClass string `json:"itemClass"`
-
-	// Item fields.
-	MIMETypes []string `json:"mimetypes,omitempty"`
+	objectMetadata
 
 	// Container fields.
-	Children []object `json:"children,omitempty"`
+	Children []directoryObject `json:"children,omitempty"`
 }
 
-func objectFromContainer(udn string, container upnpav.Container) object {
-	return object{
-		Directory: udn,
-		ID:        string(container.ID),
-		Title:     container.Title,
-		ItemClass: string(container.Class),
+func directoryObjectFromContainer(udn string, container upnpav.Container) directoryObject {
+	return directoryObject{
+		Directory:      udn,
+		ID:             string(container.ID),
+		objectMetadata: objectMetadataFromContainer(container),
 	}
 }
-func objectFromItem(udn string, item upnpav.Item) object {
-	var mimetypes []string
-	for _, r := range item.Resources {
-		if r.ProtocolInfo.Protocol != upnpav.ProtocolHTTP {
-			continue
-		}
-		mimetypes = append(mimetypes, r.ProtocolInfo.ContentFormat)
-	}
-
-	return object{
-		Directory: udn,
-		ID:        string(item.ID),
-		Title:     item.Title,
-		ItemClass: string(item.Class),
-
-		MIMETypes: mimetypes,
+func directoryObjectFromItem(udn string, item upnpav.Item) directoryObject {
+	return directoryObject{
+		Directory:      udn,
+		ID:             string(item.ID),
+		objectMetadata: objectMetadataFromItem(item),
 	}
 }
 
@@ -96,9 +110,10 @@ func transportFromDeviceAndInfo(device *ssdp.Device, state avtransport.State) tr
 // Control Point messages.
 
 type controlPoint struct {
-	TransportID   string `json:"transport"`
-	TransportName string `json:"transportName,omitempty"`
-	State         string `json:"state"`
+	TransportID   string  `json:"transport"`
+	TransportName string  `json:"transportName,omitempty"`
+	State         string  `json:"state"`
+	Elapsed       float64 `json:"elapsedSeconds"`
 }
 
 func controlPointFromLoop(cl *controlpoint.Loop) controlPoint {
@@ -113,6 +128,7 @@ func controlPointFromLoop(cl *controlpoint.Loop) controlPoint {
 		TransportID:   transportID,
 		TransportName: transportName,
 		State:         humanReadableState(controlLoop.State()),
+		Elapsed:       cl.Elapsed().Seconds(),
 	}
 }
 
@@ -139,13 +155,14 @@ func queueFromTrackList(tl *controlpoint.TrackList) queue {
 }
 
 type queueItem struct {
-	ID    int    `json:"id"`
-	Title string `json:"title"`
+	ID int `json:"id"`
+
+	objectMetadata
 }
 
 func queueItemFromQueueItem(qi controlpoint.QueueItem) queueItem {
 	return queueItem{
-		ID:    qi.ID,
-		Title: qi.Item.Title,
+		ID:             qi.ID,
+		objectMetadata: objectMetadataFromItem(qi.Item),
 	}
 }

@@ -64,10 +64,10 @@ func getObjectJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := object{}
+	data := directoryObject{}
 	switch {
 	case len(self.Containers) == 1 && len(self.Items) == 0:
-		data = objectFromContainer(udn, self.Containers[0])
+		data = directoryObjectFromContainer(udn, self.Containers[0])
 
 		children, err := directory.BrowseChildren(ctx, upnpav.Object(objectID))
 		if err != nil {
@@ -75,14 +75,14 @@ func getObjectJSON(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		for _, container := range children.Containers {
-			data.Children = append(data.Children, objectFromContainer(udn, container))
+			data.Children = append(data.Children, directoryObjectFromContainer(udn, container))
 		}
 		for _, item := range children.Items {
-			data.Children = append(data.Children, objectFromItem(udn, item))
+			data.Children = append(data.Children, directoryObjectFromItem(udn, item))
 		}
 
 	case len(self.Containers) == 0 && len(self.Items) == 1:
-		data = objectFromItem(udn, self.Items[0])
+		data = directoryObjectFromItem(udn, self.Items[0])
 
 	default:
 		http.Error(w, fmt.Sprintf("object has %v containers and %v items", len(self.Containers), len(self.Items)), http.StatusInternalServerError)

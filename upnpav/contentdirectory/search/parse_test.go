@@ -71,32 +71,124 @@ func TestParse(t *testing.T) {
 				},
 			},
 		},
+		{
+			raw: `((a exists true) or (b exists true)) and (c exists true)`,
+			want: Query{
+				LogicExpr{
+					And,
+					[]Expr{
+						LogicExpr{
+							Or,
+							[]Expr{
+								ExistsExpr{"a", true},
+								ExistsExpr{"b", true},
+							},
+						},
+						ExistsExpr{"c", true},
+					},
+				},
+			},
+		},
+		{
+			raw: `((a exists true) and (b exists true)) and (c exists true)`,
+			want: Query{
+				LogicExpr{
+					And,
+					[]Expr{
+						LogicExpr{
+							And,
+							[]Expr{
+								ExistsExpr{"a", true},
+								ExistsExpr{"b", true},
+							},
+						},
+						ExistsExpr{"c", true},
+					},
+				},
+			},
+		},
+		{
+			raw: `(a exists true) and ((b exists true) and (c exists true))`,
+			want: Query{
+				LogicExpr{
+					And,
+					[]Expr{
+						ExistsExpr{"a", true},
+						LogicExpr{
+							And,
+							[]Expr{
+								ExistsExpr{"b", true},
+								ExistsExpr{"c", true},
+							},
+						},
+					},
+				},
+			},
+		},
 		// {
-			// raw: `(a exists true) and (b exists true) or (c exists true) and (d exists true)`,
-			// want: Query{
-				// LogicExpr{
-					// Or,
-					// []Expr{
-						// LogicExpr{
-							// And,
-							// []Expr{
-								// ExistsExpr{"a", true},
-								// ExistsExpr{"b", true},
-							// },
-						// },
-						// LogicExpr{
-							// And,
-							// []Expr{
-								// ExistsExpr{"c", true},
-								// ExistsExpr{"d", true},
-							// },
-						// },
-					// },
-				// },
-			// },
+		// raw: `(a exists true) and (b exists true) and (c exists true)`,
+		// want: Query{
+		// LogicExpr{
+		// And,
+		// []Expr{
+		// ExistsExpr{"a", true},
+		// ExistsExpr{"b", true},
+		// ExistsExpr{"c", true},
+		// },
+		// },
+		// },
+		// },
+		// {
+		// raw: `a exists true and b exists true and c exists true`,
+		// want: Query{
+		// LogicExpr{
+		// And,
+		// []Expr{
+		// ExistsExpr{"a", true},
+		// ExistsExpr{"b", true},
+		// ExistsExpr{"c", true},
+		// },
+		// },
+		// },
+		// },
+		// {
+		// raw: `(a exists true) and (b exists true) or (c exists true) and (d exists true)`,
+		// want: Query{
+		// LogicExpr{
+		// Or,
+		// []Expr{
+		// LogicExpr{
+		// And,
+		// []Expr{
+		// ExistsExpr{"a", true},
+		// ExistsExpr{"b", true},
+		// },
+		// },
+		// LogicExpr{
+		// And,
+		// []Expr{
+		// ExistsExpr{"c", true},
+		// ExistsExpr{"d", true},
+		// },
+		// },
+		// },
+		// },
+		// },
 		// },
 		{
 			raw:       `banana exists true and`,
+			wantError: true,
+		},
+		{
+			raw:       `banana (exists) true`,
+			wantError: true,
+		},
+		{
+			raw:       `banana contains true`,
+			wantError: true,
+		},
+		{
+			raw:       `banana contains "true`,
 			wantError: true,
 		},
 	}

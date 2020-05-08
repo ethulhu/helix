@@ -19,7 +19,7 @@ type (
 	}
 
 	Expr interface {
-		Expr() Expr
+		CanonicalExpr() Expr
 		String() string
 	}
 
@@ -72,6 +72,10 @@ func (q Query) Criteria() Criteria {
 }
 
 func (l LogicExpr) String() string {
+	if len(l.SubExprs) == 1 {
+		return l.SubExprs[0].String()
+	}
+
 	var subExprs []string
 	for _, e := range l.SubExprs {
 		subExprs = append(subExprs, fmt.Sprintf("(%s)", e.String()))
@@ -81,10 +85,14 @@ func (l LogicExpr) String() string {
 
 	return strings.Join(subExprs, op)
 }
-func (l LogicExpr) Expr() Expr {
+func (l LogicExpr) CanonicalExpr() Expr {
+	if len(l.SubExprs) == 1 {
+		return l.SubExprs[0].CanonicalExpr()
+	}
+
 	var subExprs []Expr
 	for _, expr := range l.SubExprs {
-		cExpr := expr.Expr()
+		cExpr := expr.CanonicalExpr()
 		if cExpr, ok := cExpr.(LogicExpr); ok && cExpr.Op == l.Op {
 			subExprs = append(subExprs, cExpr.SubExprs...)
 			continue
@@ -97,14 +105,14 @@ func (l LogicExpr) Expr() Expr {
 func (e ExistsExpr) String() string {
 	return fmt.Sprintf("%v exists %v", e.Property, e.Exists)
 }
-func (e ExistsExpr) Expr() Expr {
+func (e ExistsExpr) CanonicalExpr() Expr {
 	return e
 }
 
 func (b BinaryExpr) String() string {
-	return fmt.Sprintf("%v %v %v", b.Property, b.Op, b.Operand)
+	return fmt.Sprintf("%v %v %q", b.Property, b.Op, b.Operand)
 }
-func (b BinaryExpr) Expr() Expr {
+func (b BinaryExpr) CanonicalExpr() Expr {
 	return b
 }
 

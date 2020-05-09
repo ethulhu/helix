@@ -22,6 +22,7 @@ export class HelixPlaylist extends HTMLElement {
 
 		this.attachShadow( { mode: 'open' } );
 		this.shadowRoot.appendChild( documentFragment (
+			_button( '[ clear all ]', { click: () => this.innerHTML = '' } ),
 			_table( { id: 'tracklist' } ),
 		) );
 

@@ -23,17 +23,21 @@ type (
 		// BrowseFlag specifies whether to return data about Object or Object's children.
 		BrowseFlag browseFlag `xml:"BrowseFlag"`
 
-		Filter string `xml:"Filter,omitempty"`
+		// Filter is a comma-separated list of properties (e.g. "upnp:artist"), or "*".
+		Filter string `xml:"Filter"`
 
-		// Starting zero based offset to enumerate children under the container specified by ObjectID.
+		// StartingIndex is a zero-based offset to enumerate children under the container specified by ObjectID.
 		// Must be 0 if BrowseFlag is equal to BrowseMetadata.
-		StartingIndex string `xml:"StartingIndex,omitempty"`
+		StartingIndex string `xml:"StartingIndex"`
 
 		// Requested number of entries under the object specified by ObjectID.
 		// RequestedCount =0 indicates request all entries.
-		RequestedCount int `xml:"RequestedCount,omitempty"`
+		RequestedCount int `xml:"RequestedCount"`
 
-		SortCriteria string `xml:"SortCriteria,omitempty"`
+		// SortCriteria is a comma-separated list of "signed" properties.
+		// For example "+upnp:artist" means "return objects sorted ascending by artist",
+		// and "+upnp:artist,-dc:date" means "return objects sorted by (ascending artist, descending date)".
+		SortCriteria string `xml:"SortCriteria"`
 	}
 	browseResponse struct {
 		// Result is a DIDL-Lite XML document.
@@ -53,11 +57,11 @@ type (
 
 	searchRequest struct {
 		ID             upnpav.Object `xml:"ObjectID"`
-		SearchCriteria string        `xml:"SearchCriteria,omitempty"`
-		Filter         string        `xml:"Filter,omitempty"`
-		StartingIndex  string        `xml:"StartingIndex,omitempty"`
-		RequestedCount int           `xml:"RequestedCount,omitempty"`
-		SortCriteria   string        `xml:"SortCriteria,omitempty"`
+		SearchCriteria string        `xml:"SearchCriteria"`
+		Filter         string        `xml:"Filter"`
+		StartingIndex  string        `xml:"StartingIndex"`
+		RequestedCount int           `xml:"RequestedCount"`
+		SortCriteria   string        `xml:"SortCriteria"`
 	}
 	searchResponse struct {
 		Result         string `xml:"Result"`

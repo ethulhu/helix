@@ -32,6 +32,7 @@ func (c *client) browse(ctx context.Context, bf browseFlag, object upnpav.Object
 	req := browseRequest{
 		Object:     object,
 		BrowseFlag: bf,
+		Filter:     "*",
 	}
 
 	rsp := browseResponse{}

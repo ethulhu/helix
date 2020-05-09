@@ -128,7 +128,6 @@ func controlPointFromLoop(cl *controlpoint.Loop) controlPoint {
 		TransportID:   transportID,
 		TransportName: transportName,
 		State:         humanReadableState(controlLoop.State()),
-		Elapsed:       cl.Elapsed().Seconds(),
 	}
 }
 

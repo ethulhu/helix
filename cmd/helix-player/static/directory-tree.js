@@ -30,6 +30,7 @@ export class HelixDirectoryTree extends HTMLElement {
 		this.shadowRoot.appendChild( template.cloneNode( true ) );
 
 		fetchDirectories()
+			.then( ds => { ds.sort( ( a, b ) => a.name.localeCompare( b.name ) ); return ds; } )
 			.then( ds => _ul( ds.map( this.newDirectory.bind( this ) ) ) )
 			.then( ul => this.shadowRoot.appendChild( ul ) );
 	}

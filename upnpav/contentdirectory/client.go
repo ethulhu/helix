@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethulhu/helix/soap"
 	"github.com/ethulhu/helix/upnpav"
+	"github.com/ethulhu/helix/upnpav/contentdirectory/search"
 )
 
 type (
@@ -55,4 +56,23 @@ func (c *client) SearchCapabilities(ctx context.Context) ([]string, error) {
 	}
 
 	return strings.Split(rsp.Capabilities, ","), nil
+}
+
+func (c *client) Search(ctx context.Context, object upnpav.Object, criteria search.Criteria) (*upnpav.DIDL, error) {
+	req := searchRequest{
+		Object: object,
+	}
+	req.SearchCriteria.Criteria = criteria
+
+	rsp := searchResponse{}
+	if err := c.call(ctx, "Search", req, &rsp); err != nil {
+		return nil, fmt.Errorf("could not perform Search request: %w", err)
+	}
+
+	didl := &upnpav.DIDL{}
+	if err := xml.Unmarshal(rsp.Result, didl); err != nil {
+		return nil, fmt.Errorf("could not unmarshal result: %w", err)
+	}
+
+	return didl, nil
 }

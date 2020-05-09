@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 
 	"github.com/ethulhu/helix/upnpav"
+	"github.com/ethulhu/helix/upnpav/contentdirectory/search"
 )
 
 type (
@@ -56,15 +57,24 @@ type (
 	}
 
 	searchRequest struct {
-		ID             upnpav.Object `xml:"ObjectID"`
-		SearchCriteria string        `xml:"SearchCriteria"`
-		Filter         string        `xml:"Filter"`
-		StartingIndex  string        `xml:"StartingIndex"`
-		RequestedCount int           `xml:"RequestedCount"`
-		SortCriteria   string        `xml:"SortCriteria"`
+		Object upnpav.Object `xml:"ObjectID"`
+
+		// SearchCriteria is a dirty hack,
+		// because encoding/xml will escape the string,
+		// and we need it to not.
+		SearchCriteria struct {
+			Criteria search.Criteria `xml:",innerxml"`
+		} `xml:"SearchCriteriardata"`
+
+		Filter         string `xml:"Filter"`
+		StartingIndex  string `xml:"StartingIndex"`
+		RequestedCount int    `xml:"RequestedCount"`
+		SortCriteria   string `xml:"SortCriteria"`
 	}
 	searchResponse struct {
-		Result         string `xml:"Result"`
+		// Result is a DIDL-Lite XML document.
+		Result []byte `xml:"Result"`
+
 		NumberReturned string `xml:"NumberReturned"`
 		TotalMatches   string `xml:"TotalMatches"`
 		UpdateID       string `xml:"UpdateID"`

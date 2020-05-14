@@ -1,4 +1,4 @@
-//go:generate broccoli -src=static -o assets -var=assets
+//go:generate go run aletheia.icu/broccoli -src=static -o assets -var=assets
 package main
 
 import (

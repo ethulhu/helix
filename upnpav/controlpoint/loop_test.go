@@ -164,7 +164,7 @@ func TestLoop(t *testing.T) {
 			},
 
 			wantDesiredState:     avtransport.StatePlaying,
-			wantTransportActions: []string{"setCurrentURI http://mew/purr2.mp3", "play", "seek 0"},
+			wantTransportActions: []string{"setCurrentURI http://mew/purr2.mp3", "play"},
 			wantManagerActions:   []string{"protocolInfo"},
 		},
 		{
@@ -216,7 +216,7 @@ func TestLoop(t *testing.T) {
 			transportChanged: true,
 
 			wantDesiredState:     avtransport.StatePlaying,
-			wantTransportActions: []string{"setCurrentURI http://mew/purr2.mp3", "play", "seek 0"},
+			wantTransportActions: []string{"setCurrentURI http://mew/purr2.mp3", "play"},
 			wantManagerActions:   []string{"protocolInfo"},
 		},
 		{
@@ -244,7 +244,7 @@ func TestLoop(t *testing.T) {
 			},
 
 			wantDesiredState:     avtransport.StatePlaying,
-			wantTransportActions: []string{"setCurrentURI http://mew/purr3.mp3", "play", "seek 0"},
+			wantTransportActions: []string{"setCurrentURI http://mew/purr3.mp3", "play"},
 			wantManagerActions:   []string{"protocolInfo"},
 		},
 		{
@@ -272,7 +272,7 @@ func TestLoop(t *testing.T) {
 			},
 
 			wantDesiredState:     avtransport.StatePlaying,
-			wantTransportActions: []string{"setCurrentURI http://mew/purr3.mp3", "play", "seek 0"},
+			wantTransportActions: []string{"setCurrentURI http://mew/purr3.mp3", "play"},
 			wantManagerActions:   []string{"protocolInfo"},
 		},
 		{
@@ -307,9 +307,10 @@ func TestLoop(t *testing.T) {
 					resource("http://mew/purr6.mp3", "audio/mpeg"),
 				}},
 			},
+			transportChanged: false,
 
 			wantDesiredState:     avtransport.StatePlaying,
-			wantTransportActions: []string{"setCurrentURI http://mew/purr5.mp3", "play", "seek 0"},
+			wantTransportActions: []string{"setCurrentURI http://mew/purr5.mp3", "play"},
 			wantManagerActions:   []string{"protocolInfo"},
 		},
 		{
@@ -374,9 +375,10 @@ func TestLoop(t *testing.T) {
 					resource("http://mew/purr2.mp3", "audio/mpeg"),
 				}},
 			},
+			transportChanged: false,
 
 			wantDesiredState:     avtransport.StatePlaying,
-			wantTransportActions: []string{"stop", "setCurrentURI http://mew/purr2.mp3", "play", "seek 0"},
+			wantTransportActions: []string{"stop", "setCurrentURI http://mew/purr2.mp3", "play"},
 			wantManagerActions:   []string{"protocolInfo"},
 		},
 	}

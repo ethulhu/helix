@@ -265,9 +265,11 @@ func tick(ctx context.Context,
 			return desiredState, fmt.Errorf("could not play: %w", err)
 		}
 
-		log.Printf("seeking transport to %v", seek)
-		if err := transport.Seek(ctx, seek); err != nil {
-			return desiredState, fmt.Errorf("could not seek: %w", err)
+		if transportChanged && seek != 0 {
+			log.Printf("seeking transport to %v", seek)
+			if err := transport.Seek(ctx, seek); err != nil {
+				return desiredState, fmt.Errorf("could not seek: %w", err)
+			}
 		}
 		return desiredState, nil
 

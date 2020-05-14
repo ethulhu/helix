@@ -51,10 +51,14 @@ func NewLoop() *Loop {
 
 			if transportChanged && prevDevice != nil {
 				log.Print("transport changed, stopping old transport")
-				prevTransport, _ := clients(prevDevice)
-				if err := prevTransport.Stop(ctx); err != nil {
-					log.Printf("could not stop old transport: %v", err)
-				}
+				go func() {
+					prevTransport, _ := clients(prevDevice)
+					if err := prevTransport.Stop(ctx); err != nil {
+						log.Printf("could not stop old transport: %v", err)
+						return
+					}
+					log.Print("stopped old transport")
+				}()
 			}
 
 			if loop.transport != nil {

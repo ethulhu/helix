@@ -4,6 +4,8 @@ aletheia.icu/broccoli/fs v0.0.0-20200420162907-e7ff440cf358 h1:LFHwQRWGVv9A5fmaW
 aletheia.icu/broccoli/fs v0.0.0-20200420162907-e7ff440cf358/go.mod h1:62pufqcyJVU55Qd5VtXz24d/P+VCFWc18FAbHnyrT+s=
 aletheia.icu/broccoli/fs v0.0.0-20200420200651-c5ac961a357a h1:yaJ5VsiG+ZS/viFsbCKbZXYuvt2TJRa/V4IVQKk0sEs=
 aletheia.icu/broccoli/fs v0.0.0-20200420200651-c5ac961a357a/go.mod h1:62pufqcyJVU55Qd5VtXz24d/P+VCFWc18FAbHnyrT+s=
+aletheia.icu/broccoli/fs v0.0.0-20200506212414-5bc1e2f86a59 h1:A/zlfoh6wPRnKh5QHjV1NuF4LXKSOcScNweJNifW8OU=
+aletheia.icu/broccoli/fs v0.0.0-20200506212414-5bc1e2f86a59/go.mod h1:62pufqcyJVU55Qd5VtXz24d/P+VCFWc18FAbHnyrT+s=
 github.com/andybalholm/brotli v1.0.0 h1:7UCwP93aiSfvWpapti8g88vVVGp2qqtGyePsSuDafo4=
 github.com/andybalholm/brotli v1.0.0/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

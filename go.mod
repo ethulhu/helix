@@ -1,9 +1,9 @@
 module github.com/ethulhu/helix
 
-go 1.13
+go 1.14
 
 require (
 	aletheia.icu/broccoli v1.0.3 // indirect
-	aletheia.icu/broccoli/fs v0.0.0-20200420200651-c5ac961a357a
+	aletheia.icu/broccoli/fs v0.0.0-20200506212414-5bc1e2f86a59
 	github.com/gorilla/mux v1.7.4
 )

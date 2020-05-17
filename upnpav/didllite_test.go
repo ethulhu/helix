@@ -8,14 +8,17 @@ import (
 func TestParseDIDLLite(t *testing.T) {
 	tests := []struct {
 		raw     string
-		want    *DIDL
+		want    *DIDLLite
 		wantErr error
 	}{
 		{
 			raw: `<?xml version="1.0" encoding="utf-8"?><DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/"><item restricted="1" searchable="0"><res protocolInfo="http-get:*:audio/mpeg:*">http://192.168.16.4:8200/MediaItems/36.mp3</res></item></DIDL-Lite>`,
-			want: &DIDL{
+			want: &DIDLLite{
 				Items: []Item{{
-					Restricted: "1",
+					Object: Object{
+						Writeable:  false,
+						Searchable: false,
+					},
 					Resources: []Resource{{
 						URI: "http://192.168.16.4:8200/MediaItems/36.mp3",
 						ProtocolInfo: &ProtocolInfo{
@@ -35,41 +38,82 @@ func TestParseDIDLLite(t *testing.T) {
 xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/"
 xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/"
 xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/">
-  <container id="64" parentID="0" restricted="1" searchable="1"
-  childCount="4">
+  <container id="64" parentID="0" restricted="1" searchable="1" childCount="4">
     <dc:title>Browse Folders</dc:title>
     <upnp:class>object.container.storageFolder</upnp:class>
     <upnp:storageUsed>-1</upnp:storageUsed>
   </container>
-  <container id="1" parentID="0" restricted="1" searchable="1"
-  childCount="7">
+  <container id="1" parentID="0" restricted="0" searchable="0" childCount="7">
     <dc:title>Music</dc:title>
     <upnp:class>object.container.storageFolder</upnp:class>
     <upnp:storageUsed>-1</upnp:storageUsed>
   </container>
+  <item id="72" parentID="4" restricted="0" searchable="0">
+    <res protocolInfo="http-get:*:audio/mpeg:*" colorDepth="3">http://mew/purr.mp3</res>
+    <res protocolInfo="http-get:*:video/mp4:*" resolution="480x360">http://mew/purr.mp4</res>
+  </item>
 </DIDL-Lite>
 `,
-			want: &DIDL{
+			want: &DIDLLite{
 				Containers: []Container{
 					{
-						ID:          Object("64"),
-						ParentID:    Object("0"),
-						Restricted:  "1",
-						Searchable:  "1",
-						ChildCount:  "4",
-						Title:       "Browse Folders",
-						Class:       "object.container.storageFolder",
-						StorageUsed: "-1",
+						Object: Object{
+							ID:         ObjectID("64"),
+							Parent:     ObjectID("0"),
+							Writeable:  false,
+							Searchable: true,
+							Title:      "Browse Folders",
+							Class:      StorageFolder,
+						},
+						ChildCount:       4,
+						StorageUsedBytes: -1,
 					},
 					{
-						ID:          Object("1"),
-						ParentID:    Object("0"),
-						Restricted:  "1",
-						Searchable:  "1",
-						ChildCount:  "7",
-						Title:       "Music",
-						Class:       "object.container.storageFolder",
-						StorageUsed: "-1",
+						Object: Object{
+							ID:         ObjectID("1"),
+							Parent:     ObjectID("0"),
+							Writeable:  true,
+							Searchable: false,
+							Title:      "Music",
+							Class:      StorageFolder,
+						},
+						ChildCount:       7,
+						StorageUsedBytes: -1,
+					},
+				},
+				Items: []Item{
+					{
+						Object: Object{
+							ID:         ObjectID("72"),
+							Parent:     ObjectID("4"),
+							Writeable:  true,
+							Searchable: false,
+						},
+						Resources: []Resource{
+							{
+								URI: "http://mew/purr.mp3",
+								ProtocolInfo: &ProtocolInfo{
+									Protocol:       ProtocolHTTP,
+									Network:        "*",
+									ContentFormat:  "audio/mpeg",
+									AdditionalInfo: "*",
+								},
+								ColorDepth: 3,
+							},
+							{
+								URI: "http://mew/purr.mp4",
+								ProtocolInfo: &ProtocolInfo{
+									Protocol:       ProtocolHTTP,
+									Network:        "*",
+									ContentFormat:  "video/mp4",
+									AdditionalInfo: "*",
+								},
+								Resolution: &Resolution{
+									Width:  480,
+									Height: 360,
+								},
+							},
+						},
 					},
 				},
 			},
@@ -77,12 +121,122 @@ xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/">
 	}
 
 	for i, tt := range tests {
-		got, gotErr := ParseDIDL([]byte(tt.raw))
+		got, gotErr := ParseDIDLLite(tt.raw)
 		if !reflect.DeepEqual(tt.wantErr, gotErr) {
 			t.Errorf("[%d]: expected error %v, got %v", i, tt.wantErr, gotErr)
 		}
 		if !reflect.DeepEqual(tt.want, got) {
-			t.Errorf("[%d]: expected result:\n\n%+v\n\ngot:\n\n%+v", i, tt.want, got)
+			t.Errorf("[%d]: got:\n\n%v\n\nwant:\n\n%v\n\n", i, got, tt.want)
+		}
+	}
+}
+
+func TestMarshalDIDLLite(t *testing.T) {
+	tests := []struct {
+		didllite *DIDLLite
+		want     string
+	}{
+		{
+			didllite: &DIDLLite{},
+			want: `<?xml version="1.0" encoding="utf-8"?>
+<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/"></DIDL-Lite>
+`,
+		},
+		{
+			didllite: &DIDLLite{
+				Containers: []Container{
+					{
+						Object: Object{
+							ID:         ObjectID("64"),
+							Parent:     ObjectID("0"),
+							Writeable:  true,
+							Searchable: true,
+							Title:      "Browse Folders",
+							Class:      StorageFolder,
+						},
+						ChildCount:       4,
+						StorageUsedBytes: -1,
+					},
+					{
+						Object: Object{
+							ID:         ObjectID("1"),
+							Parent:     ObjectID("0"),
+							Writeable:  false,
+							Searchable: false,
+							Title:      "Music",
+							Class:      StorageFolder,
+						},
+						ChildCount:       7,
+						StorageUsedBytes: -1,
+					},
+				},
+			},
+			want: `<?xml version="1.0" encoding="utf-8"?>
+<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/">
+  <container id="64" parentID="0" restricted="0" searchable="1" childCount="4">
+    <dc:title>Browse Folders</dc:title>
+    <upnp:class>object.container.storageFolder</upnp:class>
+    <upnp:storageUsed>-1</upnp:storageUsed>
+  </container>
+  <container id="1" parentID="0" restricted="1" searchable="0" childCount="7">
+    <dc:title>Music</dc:title>
+    <upnp:class>object.container.storageFolder</upnp:class>
+    <upnp:storageUsed>-1</upnp:storageUsed>
+  </container>
+</DIDL-Lite>
+`,
+		},
+		{
+			didllite: &DIDLLite{
+				Items: []Item{
+					{
+						Object: Object{
+							ID:         ObjectID("69"),
+							Parent:     ObjectID("12"),
+							Writeable:  true,
+							Searchable: true,
+							Title:      "hello",
+						},
+						Resources: []Resource{
+							{
+								URI: "http://mew/purr.mp3",
+								ProtocolInfo: &ProtocolInfo{
+									Protocol:      ProtocolHTTP,
+									ContentFormat: "audio/mpeg",
+								},
+								BitsPerSecond: 128 * 1024,
+							},
+							{
+								URI: "http://mew/purr.mp4",
+								ProtocolInfo: &ProtocolInfo{
+									Protocol:      ProtocolHTTP,
+									ContentFormat: "video/mp4",
+								},
+								Resolution: &Resolution{
+									Width:  480,
+									Height: 360,
+								},
+							},
+						},
+					},
+				},
+			},
+			want: `<?xml version="1.0" encoding="utf-8"?>
+<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/">
+  <item id="69" parentID="12" restricted="0" searchable="1">
+    <dc:title>hello</dc:title>
+    <res protocolInfo="http-get:*:audio/mpeg:*" bitrate="131072">http://mew/purr.mp3</res>
+    <res protocolInfo="http-get:*:video/mp4:*" resolution="480x360">http://mew/purr.mp4</res>
+  </item>
+</DIDL-Lite>
+`,
+		},
+	}
+
+	for i, tt := range tests {
+		got := tt.didllite.String()
+		if tt.want != got {
+			t.Errorf("[%d]: got:\n\n%+v\n\nwant:\n\n%+v", i, got, tt.want)
 		}
 	}
 }

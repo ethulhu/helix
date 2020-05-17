@@ -14,6 +14,7 @@ import (
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/avtransport"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
+	"github.com/ethulhu/helix/upnpav/contentdirectory/search"
 	"github.com/ethulhu/helix/upnpav/controlpoint"
 	"github.com/gorilla/mux"
 )
@@ -47,7 +48,7 @@ func getDirectoryJSON(w http.ResponseWriter, r *http.Request) {
 
 func getObjectJSON(w http.ResponseWriter, r *http.Request) {
 	udn := mux.Vars(r)["udn"]
-	objectID := mux.Vars(r)["object"]
+	object := mux.Vars(r)["object"]
 
 	device, _ := directories.DeviceByUDN(udn)
 	client, ok := device.SOAPClient(contentdirectory.Version1)
@@ -58,7 +59,7 @@ func getObjectJSON(w http.ResponseWriter, r *http.Request) {
 	directory := contentdirectory.NewClient(client)
 
 	ctx := r.Context()
-	self, err := directory.BrowseMetadata(ctx, upnpav.Object(objectID))
+	self, err := directory.BrowseMetadata(ctx, upnpav.ObjectID(object))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("could not fetch object metadata: %v", err), http.StatusInternalServerError)
 		return
@@ -69,7 +70,7 @@ func getObjectJSON(w http.ResponseWriter, r *http.Request) {
 	case len(self.Containers) == 1 && len(self.Items) == 0:
 		data = directoryObjectFromContainer(udn, self.Containers[0])
 
-		children, err := directory.BrowseChildren(ctx, upnpav.Object(objectID))
+		children, err := directory.BrowseChildren(ctx, upnpav.ObjectID(object))
 		if err != nil {
 			http.Error(w, fmt.Sprintf("could not fetch object children: %v", err), http.StatusInternalServerError)
 			return
@@ -87,6 +88,43 @@ func getObjectJSON(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, fmt.Sprintf("object has %v containers and %v items", len(self.Containers), len(self.Items)), http.StatusInternalServerError)
 		return
+	}
+
+	httputil.MustWriteJSON(w, data)
+}
+
+func searchUnderObjectJSON(w http.ResponseWriter, r *http.Request) {
+	udn := mux.Vars(r)["udn"]
+	object := mux.Vars(r)["object"]
+	query := mux.Vars(r)["query"]
+
+	device, _ := directories.DeviceByUDN(udn)
+	client, ok := device.SOAPClient(contentdirectory.Version1)
+	if !ok {
+		http.Error(w, fmt.Sprintf("unknown ContentDirectory: %s", udn), http.StatusNotFound)
+		return
+	}
+	directory := contentdirectory.NewClient(client)
+
+	criteria, err := search.Parse(query)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("could not parse %q: %v", query, err), http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	rsp, err := directory.Search(ctx, upnpav.ObjectID(object), criteria)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("could not fetch object metadata: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	var data []directoryObject
+	for _, container := range rsp.Containers {
+		data = append(data, directoryObjectFromContainer(udn, container))
+	}
+	for _, item := range rsp.Items {
+		data = append(data, directoryObjectFromItem(udn, item))
 	}
 
 	httputil.MustWriteJSON(w, data)
@@ -116,7 +154,7 @@ func getObjectByType(w http.ResponseWriter, r *http.Request) {
 
 	// find the object.
 	ctx := r.Context()
-	self, err := directory.BrowseMetadata(ctx, upnpav.Object(object))
+	self, err := directory.BrowseMetadata(ctx, upnpav.ObjectID(object))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -330,7 +368,7 @@ func appendToQueue(w http.ResponseWriter, r *http.Request) {
 	directory := contentdirectory.NewClient(client)
 
 	ctx := r.Context()
-	didl, err := directory.BrowseMetadata(ctx, upnpav.Object(object))
+	didl, err := directory.BrowseMetadata(ctx, upnpav.ObjectID(object))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

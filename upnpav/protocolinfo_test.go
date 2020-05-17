@@ -62,10 +62,8 @@ func TestProtocolInfoString(t *testing.T) {
 	}{
 		{
 			protocolInfo: ProtocolInfo{
-				Protocol:       ProtocolHTTP,
-				Network:        "*",
-				ContentFormat:  "audio/mpeg",
-				AdditionalInfo: "*",
+				Protocol:      ProtocolHTTP,
+				ContentFormat: "audio/mpeg",
 			},
 			want: "http-get:*:audio/mpeg:*",
 		},

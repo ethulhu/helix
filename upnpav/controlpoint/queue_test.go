@@ -9,9 +9,9 @@ import (
 
 func TestTrackListAppendUpcoming(t *testing.T) {
 	tracks := []upnpav.Item{
-		{Title: "a"},
-		{Title: "b"},
-		{Title: "c"},
+		{Object: upnpav.Object{Title: "a"}},
+		{Object: upnpav.Object{Title: "b"}},
+		{Object: upnpav.Object{Title: "c"}},
 	}
 
 	tl := NewTrackList()
@@ -28,9 +28,9 @@ func TestTrackListAppendUpcoming(t *testing.T) {
 
 func TestTrackListAppendHistory(t *testing.T) {
 	tracks := []upnpav.Item{
-		{Title: "a"},
-		{Title: "b"},
-		{Title: "c"},
+		{Object: upnpav.Object{Title: "a"}},
+		{Object: upnpav.Object{Title: "b"}},
+		{Object: upnpav.Object{Title: "c"}},
 	}
 
 	tl := NewTrackList()
@@ -56,7 +56,7 @@ func TestTrackListRemoveNothing(t *testing.T) {
 
 func TestTrackListAddOneRemoveOne(t *testing.T) {
 	tl := NewTrackList()
-	id := tl.Append(upnpav.Item{Title: "a"})
+	id := tl.Append(upnpav.Item{Object: upnpav.Object{Title: "a"}})
 	tl.Remove(id)
 
 	if l := len(tl.Upcoming()); l != 0 {
@@ -67,7 +67,7 @@ func TestTrackListAddOneRemoveOne(t *testing.T) {
 	}
 }
 func TestTrackListAddOneRemoveNone(t *testing.T) {
-	track := upnpav.Item{Title: "a"}
+	track := upnpav.Item{Object: upnpav.Object{Title: "a"}}
 
 	tl := NewTrackList()
 	id := tl.Append(track)
@@ -85,8 +85,8 @@ func TestTrackListAddOneRemoveNone(t *testing.T) {
 	}
 }
 func TestTrackListAddTwoRemoveFirst(t *testing.T) {
-	track1 := upnpav.Item{Title: "a"}
-	track2 := upnpav.Item{Title: "b"}
+	track1 := upnpav.Item{Object: upnpav.Object{Title: "a"}}
+	track2 := upnpav.Item{Object: upnpav.Object{Title: "b"}}
 
 	tl := NewTrackList()
 	id1 := tl.Append(track1)

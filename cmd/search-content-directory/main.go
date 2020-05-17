@@ -68,7 +68,7 @@ func main() {
 		log.Print("could not find ContentDirectory; sleeping and retrying")
 	}
 
-	didl, err := directory.Search(ctx, upnpav.Object(*object), criteria)
+	didl, err := directory.Search(ctx, upnpav.ObjectID(*object), criteria)
 	if err != nil {
 		log.Printf("could not search ContentDirectory: %v", err)
 

@@ -60,7 +60,17 @@ func ProtocolInfoForURI(uri string) (*ProtocolInfo, error) {
 }
 
 func (p *ProtocolInfo) String() string {
-	return fmt.Sprintf("%s:%s:%s:%s", p.Protocol, p.Network, p.ContentFormat, p.AdditionalInfo)
+	network := "*"
+	if p.Network != "" {
+		network = p.Network
+	}
+
+	additionalInfo := "*"
+	if p.AdditionalInfo != "" {
+		additionalInfo = p.AdditionalInfo
+	}
+
+	return fmt.Sprintf("%s:%s:%s:%s", p.Protocol, network, p.ContentFormat, additionalInfo)
 }
 
 func (p *ProtocolInfo) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {

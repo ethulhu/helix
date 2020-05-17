@@ -2,7 +2,6 @@ package contentdirectory
 
 import (
 	"context"
-	"encoding/xml"
 	"fmt"
 	"strings"
 
@@ -23,13 +22,13 @@ func (c *client) call(ctx context.Context, method string, input, output interfac
 	return c.Call(ctx, string(Version1), method, input, output)
 }
 
-func (c *client) BrowseMetadata(ctx context.Context, object upnpav.Object) (*upnpav.DIDL, error) {
+func (c *client) BrowseMetadata(ctx context.Context, object upnpav.ObjectID) (*upnpav.DIDLLite, error) {
 	return c.browse(ctx, browseMetadata, object)
 }
-func (c *client) BrowseChildren(ctx context.Context, object upnpav.Object) (*upnpav.DIDL, error) {
+func (c *client) BrowseChildren(ctx context.Context, object upnpav.ObjectID) (*upnpav.DIDLLite, error) {
 	return c.browse(ctx, browseChildren, object)
 }
-func (c *client) browse(ctx context.Context, bf browseFlag, object upnpav.Object) (*upnpav.DIDL, error) {
+func (c *client) browse(ctx context.Context, bf browseFlag, object upnpav.ObjectID) (*upnpav.DIDLLite, error) {
 	req := browseRequest{
 		Object:     object,
 		BrowseFlag: bf,
@@ -41,12 +40,11 @@ func (c *client) browse(ctx context.Context, bf browseFlag, object upnpav.Object
 		return nil, fmt.Errorf("could not perform Browse request: %w", err)
 	}
 
-	didl := &upnpav.DIDL{}
-	if err := xml.Unmarshal(rsp.Result, didl); err != nil {
+	metadata, err := upnpav.ParseDIDLLite(string(rsp.Result))
+	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal result: %w", err)
 	}
-
-	return didl, nil
+	return metadata, nil
 }
 
 func (c *client) SearchCapabilities(ctx context.Context) ([]string, error) {
@@ -58,7 +56,7 @@ func (c *client) SearchCapabilities(ctx context.Context) ([]string, error) {
 	return strings.Split(rsp.Capabilities, ","), nil
 }
 
-func (c *client) Search(ctx context.Context, object upnpav.Object, criteria search.Criteria) (*upnpav.DIDL, error) {
+func (c *client) Search(ctx context.Context, object upnpav.ObjectID, criteria search.Criteria) (*upnpav.DIDLLite, error) {
 	req := searchRequest{
 		Object: object,
 	}
@@ -69,10 +67,9 @@ func (c *client) Search(ctx context.Context, object upnpav.Object, criteria sear
 		return nil, fmt.Errorf("could not perform Search request: %w", err)
 	}
 
-	didl := &upnpav.DIDL{}
-	if err := xml.Unmarshal(rsp.Result, didl); err != nil {
+	metadata, err := upnpav.ParseDIDLLite(string(rsp.Result))
+	if err != nil {
 		return nil, fmt.Errorf("could not unmarshal result: %w", err)
 	}
-
-	return didl, nil
+	return metadata, nil
 }

@@ -54,40 +54,40 @@ func (c *client) Seek(ctx context.Context, d time.Duration) error {
 	return c.call(ctx, seek, req, nil)
 }
 
-func (c *client) MediaInfo(ctx context.Context) (string, *upnpav.DIDL, string, *upnpav.DIDL, error) {
+func (c *client) MediaInfo(ctx context.Context) (string, *upnpav.DIDLLite, string, *upnpav.DIDLLite, error) {
 	req := getMediaInfoRequest{InstanceID: 0}
 	rsp := getMediaInfoResponse{}
 	if err := c.call(ctx, getMediaInfo, req, &rsp); err != nil {
 		return "", nil, "", nil, err
 	}
 
-	var currentDIDL *upnpav.DIDL
+	var currentDIDL *upnpav.DIDLLite
 	if len(rsp.CurrentMetadata) != 0 {
-		currentDIDL = &upnpav.DIDL{}
+		currentDIDL = &upnpav.DIDLLite{}
 		if err := xml.Unmarshal(rsp.CurrentMetadata, currentDIDL); err != nil {
 			return rsp.CurrentURI, nil, rsp.NextURI, nil, fmt.Errorf("could not unmarshal metadata: %w", err)
 		}
 	}
 
-	var nextDIDL *upnpav.DIDL
+	var nextDIDL *upnpav.DIDLLite
 	if len(rsp.CurrentMetadata) != 0 {
-		nextDIDL = &upnpav.DIDL{}
+		nextDIDL = &upnpav.DIDLLite{}
 		if err := xml.Unmarshal(rsp.CurrentMetadata, nextDIDL); err != nil {
 			return rsp.CurrentURI, currentDIDL, rsp.NextURI, nil, fmt.Errorf("could not unmarshal metadata: %w", err)
 		}
 	}
 	return rsp.CurrentURI, currentDIDL, rsp.NextURI, nextDIDL, nil
 }
-func (c *client) PositionInfo(ctx context.Context) (string, *upnpav.DIDL, time.Duration, time.Duration, error) {
+func (c *client) PositionInfo(ctx context.Context) (string, *upnpav.DIDLLite, time.Duration, time.Duration, error) {
 	req := getPositionInfoRequest{InstanceID: 0}
 	rsp := getPositionInfoResponse{}
 	if err := c.call(ctx, getPositionInfo, req, &rsp); err != nil {
 		return "", nil, 0, 0, err
 	}
 
-	var didl *upnpav.DIDL
+	var didl *upnpav.DIDLLite
 	if len(rsp.Metadata) != 0 {
-		didl = &upnpav.DIDL{}
+		didl = &upnpav.DIDLLite{}
 		if err := xml.Unmarshal(rsp.Metadata, didl); err != nil {
 			return rsp.URI, nil, 0, 0, fmt.Errorf("could not unmarshal metadata: %w", err)
 		}
@@ -115,7 +115,7 @@ func (c *client) TransportInfo(ctx context.Context) (State, Status, error) {
 	return rsp.State, rsp.Status, nil
 }
 
-func (c *client) SetCurrentURI(ctx context.Context, uri string, metadata *upnpav.DIDL) error {
+func (c *client) SetCurrentURI(ctx context.Context, uri string, metadata *upnpav.DIDLLite) error {
 	metadataBytes, err := marshalAndMaybeCreateDIDL(uri, metadata)
 	if err != nil {
 		return err
@@ -128,7 +128,7 @@ func (c *client) SetCurrentURI(ctx context.Context, uri string, metadata *upnpav
 	}
 	return c.call(ctx, setAVTransportURI, req, nil)
 }
-func (c *client) SetNextURI(ctx context.Context, uri string, metadata *upnpav.DIDL) error {
+func (c *client) SetNextURI(ctx context.Context, uri string, metadata *upnpav.DIDLLite) error {
 	metadataBytes, err := marshalAndMaybeCreateDIDL(uri, metadata)
 	if err != nil {
 		return err
@@ -141,18 +141,13 @@ func (c *client) SetNextURI(ctx context.Context, uri string, metadata *upnpav.DI
 	}
 	return c.call(ctx, setNextAVTransportURI, req, nil)
 }
-func marshalAndMaybeCreateDIDL(uri string, metadata *upnpav.DIDL) ([]byte, error) {
+func marshalAndMaybeCreateDIDL(uri string, metadata *upnpav.DIDLLite) ([]byte, error) {
 	if metadata == nil {
-		didl, err := upnpav.DIDLForURI(uri)
+		var err error
+		metadata, err = upnpav.DIDLForURI(uri)
 		if err != nil {
-			return nil, fmt.Errorf("could not create DIDL for URI %v: %w", uri, err)
+			return nil, fmt.Errorf("could not create DIDL-Lite for URI %v: %w", uri, err)
 		}
-		metadata = didl
 	}
-	//metadata.Items[0].Resources[0].ProtocolInfo.AdditionalInfo = "DLNA.ORG_PN=AVC_MP4_HP_HD_AAC;DLNA.ORG_OP=01;DLNA.ORG_CI=0;DLNA.ORG_FLAGS=01700000000000000000000000000000"
-	metadataBytes, err := xml.Marshal(metadata)
-	if err != nil {
-		return nil, fmt.Errorf("could not marshal DIDL to string: %w", err)
-	}
-	return metadataBytes, nil
+	return []byte(metadata.String()), nil
 }

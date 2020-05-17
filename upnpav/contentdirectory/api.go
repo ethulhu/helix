@@ -11,16 +11,16 @@ import (
 type (
 	Client interface {
 		// BrowseMetadata shows information about a given object.
-		BrowseMetadata(context.Context, upnpav.Object) (*upnpav.DIDL, error)
+		BrowseMetadata(context.Context, upnpav.ObjectID) (*upnpav.DIDLLite, error)
 
 		// BrowseChildren lists the child objects of a given object.
-		BrowseChildren(context.Context, upnpav.Object) (*upnpav.DIDL, error)
+		BrowseChildren(context.Context, upnpav.ObjectID) (*upnpav.DIDLLite, error)
 
 		// SearchCapabilities returns the search capabilities of the ContentDirectory service.
 		SearchCapabilities(context.Context) ([]string, error)
 
 		// Search queries the ContentDirectory service for objects under a given object that match a given criteria.
-		Search(context.Context, upnpav.Object, search.Criteria) (*upnpav.DIDL, error)
+		Search(context.Context, upnpav.ObjectID, search.Criteria) (*upnpav.DIDLLite, error)
 	}
 )
 
@@ -31,5 +31,5 @@ const (
 )
 
 const (
-	Root = upnpav.Object("0")
+	Root = upnpav.ObjectID("0")
 )

@@ -19,7 +19,7 @@ type (
 
 		// Object is the ID of the Object being browsed.
 		// An ObjectID value of 0 corresponds to the root object of the Content Directory.
-		Object upnpav.Object `xml:"ObjectID"`
+		Object upnpav.ObjectID `xml:"ObjectID"`
 
 		// BrowseFlag specifies whether to return data about Object or Object's children.
 		BrowseFlag browseFlag `xml:"BrowseFlag"`
@@ -57,7 +57,7 @@ type (
 	}
 
 	searchRequest struct {
-		Object upnpav.Object `xml:"ObjectID"`
+		Object upnpav.ObjectID `xml:"ObjectID"`
 
 		// SearchCriteria is a dirty hack,
 		// because encoding/xml will escape the string,

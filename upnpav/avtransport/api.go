@@ -33,16 +33,16 @@ type (
 
 		// SetCurrentURI sets the URI of the current track.
 		// If metadata is nil, it will create a minimal metadata.
-		SetCurrentURI(ctx context.Context, uri string, metadata *upnpav.DIDL) error
+		SetCurrentURI(ctx context.Context, uri string, metadata *upnpav.DIDLLite) error
 		// SetNextURI sets the URI of the next track.
 		// If metadata is nil, it will create a minimal metadata.
-		SetNextURI(ctx context.Context, uri string, metadata *upnpav.DIDL) error
+		SetNextURI(ctx context.Context, uri string, metadata *upnpav.DIDLLite) error
 
 		// MediaInfo returns the current URI and metadata.
-		MediaInfo(context.Context) (string, *upnpav.DIDL, string, *upnpav.DIDL, error)
+		MediaInfo(context.Context) (string, *upnpav.DIDLLite, string, *upnpav.DIDLLite, error)
 
 		// PositionInfo returns the current URI, metadata, total time, and elapsed time.
-		PositionInfo(context.Context) (string, *upnpav.DIDL, time.Duration, time.Duration, error)
+		PositionInfo(context.Context) (string, *upnpav.DIDLLite, time.Duration, time.Duration, error)
 
 		// TransportInfo returns the current playback state and error status.
 		TransportInfo(context.Context) (State, Status, error)

@@ -1,70 +1,108 @@
 package upnpav
+//go:generate go run ./internal/mk-marshal-didllite -out ./didllite.marshal.go
+//go:generate go run ./internal/mk-unmarshal-didllite -out ./didllite.unmarshal.go
 
 import (
-	"encoding/xml"
 	"fmt"
+	"net/url"
+	"time"
+
+	"github.com/beevik/etree"
 )
 
 type (
-	DIDL struct {
-		XMLName    struct{}    `xml:"urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/ DIDL-Lite"`
-		Containers []Container `xml:"container"`
-		Items      []Item      `xml:"item"`
+	DIDLLite struct {
+		Containers []Container `upnpav:"container"`
+		Items      []Item      `upnpav:"item"`
 	}
+
+	ObjectID string
+
+	Object struct {
+		ID     ObjectID `upnpav:"id,attr"`
+		Parent ObjectID `upnpav:"parentID,attr"`
+
+		// Writeable == true is actually restricted == false, and vice versa.
+		Writeable  bool `upnpav:"restricted,attr,inverse"`
+		Searchable bool `upnpav:"searchable,attr"`
+
+		Title string `upnpav:"dc:title"`
+		Class Class  `upnpav:"upnp:class"`
+
+		Description     string   `upnpav:"dc:description"`
+		LongDescription string   `upnpav:"upnp:longDescription"`
+		Icon            *url.URL `upnpav:"upnp:icon"`
+		Region          string   `upnpav:"upnp:region"`
+		AgeRating       string   `upnpav:"upnp:rating"`
+		Rights          []string `upnpav:"dc:rights"`
+
+		// Date is an ISO8601 date of the form yyyy-mm-dd.
+		Date time.Time `upnpav:"dc:date"`
+
+		// Language is an RFC1766 language, e.g. "en-US".
+		Language string `upnpav:"dc:language"`
+
+		// UserAnnotations is a "general-purpose tag where a user can annotate an object with some user-specific information".
+		UserAnnotations []string `upnpav:"upnp:userAnnotation"`
+
+		// TOC is an "identifier of an audio CD".
+		TOC string `upnpav:"upnp:toc"`
+
+		// WriteStatus can be one of: WRITEABLE, PROTECTED, NOT_WRITEABLE, UNKNOWN, MIXED.
+		WriteStatus string `upnpav:"upnp:writeStatus"`
+	}
+
 	Container struct {
-		ID       Object `xml:"id,attr"`
-		ParentID Object `xml:"parentID,attr"`
-		// Restricted is whether or not the object can be modified remotely (e.g. by a Control Point).
-		Restricted string `xml:"restricted,attr"`
-		ChildCount string `xml:"childCount,attr"`
-		Searchable string `xml:"searchable,attr"`
+		Object
 
-		Title       string `xml:"http://purl.org/dc/elements/1.1/ title"`
-		Class       Class  `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ class"`
-		StorageUsed string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ storageUsed"`
+		ChildCount int `upnpav:"childCount,attr"`
+
+		// Storage has a special value "-1" to represent "unknown".
+		StorageTotalBytes        int    `upnpav:"upnp:storageTotal"`
+		StorageUsedBytes         int    `upnpav:"upnp:storageUsed"`
+		StorageFreeBytes         int    `upnpav:"upnp:storageFree"`
+		StorageMaxPartitionBytes int    `upnpav:"upnp:storageMaxPartition"`
+		StorageMedium            string `upnpav:"upnp:storageMedium"`
 	}
+
 	Item struct {
-		ID       Object `xml:"id,attr"`
-		ParentID Object `xml:"parentID,attr"`
-		RefID    string `xml:"refID,attr"`
-		// Restricted is whether or not the object can be modified remotely (e.g. by a Control Point).
-		Restricted string `xml:"restricted,attr"`
+		Object
 
-		Title   string `xml:"http://purl.org/dc/elements/1.1/ title,omitempty"`
-		Creator string `xml:"http://purl.org/dc/elements/1.1/ creator,omitempty"`
-		Date    string `xml:"http://purl.org/dc/elements/1.1/ date,omitempty"`
-		Class   Class  `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ class,omitempty"`
-		// Artist is the name of an artist.
-		// The <artist> tag also has a role= attribute.
-		Artist string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ artist,omitempty"`
-		// Actor is the name of an actor.
-		// The <actor> tag also has a role= attribute.
-		Actor string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ actor,omitempty"`
-		// Author is the name of an author.
-		// The <author> tag also has a role= attribute.
-		Author              string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ author,omitempty"`
-		Director            string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ director,omitempty"`
-		Genre               string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ genre,omitempty"`
-		Album               string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ album,omitempty"`
-		Playlist            string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ playlist,omitempty"`
-		OriginalTrackNumber uint   `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ originalTrackNumber,omitempty"`
+		// RefID is "ID property of the item being referred to".
+		RefID string `upnpav:"refID,attr"`
 
-		AlbumArtURI []string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ albumArtURI,omitempty"`
-		LyricsURI   string   `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ lyricsURI,omitempty"`
+		Creator string `upnpav:"dc:creator"`
 
-		Description     string `xml:"http://purl.org/dc/elements/1.1/ description,omitempty"`
-		LongDescription string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ description,omitempty"`
+		Artists      []Person `upnpav:"upnp:artist"`
+		Actors       []Person `upnpav:"upnp:actor"`
+		Authors      []Person `upnpav:"upnp:author"`
+		Directors    []string `upnpav:"upnp:director"`
+		Producers    []string `upnpav:"upnp:producer"`
+		Publishers   []string `upnpav:"dc:publisher"`
+		Contributors []string `upnpav:"dc:contributor"`
 
-		IconURI string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ icon,omitempty"`
+		// The following link to containers by the container title (e.g. object.container.playlist).
+		Genres    []string `upnpav:"upnp:genre"`
+		Albums    []string `upnpav:"upnp:album"`
+		Playlists []string `upnpav:"upnp:playlist"`
 
-		UserAnnotations []string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ userAnnotation,omitempty"`
+		AlbumArtURI          []string `upnpav:"upnp:albumArtURI"`
+		ArtistDiscographyURI string   `upnpav:"upnp:artistDiscographyURI"`
+		LyricsURI            string   `upnpav:"upnp:lyricsURI"`
+		RelationURI          string   `upnpav:"dc:relation"`
 
-		Resources []Resource `xml:"res,omitempty"`
+		TrackNumber int `upnpav:"upnp:originalTrackNumber"`
+
+		Resources []Resource `upnpav:"res"`
 	}
+	Person struct {
+		Name string `upnpav:",innerxml"`
+		Role string `upnpav:"role,attr"`
+	}
+
 	Resource struct {
-		URI          string        `xml:",innerxml"`
-		ProtocolInfo *ProtocolInfo `xml:"protocolInfo,attr"`
-		Size         uint          `xml:"size,attr"`
+		URI          string        `upnpav:",innerxml"`
+		ProtocolInfo *ProtocolInfo `upnpav:"protocolInfo,attr"`
 
 		// Duration is of the form H+:MM:SS[.F+] or H+:MM:SS[.F0/F1], where:
 		// H+ is 0 or more digits for hours,
@@ -72,35 +110,52 @@ type (
 		// SS is exactly 2 digits for seconds,
 		// F+ is 0 or more digits for fractional seconds,
 		// F0/F1 is a fraction, F0 & F1 are at least 1 digit, and F0/F1 < 1.
-		Duration string `xml:"duration,attr"`
-		// Bitrate is in bits/second.
-		Bitrate uint `xml:"bitrate,attr"`
-		// SampleFrequency is in Hz.
-		SampleFrequency uint `xml:"sampleFrequency,attr"`
-		AudioChannels   uint `xml:"nrAudioChannels,attr"`
-		// Resolution of the resource of the form [0-9]+x[0-9]+, e.g. 4x2.
-		Resolution string `xml:"resolution,attr"`
+
+		AudioChannels     uint          `upnpav:"nrAudioChannels,attr"`
+		BitsPerSample     uint          `upnpav:"bitsPerSample,attr"`
+		BitsPerSecond     uint          `upnpav:"bitrate,attr"`
+		ColorDepth        uint          `upnpav:"colorDepth,attr"`
+		Duration          time.Duration `upnpav:"duration,attr"`
+		Resolution        *Resolution   `upnpav:"resolution,attr"`
+		SampleFrequencyHz uint          `upnpav:"sampleFrequency,attr"`
+		SizeBytes         uint          `upnpav:"size,attr"`
+
+		// Protection is "some identification of a protection system used for the resource".
+		Protection string `upnpav:"protection,attr"`
+		// ImportURI is "URI via which the resource can be imported to the CDS via ImportResource() or HTTP POST".
+		ImportURI string `upnpav:"importURI,attr"`
+	}
+
+	// Resolution of the resource of the form [0-9]+x[0-9]+, e.g. 4x2.
+	Resolution struct {
+		Height, Width int
 	}
 )
 
-const (
-	didlLiteSchema   = "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/"
-	dublinCoreSchema = "http://purl.org/dc/elements/1.1/"
-)
-
-func ParseDIDL(raw []byte) (*DIDL, error) {
-	got := &DIDL{}
-	if err := xml.Unmarshal(raw, got); err != nil {
-		return nil, fmt.Errorf("could not unmarshal raw XML: %v", err)
+func ParseDIDLLite(src string) (*DIDLLite, error) {
+	doc := etree.NewDocument()
+	if err := doc.ReadFromString(src); err != nil {
+		return nil, err
 	}
-	return got, nil
+	return unmarshalDIDLLite(doc)
+}
+func (d *DIDLLite) String() string {
+	document := marshalDIDLLite(d)
+
+	document.Indent(2)
+	document.WriteSettings.CanonicalEndTags = true
+	out, err := document.WriteToString()
+	if err != nil {
+		panic(fmt.Errorf("could not write to string: %v", err))
+	}
+	return out
 }
 
 // DIDLForURI returns a minimal DIDL sufficient to get media to play with just a URI.
 //
 // NB: It may not be enough, e.g. my TV needs more information about the video
 // codec than can be inferred from just the URI.
-func DIDLForURI(uri string) (*DIDL, error) {
+func DIDLForURI(uri string) (*DIDLLite, error) {
 	protocolInfo, err := ProtocolInfoForURI(uri)
 	if err != nil {
 		return nil, fmt.Errorf("could not create ProtocolInfo: %w", err)
@@ -109,10 +164,12 @@ func DIDLForURI(uri string) (*DIDL, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not find item class: %w", err)
 	}
-	return &DIDL{
+	return &DIDLLite{
 		Items: []Item{{
-			Title: uri,
-			Class: class,
+			Object: Object{
+				Title: uri,
+				Class: class,
+			},
 			Resources: []Resource{{
 				ProtocolInfo: protocolInfo,
 				URI:          uri,

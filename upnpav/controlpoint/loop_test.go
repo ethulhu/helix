@@ -426,7 +426,7 @@ func (c *fakeAVTransport) Stop(_ context.Context) error {
 	c.actions = append(c.actions, "stop")
 	return nil
 }
-func (c *fakeAVTransport) SetCurrentURI(_ context.Context, uri string, _ *upnpav.DIDL) error {
+func (c *fakeAVTransport) SetCurrentURI(_ context.Context, uri string, _ *upnpav.DIDLLite) error {
 	c.actions = append(c.actions, fmt.Sprintf("setCurrentURI %v", uri))
 	return nil
 }

@@ -259,7 +259,7 @@ func tick(ctx context.Context,
 		}
 
 		log.Print("setting current transport URI")
-		metadata := &upnpav.DIDL{Items: []upnpav.Item{currentItem}}
+		metadata := &upnpav.DIDLLite{Items: []upnpav.Item{currentItem}}
 		if err := transport.SetCurrentURI(ctx, currentURI, metadata); err != nil {
 			return desiredState, fmt.Errorf("could not set transport URI: %w", err)
 		}

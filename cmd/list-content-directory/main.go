@@ -54,7 +54,7 @@ func main() {
 	}
 
 	ctx, _ = context.WithTimeout(context.Background(), 1*time.Second)
-	didl, err := directory.BrowseChildren(ctx, upnpav.Object(*object))
+	didl, err := directory.BrowseChildren(ctx, upnpav.ObjectID(*object))
 	if err != nil {
 		log.Fatalf("could not list ContentDirectory root: %v", err)
 	}

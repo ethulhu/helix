@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Ethel Morgan
+//
+// SPDX-License-Identifier: MIT
+
 // Binary mk-unmarshal-didllite builds the unmarshalDIDLLite() function using compile-time reflection.
 package main
 

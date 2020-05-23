@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Ethel Morgan
+//
+// SPDX-License-Identifier: MIT
+
 // Package soap is a minimal SOAP RPC client.
 //
 // Skeleton Request

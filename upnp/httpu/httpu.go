@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Ethel Morgan
+//
+// SPDX-License-Identifier: MIT
+
 // Package httpu implements HTTPU (HTTP-over-UDP) for use in SSDP.
 package httpu
 

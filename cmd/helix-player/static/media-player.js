@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Ethel Morgan
+//
+// SPDX-License-Identifier: MIT
+
 import { documentFragment, elemGenerator } from './elems.js';
 
 const _audio  = elemGenerator( 'audio' );

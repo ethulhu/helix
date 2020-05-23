@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2020 Ethel Morgan
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 :root {
 	--background-color:  hsl(0, 0%, 100%);
 	--callout-color:     hsl(0, 0%, 90%);

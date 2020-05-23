@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Ethel Morgan
+//
+// SPDX-License-Identifier: MIT
+
 // Package controlpoint is a UPnP AV "Control Point", for mediating ContentDirectories and AVTransports.
 package controlpoint
 

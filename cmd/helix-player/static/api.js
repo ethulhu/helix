@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Ethel Morgan
+//
+// SPDX-License-Identifier: MIT
+
 async function getJSON( url ) {
 	const rsp = await fetch( url, {
 		headers: { Accept: 'application/json' },

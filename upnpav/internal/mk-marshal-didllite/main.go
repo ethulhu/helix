@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Ethel Morgan
+//
+// SPDX-License-Identifier: MIT
+
 // Binary mk-marshal-didllite builds the marshalDIDLLite() function using compile-time reflection.
 package main
 

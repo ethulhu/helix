@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Ethel Morgan
+//
+// SPDX-License-Identifier: MIT
+
 //go:generate go run aletheia.icu/broccoli -src=static -o assets -var=assets
 package main
 

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Ethel Morgan
+//
+// SPDX-License-Identifier: MIT
+
 // Package search implements the DLNA query language, defined in the ContentDirectory spec.
 package search
 

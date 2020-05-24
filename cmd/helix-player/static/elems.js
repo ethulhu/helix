@@ -1,6 +1,6 @@
-// SPDX-FileCopyrightText: 2020 Ethel Morgan
+// SPDX-FileCopyrightText: 2020 Benedict Harcourt
 //
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: BSD-2-Clause
 
 'use strict';
 
@@ -63,25 +63,6 @@
  *   ) )
  * ) );
  */
-
-export function documentFragment( ...args )
-{
-	const fragment = new DocumentFragment();
-
-	if ( ! ( args instanceof Array ) )
-	{
-		args = [ args ];
-	}
-	else
-	{
-		args = args.flat( 3 );
-	}
-
-	args.forEach( arg => fragment.appendChild( arg ) );
-
-	return fragment;
-}
-
 export function elemGenerator(tag, ns)
 {
 	return ( ...args ) =>
@@ -180,4 +161,54 @@ export function elemGenerator(tag, ns)
 export function elemRegister( prefix, ns, ...tags )
 {
 	tags.forEach( tag => window[prefix + tag] = elemGenerator( tag, ns ) );
+}
+
+/**
+ * documentFragment is a helper function to generate Document Fragments in the
+ * elems.js style.
+ *
+ * Example: A Custom Element template
+ *
+ *   const _h1 = elemGenerator( 'h1' );
+ *   const _slot = elemGenerator( 'slot' );
+ *
+ *   const template = documentFragment(
+ *     _h1( 'the title' )
+ *     _slot(),
+ *   );
+ *
+ *   class MyParagraph extends HTMLElement {
+ *     constructor() {
+ *       super();
+ *       this.attachShadow( { mode: 'open' } );
+ *       this.shadowRoot.appendChild( template.cloneNode( true ) );
+ *     }
+ *   };
+ *
+ * Example: Appending multiple nodes as a single DOM action
+ *
+ *   const _li = elemGenerator( 'li' );
+ *   const items = documentFragment(
+ *     [ 1, 2, 3 ].map( d => _li( d ) ),
+ *   );
+ *
+ *   let list = document.querySelector( '#list' );
+ *   list.appendChild( items );
+ */
+export function documentFragment( ...args )
+{
+	const fragment = new DocumentFragment();
+
+	if ( ! ( args instanceof Array ) )
+	{
+		args = [ args ];
+	}
+	else
+	{
+		args = args.flat( 3 );
+	}
+
+	args.forEach( arg => fragment.appendChild( arg ) );
+
+	return fragment;
 }

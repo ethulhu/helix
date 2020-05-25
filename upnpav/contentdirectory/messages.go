@@ -33,7 +33,7 @@ type (
 
 		// StartingIndex is a zero-based offset to enumerate children under the container specified by ObjectID.
 		// Must be 0 if BrowseFlag is equal to BrowseMetadata.
-		StartingIndex string `xml:"StartingIndex"`
+		StartingIndex int `xml:"StartingIndex"`
 
 		// Requested number of entries under the object specified by ObjectID.
 		// RequestedCount =0 indicates request all entries.

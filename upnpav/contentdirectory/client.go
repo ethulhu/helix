@@ -52,19 +52,21 @@ func (c *client) browse(ctx context.Context, bf browseFlag, object upnpav.Object
 }
 
 func (c *client) SearchCapabilities(ctx context.Context) ([]string, error) {
+	req := getSearchCapabilitiesRequest{}
 	rsp := getSearchCapabilitiesResponse{}
-	if err := c.call(ctx, "GetSearchCapabilities", nil, &rsp); err != nil {
+	if err := c.call(ctx, "GetSearchCapabilities", req, &rsp); err != nil {
 		return nil, fmt.Errorf("could not get search capabilities: %w", err)
 	}
 
 	return strings.Split(rsp.Capabilities, ","), nil
 }
 
-func (c *client) Search(ctx context.Context, object upnpav.ObjectID, criteria search.Criteria) (*upnpav.DIDLLite, error) {
+func (c *client) Search(ctx context.Context, container upnpav.ObjectID, criteria search.Criteria) (*upnpav.DIDLLite, error) {
 	req := searchRequest{
-		Object: object,
+		Container:      container,
+		Filter:         "*",
+		SearchCriteria: criteria.String(),
 	}
-	req.SearchCriteria.Criteria = criteria
 
 	rsp := searchResponse{}
 	if err := c.call(ctx, "Search", req, &rsp); err != nil {

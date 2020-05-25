@@ -8,10 +8,12 @@ import (
 	"encoding/xml"
 
 	"github.com/ethulhu/helix/upnpav"
-	"github.com/ethulhu/helix/upnpav/contentdirectory/search"
 )
 
 type (
+	getSearchCapabilitiesRequest struct {
+		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 GetSearchCapabilities"`
+	}
 	getSearchCapabilitiesResponse struct {
 		XMLName      xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 GetSearchCapabilitiesResponse"`
 		Capabilities string   `xml:"SearchCaps"`
@@ -61,17 +63,14 @@ type (
 	}
 
 	searchRequest struct {
-		Object upnpav.ObjectID `xml:"ObjectID"`
+		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 Search"`
 
-		// SearchCriteria is a dirty hack,
-		// because encoding/xml will escape the string,
-		// and we need it to not.
-		SearchCriteria struct {
-			Criteria search.Criteria `xml:",innerxml"`
-		} `xml:"SearchCriteriardata"`
+		Container upnpav.ObjectID `xml:"ContainerID"`
+
+		SearchCriteria string `xml:"SearchCriteria"`
 
 		Filter         string `xml:"Filter"`
-		StartingIndex  string `xml:"StartingIndex"`
+		StartingIndex  int    `xml:"StartingIndex"`
 		RequestedCount int    `xml:"RequestedCount"`
 		SortCriteria   string `xml:"SortCriteria"`
 	}

@@ -211,7 +211,7 @@ helix-directory-tree {
 						console.log( `appending track (${item.directory}, ${item.id}) to local queue` );
 
 						localPlaylist.appendChild( _li(
-							item.title, 
+							item.title,
 							item.mimetypes.map( t =>
 								_source( {
 									src: `/directories/${item.directory}/${item.id}?accept=${t}`,

@@ -14,9 +14,9 @@ const _button = elemGenerator( 'button' );
 // 		<p>bride of content</p>
 // 	</helix-tab>
 // </helix-tabs>
-// 
+//
 // OR
-// 
+//
 // <helix-tabs>
 // 	<helix-tab id='tab-12' title='tab 1?' active>
 // 		<p>hello I am content</p>

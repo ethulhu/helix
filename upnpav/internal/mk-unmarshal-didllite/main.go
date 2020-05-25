@@ -307,8 +307,8 @@ var (
 
 	simpleElement = template.Must(template.New("simpleElement").Parse(`
 if el := {{ .Element }}.SelectElement("{{ .Name }}"); el != nil {
-	raw := 
-	{{ .VariableFieldName }} = 
+	raw :=
+	{{ .VariableFieldName }} =
 }
 	`))
 )

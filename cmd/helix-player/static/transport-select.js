@@ -55,7 +55,7 @@ export class HelixTransportSelect extends HTMLElement {
 	_update() {
 		fetchTransports()
 			.then( ts => { ts.sort( ( a, b ) => a.name.localeCompare( b.name ) ); return ts; } )
-			.then( ts => ts.forEach( 
+			.then( ts => ts.forEach(
 				t => this._select.appendChild( _option( t.name, { value: t.id } ) )
 			) )
 			.then( fetchControlPoint )

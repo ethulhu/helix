@@ -105,7 +105,10 @@ func mkStatements(w io.Writer, element, variable string, t reflect.Type) {
 					if el := %s.SelectElement("%s"); el != nil {
 						t, err := time.Parse("2006-01-02", el.Text())
 						if err != nil {
-							return nil, fmt.Errorf("could not parse date %%q: %%w", el.Text(), err)
+							t, err = time.Parse("2006-01-02T15:04:05", el.Text())
+							if err != nil {
+								return nil, fmt.Errorf("could not parse date %%q: %%w", el.Text(), err)
+							}
 						}
 						%s = t
 					}

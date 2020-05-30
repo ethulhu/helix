@@ -11,7 +11,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"sort"
+	"text/tabwriter"
 	"time"
 
 	"github.com/ethulhu/helix/upnp/ssdp"
@@ -44,12 +46,14 @@ func main() {
 		log.Printf("could not get URL: %v", err)
 	}
 
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
 	for _, device := range devices {
 		urns := device.Services()
 
 		sort.Slice(urns, func(i, j int) bool { return urns[i] < urns[j] })
 		for _, urn := range urns {
-			fmt.Printf("%v\t%v\t%v\n", device.Name, device.UDN, urn)
+			fmt.Fprintf(w, "%v\t%v\t%v\n", device.Name, device.UDN, urn)
 		}
 	}
+	w.Flush()
 }

@@ -12,44 +12,9 @@ import (
 	"github.com/ethulhu/helix/soap"
 )
 
-type (
-	manifestXML struct {
-		XMLName     xml.Name `xml:"urn:schemas-upnp-org:device-1-0 root"`
-		SpecVersion struct {
-			Major int `xml:"specVersion>major"`
-			Minor int `xml:"specVersion>minor"`
-		}
-		Device deviceXML `xml:"device"`
-	}
-	deviceXML struct {
-		DeviceType   string `xml:"deviceType"`
-		FriendlyName string `xml:"friendlyName"`
-		UDN          string `xml:"UDN"`
-
-		Devices         []deviceXML  `xml:"deviceList>device"`
-		Icons           []iconXML    `xml:"iconList>icon"`
-		Services        []serviceXML `xml:"serviceList>service"`
-		PresentationURL string       `xml:"presentationURL"`
-	}
-	iconXML struct {
-		MIMEType string `xml:"mimetype"`
-		Width    int    `xml:"width"`
-		Height   int    `xml:"height"`
-		Depth    int    `xml:"depth"`
-		URL      string `xml:"url"`
-	}
-	serviceXML struct {
-		ServiceType URN    `xml:"serviceType"`
-		ServiceID   string `xml:"serviceId"`
-		ControlURL  string `xml:"controlURL"`
-		EventSubURL string `xml:"eventSubURL"`
-		SCPDURL     string `xml:"SCPDURL"`
-	}
-)
-
-func newDevice(manifestURL *url.URL, rawManifest []byte) (*Device, error) {
-	m, err := parseDeviceManifest(rawManifest)
-	if err != nil {
+func newDeviceDeprecated(manifestURL *url.URL, rawManifest []byte) (*DeviceDeprecated, error) {
+	m := Document{}
+	if err := xml.Unmarshal(rawManifest, &m); err != nil {
 		return nil, fmt.Errorf("could not parse device manifest: %w", err)
 	}
 
@@ -58,10 +23,10 @@ func newDevice(manifestURL *url.URL, rawManifest []byte) (*Device, error) {
 		// TODO: how do ServiceType and ServiceID differ?
 		serviceURL := *manifestURL
 		serviceURL.Path = s.ControlURL
-		services[s.ServiceType] = &serviceURL
+		services[URN(s.ServiceType)] = &serviceURL
 	}
 
-	return &Device{
+	return &DeviceDeprecated{
 		Name:     m.Device.FriendlyName,
 		UDN:      m.Device.UDN,
 		services: services,
@@ -69,8 +34,8 @@ func newDevice(manifestURL *url.URL, rawManifest []byte) (*Device, error) {
 }
 
 // SOAPInterface returns a SOAP interface for the given URN, and whether or not that interface exists.
-// A nil Device always returns (nil, false).
-func (d *Device) SOAPInterface(urn URN) (soap.Interface, bool) {
+// A nil DeviceDeprecated always returns (nil, false).
+func (d *DeviceDeprecated) SOAPInterface(urn URN) (soap.Interface, bool) {
 	if d == nil {
 		return nil, false
 	}
@@ -83,8 +48,8 @@ func (d *Device) SOAPInterface(urn URN) (soap.Interface, bool) {
 }
 
 // Services lists URNs advertised by the device.
-// A nil Device always returns nil.
-func (d *Device) Services() []URN {
+// A nil DeviceDeprecated always returns nil.
+func (d *DeviceDeprecated) Services() []URN {
 	if d == nil {
 		return nil
 	}
@@ -94,10 +59,4 @@ func (d *Device) Services() []URN {
 		urns = append(urns, urn)
 	}
 	return urns
-}
-
-func parseDeviceManifest(raw []byte) (manifestXML, error) {
-	m := manifestXML{}
-	err := xml.Unmarshal(raw, &m)
-	return m, err
 }

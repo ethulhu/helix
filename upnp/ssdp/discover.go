@@ -64,10 +64,10 @@ func DiscoverURLs(ctx context.Context, urn URN, iface *net.Interface) ([]*url.UR
 
 // Discover discovers UPnP devices using SSDP on the local network.
 // It returns all valid URLs it finds, a slice of errors from invalid SSDP responses or UPnP device manifests, and an error with the actual connection itself.
-func Discover(ctx context.Context, urn URN, iface *net.Interface) ([]*Device, []error, error) {
+func Discover(ctx context.Context, urn URN, iface *net.Interface) ([]*DeviceDeprecated, []error, error) {
 	urls, errs, err := DiscoverURLs(ctx, urn, iface)
 
-	var devices []*Device
+	var devices []*DeviceDeprecated
 	for _, manifestURL := range urls {
 		rsp, err := http.Get(manifestURL.String())
 		if err != nil {
@@ -75,7 +75,7 @@ func Discover(ctx context.Context, urn URN, iface *net.Interface) ([]*Device, []
 			continue
 		}
 		bytes, _ := ioutil.ReadAll(rsp.Body)
-		device, err := newDevice(manifestURL, bytes)
+		device, err := newDeviceDeprecated(manifestURL, bytes)
 		if err != nil {
 			errs = append(errs, err)
 			continue

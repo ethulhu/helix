@@ -5,5 +5,5 @@ import (
 )
 
 type (
-	Device = ssdp.Device
+	Device = ssdp.DeviceDeprecated
 )

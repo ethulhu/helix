@@ -8,8 +8,8 @@ package ssdp
 import "net/url"
 
 type (
-	// Device is an SSDP device.
-	Device struct {
+	// DeviceDeprecated is an SSDP device that you shouldn't use.
+	DeviceDeprecated struct {
 		// Name is the "friendly name" of a UPnP device.
 		Name string
 

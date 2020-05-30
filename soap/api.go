@@ -56,8 +56,8 @@ import (
 )
 
 type (
-	// Client is a SOAP RPC client.
-	Client interface {
+	// Interface is the SOAP RPC interface.
+	Interface interface {
 		// Call performs SOAP RPCs under a given method namespace.
 		Call(ctx context.Context, namespace, method string, input interface{}, output interface{}) error
 	}

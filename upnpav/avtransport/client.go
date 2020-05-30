@@ -16,10 +16,10 @@ import (
 )
 
 type (
-	client struct{ soap.Client }
+	client struct{ soap.Interface }
 )
 
-func NewClient(soapClient soap.Client) Client {
+func NewClient(soapClient soap.Interface) Client {
 	return &client{soapClient}
 }
 

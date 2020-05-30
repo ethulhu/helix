@@ -48,7 +48,7 @@ func main() {
 
 	var directory contentdirectory.Client
 	for _, device := range devices {
-		if client, ok := device.SOAPClient(contentdirectory.Version1); ok && device.UDN == *server {
+		if client, ok := device.SOAPInterface(contentdirectory.Version1); ok && device.UDN == *server {
 			directory = contentdirectory.NewClient(client)
 			break
 		}

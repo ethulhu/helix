@@ -47,7 +47,7 @@ type (
 	}
 )
 
-func NewClient(baseURL *url.URL) Client {
+func NewClient(baseURL *url.URL) Interface {
 	return &client{
 		baseURL: baseURL,
 	}

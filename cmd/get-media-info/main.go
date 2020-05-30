@@ -49,7 +49,7 @@ func main() {
 		if device.Name != *server {
 			continue
 		}
-		if client, ok := device.SOAPClient(avtransport.Version1); ok {
+		if client, ok := device.SOAPInterface(avtransport.Version1); ok {
 			transport = avtransport.NewClient(client)
 			break
 		}

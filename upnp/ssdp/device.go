@@ -68,9 +68,9 @@ func newDevice(manifestURL *url.URL, rawManifest []byte) (*Device, error) {
 	}, nil
 }
 
-// SOAPClient returns a SOAP client for the given URN, and whether or not that client exists.
+// SOAPInterface returns a SOAP interface for the given URN, and whether or not that interface exists.
 // A nil Device always returns (nil, false).
-func (d *Device) SOAPClient(urn URN) (soap.Client, bool) {
+func (d *Device) SOAPInterface(urn URN) (soap.Interface, bool) {
 	if d == nil {
 		return nil, false
 	}

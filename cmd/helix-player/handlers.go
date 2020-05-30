@@ -55,7 +55,7 @@ func getObjectJSON(w http.ResponseWriter, r *http.Request) {
 	object := mux.Vars(r)["object"]
 
 	device, _ := directories.DeviceByUDN(udn)
-	client, ok := device.SOAPClient(contentdirectory.Version1)
+	client, ok := device.SOAPInterface(contentdirectory.Version1)
 	if !ok {
 		http.Error(w, fmt.Sprintf("unknown ContentDirectory: %s", udn), http.StatusNotFound)
 		return
@@ -103,7 +103,7 @@ func searchUnderObjectJSON(w http.ResponseWriter, r *http.Request) {
 	query := mux.Vars(r)["query"]
 
 	device, _ := directories.DeviceByUDN(udn)
-	client, ok := device.SOAPClient(contentdirectory.Version1)
+	client, ok := device.SOAPInterface(contentdirectory.Version1)
 	if !ok {
 		http.Error(w, fmt.Sprintf("unknown ContentDirectory: %s", udn), http.StatusNotFound)
 		return
@@ -149,7 +149,7 @@ func getObjectByType(w http.ResponseWriter, r *http.Request) {
 	}
 
 	device, _ := directories.DeviceByUDN(udn)
-	client, ok := device.SOAPClient(contentdirectory.Version1)
+	client, ok := device.SOAPInterface(contentdirectory.Version1)
 	if !ok {
 		http.Error(w, fmt.Sprintf("unknown ContentDirectory: %s", udn), http.StatusNotFound)
 		return
@@ -226,7 +226,7 @@ func getTransportsJSON(w http.ResponseWriter, r *http.Request) {
 	data := []transport{}
 	ctx := r.Context()
 	for _, device := range devices {
-		client, ok := device.SOAPClient(avtransport.Version1)
+		client, ok := device.SOAPInterface(avtransport.Version1)
 		if !ok {
 			continue
 		}
@@ -244,7 +244,7 @@ func getTransportJSON(w http.ResponseWriter, r *http.Request) {
 	udn := mux.Vars(r)["udn"]
 
 	device, _ := transports.DeviceByUDN(udn)
-	client, ok := device.SOAPClient(avtransport.Version1)
+	client, ok := device.SOAPInterface(avtransport.Version1)
 	if !ok {
 		http.Error(w, fmt.Sprintf("unknown AVTransport: %v", udn), http.StatusNotFound)
 		return
@@ -267,7 +267,7 @@ func playTransport(w http.ResponseWriter, r *http.Request) {
 	udn := mux.Vars(r)["udn"]
 
 	device, _ := transports.DeviceByUDN(udn)
-	client, ok := device.SOAPClient(avtransport.Version1)
+	client, ok := device.SOAPInterface(avtransport.Version1)
 	if !ok {
 		http.Error(w, fmt.Sprintf("unknown AVTransport: %v", udn), http.StatusNotFound)
 		return
@@ -284,7 +284,7 @@ func pauseTransport(w http.ResponseWriter, r *http.Request) {
 	udn := mux.Vars(r)["udn"]
 
 	device, _ := transports.DeviceByUDN(udn)
-	client, ok := device.SOAPClient(avtransport.Version1)
+	client, ok := device.SOAPInterface(avtransport.Version1)
 	if !ok {
 		http.Error(w, fmt.Sprintf("unknown AVTransport: %v", udn), http.StatusNotFound)
 		return
@@ -301,7 +301,7 @@ func stopTransport(w http.ResponseWriter, r *http.Request) {
 	udn := mux.Vars(r)["udn"]
 
 	device, _ := transports.DeviceByUDN(udn)
-	client, ok := device.SOAPClient(avtransport.Version1)
+	client, ok := device.SOAPInterface(avtransport.Version1)
 	if !ok {
 		http.Error(w, fmt.Sprintf("unknown AVTransport: %v", udn), http.StatusNotFound)
 		return
@@ -364,7 +364,7 @@ func appendToQueue(w http.ResponseWriter, r *http.Request) {
 	object := mux.Vars(r)["object"]
 
 	device, _ := directories.DeviceByUDN(udn)
-	client, ok := device.SOAPClient(contentdirectory.Version1)
+	client, ok := device.SOAPInterface(contentdirectory.Version1)
 	if !ok {
 		http.Error(w, fmt.Sprintf("unknown ContentDirectory: %v", udn), http.StatusNotFound)
 		return

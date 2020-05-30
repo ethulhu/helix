@@ -46,7 +46,7 @@ func main() {
 
 	var transport avtransport.Client
 	for _, device := range devices {
-		if client, ok := device.SOAPClient(avtransport.Version1); ok && device.Name == *server {
+		if client, ok := device.SOAPInterface(avtransport.Version1); ok && device.Name == *server {
 			transport = avtransport.NewClient(client)
 			break
 		}

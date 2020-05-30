@@ -106,10 +106,10 @@ func (loop *Loop) SetTransport(device *ssdp.Device) error {
 		return nil
 	}
 
-	if _, ok := device.SOAPClient(avtransport.Version1); !ok {
+	if _, ok := device.SOAPInterface(avtransport.Version1); !ok {
 		return errors.New("device does not support AVTransport")
 	}
-	if _, ok := device.SOAPClient(connectionmanager.Version1); !ok {
+	if _, ok := device.SOAPInterface(connectionmanager.Version1); !ok {
 		return errors.New("device does not support ConnectionManager")
 	}
 
@@ -119,11 +119,11 @@ func (loop *Loop) SetTransport(device *ssdp.Device) error {
 
 // clients will panic if device is invalid because SetTransport should make that impossible.
 func clients(device *ssdp.Device) (avtransport.Client, connectionmanager.Client) {
-	transportClient, ok := device.SOAPClient(avtransport.Version1)
+	transportClient, ok := device.SOAPInterface(avtransport.Version1)
 	if !ok {
 		panic(fmt.Sprintf("transport does not support AVTransport"))
 	}
-	managerClient, ok := device.SOAPClient(connectionmanager.Version1)
+	managerClient, ok := device.SOAPInterface(connectionmanager.Version1)
 	if !ok {
 		panic(fmt.Sprintf("transport does not support ConnectionManager"))
 	}

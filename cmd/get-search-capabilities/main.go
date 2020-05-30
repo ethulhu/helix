@@ -52,7 +52,7 @@ func main() {
 	for {
 		time.Sleep(*timeout)
 		if device, ok := directories.DeviceByUDN(*server); ok {
-			client, ok := device.SOAPClient(contentdirectory.Version1)
+			client, ok := device.SOAPInterface(contentdirectory.Version1)
 			if !ok {
 				log.Fatal("device exists, but has no ContentDirectory service")
 			}

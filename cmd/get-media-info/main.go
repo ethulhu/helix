@@ -44,7 +44,7 @@ func main() {
 		log.Fatalf("could not discover AVTransport clients: %v", err)
 	}
 
-	var transport avtransport.Client
+	var transport avtransport.Interface
 	for _, device := range devices {
 		if device.Name != *server {
 			continue

@@ -45,7 +45,7 @@ func main() {
 		log.Fatalf("could not discover ConnectionManager clients: %v", err)
 	}
 
-	var manager connectionmanager.Client
+	var manager connectionmanager.Interface
 	for _, device := range devices {
 		if client, ok := device.SOAPInterface(connectionmanager.Version1); ok && device.Name == *server {
 			manager = connectionmanager.NewClient(client)

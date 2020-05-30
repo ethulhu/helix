@@ -13,7 +13,7 @@ import (
 )
 
 type (
-	Client interface {
+	Interface interface {
 		// BrowseMetadata shows information about a given object.
 		BrowseMetadata(context.Context, upnpav.ObjectID) (*upnpav.DIDLLite, error)
 

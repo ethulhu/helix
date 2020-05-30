@@ -118,7 +118,7 @@ func (loop *Loop) SetTransport(device *ssdp.Device) error {
 }
 
 // clients will panic if device is invalid because SetTransport should make that impossible.
-func clients(device *ssdp.Device) (avtransport.Client, connectionmanager.Client) {
+func clients(device *ssdp.Device) (avtransport.Interface, connectionmanager.Interface) {
 	transportClient, ok := device.SOAPInterface(avtransport.Version1)
 	if !ok {
 		panic(fmt.Sprintf("transport does not support AVTransport"))
@@ -134,8 +134,8 @@ func clients(device *ssdp.Device) (avtransport.Client, connectionmanager.Client)
 func tick(ctx context.Context,
 	prev transportState,
 	curr transportState,
-	transport avtransport.Client,
-	manager connectionmanager.Client,
+	transport avtransport.Interface,
+	manager connectionmanager.Interface,
 	desiredState avtransport.State,
 	queue Queue,
 	transportChanged bool) (avtransport.State, error) {
@@ -286,7 +286,7 @@ func tick(ctx context.Context,
 	}
 }
 
-func newTransportState(ctx context.Context, transport avtransport.Client) (transportState, error) {
+func newTransportState(ctx context.Context, transport avtransport.Interface) (transportState, error) {
 	t := transportState{}
 
 	if transport == nil {

@@ -46,7 +46,7 @@ func main() {
 		log.Fatalf("could not discover ContentDirectory clients: %v", err)
 	}
 
-	var directory contentdirectory.Client
+	var directory contentdirectory.Interface
 	for _, device := range devices {
 		if client, ok := device.SOAPInterface(contentdirectory.Version1); ok && device.UDN == *server {
 			directory = contentdirectory.NewClient(client)

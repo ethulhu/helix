@@ -58,7 +58,7 @@ func main() {
 	}
 	directories := upnp.NewDeviceCache(contentdirectory.Version1, opts)
 
-	var directory contentdirectory.Client
+	var directory contentdirectory.Interface
 	for {
 		time.Sleep(*timeout)
 		if device, ok := directories.DeviceByUDN(*server); ok {

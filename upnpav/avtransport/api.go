@@ -13,10 +13,10 @@ import (
 )
 
 type (
-	// Client is a UPnP AVTransport1 client.
+	// Interface is the UPnP AVTransport:1 interface.
 	// Not all methods exist on all Renderers.
 	// For example, Next is missing on gmediarender.
-	Client interface {
+	Interface interface {
 		// Play plays the current track.
 		Play(context.Context) error
 

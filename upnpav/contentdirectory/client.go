@@ -18,7 +18,7 @@ type (
 	client struct{ soap.Interface }
 )
 
-func NewClient(soapClient soap.Interface) Client {
+func NewClient(soapClient soap.Interface) Interface {
 	return &client{soapClient}
 }
 

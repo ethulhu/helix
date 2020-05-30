@@ -13,7 +13,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ethulhu/helix/upnp/ssdp"
+	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav/connectionmanager"
 )
 
@@ -40,7 +40,7 @@ func main() {
 	}
 
 	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
-	devices, _, err := ssdp.Discover(ctx, connectionmanager.Version1, iface)
+	devices, _, err := upnp.DiscoverDevices(ctx, connectionmanager.Version1, iface)
 	if err != nil {
 		log.Fatalf("could not discover ConnectionManager clients: %v", err)
 	}

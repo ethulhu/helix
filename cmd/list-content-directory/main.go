@@ -12,7 +12,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/ethulhu/helix/upnp/ssdp"
+	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
 )
@@ -41,7 +41,7 @@ func main() {
 	}
 
 	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
-	devices, _, err := ssdp.Discover(ctx, contentdirectory.Version1, iface)
+	devices, _, err := upnp.DiscoverDevices(ctx, contentdirectory.Version1, iface)
 	if err != nil {
 		log.Fatalf("could not discover ContentDirectory clients: %v", err)
 	}

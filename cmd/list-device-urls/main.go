@@ -13,7 +13,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/ethulhu/helix/upnp/ssdp"
+	"github.com/ethulhu/helix/upnp"
 )
 
 var (
@@ -35,7 +35,7 @@ func main() {
 	}
 
 	ctx, _ := context.WithTimeout(context.Background(), *timeout)
-	urls, errs, err := ssdp.DiscoverURLs(ctx, ssdp.All, iface)
+	urls, errs, err := upnp.DiscoverURLs(ctx, upnp.All, iface)
 	if err != nil {
 		log.Fatalf("could not discover URLs: %v", err)
 	}

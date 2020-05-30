@@ -5,7 +5,7 @@
 package main
 
 import (
-	"github.com/ethulhu/helix/upnp/ssdp"
+	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/avtransport"
 	"github.com/ethulhu/helix/upnpav/controlpoint"
@@ -61,7 +61,7 @@ type directory struct {
 	Name string `json:"name"`
 }
 
-func directoryFromDevice(device *ssdp.Device) directory {
+func directoryFromDevice(device *upnp.Device) directory {
 	return directory{
 		UDN:  device.UDN,
 		Name: device.Name,
@@ -102,7 +102,7 @@ type transport struct {
 	State string `json:"state"`
 }
 
-func transportFromDeviceAndInfo(device *ssdp.Device, state avtransport.State) transport {
+func transportFromDeviceAndInfo(device *upnp.Device, state avtransport.State) transport {
 	return transport{
 		ID:   device.UDN,
 		Name: device.Name,

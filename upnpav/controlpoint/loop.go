@@ -12,7 +12,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/ethulhu/helix/upnp/ssdp"
+	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/avtransport"
 	"github.com/ethulhu/helix/upnpav/connectionmanager"
@@ -21,7 +21,7 @@ import (
 type (
 	Loop struct {
 		state     avtransport.State
-		transport *ssdp.Device
+		transport *upnp.Device
 		queue     Queue
 	}
 	transportState struct {
@@ -97,10 +97,10 @@ func (loop *Loop) SetQueue(queue Queue) {
 	loop.queue = queue
 }
 
-func (loop *Loop) Transport() *ssdp.Device {
+func (loop *Loop) Transport() *upnp.Device {
 	return loop.transport
 }
-func (loop *Loop) SetTransport(device *ssdp.Device) error {
+func (loop *Loop) SetTransport(device *upnp.Device) error {
 	if device == nil {
 		loop.transport = nil
 		return nil
@@ -118,7 +118,7 @@ func (loop *Loop) SetTransport(device *ssdp.Device) error {
 }
 
 // clients will panic if device is invalid because SetTransport should make that impossible.
-func clients(device *ssdp.Device) (avtransport.Interface, connectionmanager.Interface) {
+func clients(device *upnp.Device) (avtransport.Interface, connectionmanager.Interface) {
 	transportClient, ok := device.SOAPInterface(avtransport.Version1)
 	if !ok {
 		panic(fmt.Sprintf("transport does not support AVTransport"))
@@ -310,7 +310,7 @@ func newTransportState(ctx context.Context, transport avtransport.Interface) (tr
 	return t, nil
 }
 
-func udnOrDefault(device *ssdp.Device, def string) string {
+func udnOrDefault(device *upnp.Device, def string) string {
 	if device == nil {
 		return def
 	}

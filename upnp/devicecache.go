@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ethulhu/helix/upnp/ssdp"
 )
 
 type (
@@ -21,7 +20,7 @@ type (
 		iface *net.Interface
 
 		mu      sync.Mutex
-		devices map[string]*ssdp.Device
+		devices map[string]*Device
 	}
 
 	DeviceCacheOptions struct {
@@ -42,7 +41,7 @@ func NewDeviceCache(urn URN, options DeviceCacheOptions) *DeviceCache {
 		urn:   urn,
 		iface: options.Interface,
 
-		devices: map[string]*ssdp.Device{},
+		devices: map[string]*Device{},
 	}
 
 	go d.Refresh()
@@ -72,13 +71,13 @@ func (d *DeviceCache) Refresh() {
 	defer d.mu.Unlock()
 
 	ctx, _ := context.WithTimeout(context.Background(), discoveryTimeout)
-	devices, _, err := ssdp.Discover(ctx, d.urn, d.iface)
+	devices, _, err := DiscoverDevices(ctx, d.urn, d.iface)
 	if err != nil {
 		log.Printf("could not find UPnP devices for URN %q: %v", d.urn, err)
 		return
 	}
 
-	newDevices := map[string]*ssdp.Device{}
+	newDevices := map[string]*Device{}
 	for _, device := range devices {
 		newDevices[device.UDN] = device
 	}
@@ -87,11 +86,11 @@ func (d *DeviceCache) Refresh() {
 }
 
 // Devices lists all currently known Devices.
-func (d *DeviceCache) Devices() []*ssdp.Device {
+func (d *DeviceCache) Devices() []*Device {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	var devices []*ssdp.Device
+	var devices []*Device
 	for _, device := range d.devices {
 		devices = append(devices, device)
 	}
@@ -99,7 +98,7 @@ func (d *DeviceCache) Devices() []*ssdp.Device {
 }
 
 // DeviceByUDN returns the Device with a given UDN.
-func (d *DeviceCache) DeviceByUDN(udn string) (*ssdp.Device, bool) {
+func (d *DeviceCache) DeviceByUDN(udn string) (*Device, bool) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 

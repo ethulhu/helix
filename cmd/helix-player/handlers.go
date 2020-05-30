@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/ethulhu/helix/httputil"
-	"github.com/ethulhu/helix/upnp/ssdp"
+	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/avtransport"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
@@ -326,7 +326,7 @@ func setControlPointTransport(w http.ResponseWriter, r *http.Request) {
 	udn := mux.Vars(r)["udn"]
 
 	// "none" is a magic value to unset the transport.
-	var device *ssdp.Device
+	var device *upnp.Device
 	if udn != "none" {
 		var ok bool
 		device, ok = transports.DeviceByUDN(udn)

@@ -8,7 +8,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/ethulhu/helix/upnp/ssdp"
+	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav"
 )
 
@@ -64,8 +64,8 @@ type (
 )
 
 const (
-	Version1 = ssdp.URN("urn:schemas-upnp-org:service:AVTransport:1")
-	Version2 = ssdp.URN("urn:schemas-upnp-org:service:AVTransport:2")
+	Version1 = upnp.URN("urn:schemas-upnp-org:service:AVTransport:1")
+	Version2 = upnp.URN("urn:schemas-upnp-org:service:AVTransport:2")
 )
 
 const (

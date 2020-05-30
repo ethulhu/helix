@@ -4,9 +4,9 @@
 
 package renderingcontrol
 
-import "github.com/ethulhu/helix/upnp/ssdp"
+import "github.com/ethulhu/helix/upnp"
 
 const (
-	Version1 = ssdp.URN("urn:schemas-upnp-org:service:RenderingControl:1")
-	Version2 = ssdp.URN("urn:schemas-upnp-org:service:RenderingControl:2")
+	Version1 = upnp.URN("urn:schemas-upnp-org:service:RenderingControl:1")
+	Version2 = upnp.URN("urn:schemas-upnp-org:service:RenderingControl:2")
 )

@@ -17,7 +17,7 @@ import (
 type (
 	// DeviceCache is an automatically refreshing cache of UPnP devices, addressable by UDN.
 	DeviceCache struct {
-		urn   ssdp.URN
+		urn   URN
 		iface *net.Interface
 
 		mu      sync.Mutex
@@ -37,7 +37,7 @@ const (
 )
 
 // NewDeviceCache returns a DeviceCache searching for the given URN, every refresh period, optionally on a specific network interface.
-func NewDeviceCache(urn ssdp.URN, options DeviceCacheOptions) *DeviceCache {
+func NewDeviceCache(urn URN, options DeviceCacheOptions) *DeviceCache {
 	d := &DeviceCache{
 		urn:   urn,
 		iface: options.Interface,

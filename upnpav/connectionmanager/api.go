@@ -7,7 +7,7 @@ package connectionmanager
 import (
 	"context"
 
-	"github.com/ethulhu/helix/upnp/ssdp"
+	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav"
 )
 
@@ -19,6 +19,6 @@ type (
 )
 
 const (
-	Version1 = ssdp.URN("urn:schemas-upnp-org:service:ConnectionManager:1")
-	Version2 = ssdp.URN("urn:schemas-upnp-org:service:ConnectionManager:2")
+	Version1 = upnp.URN("urn:schemas-upnp-org:service:ConnectionManager:1")
+	Version2 = upnp.URN("urn:schemas-upnp-org:service:ConnectionManager:2")
 )

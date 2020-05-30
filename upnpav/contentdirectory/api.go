@@ -7,7 +7,7 @@ package contentdirectory
 import (
 	"context"
 
-	"github.com/ethulhu/helix/upnp/ssdp"
+	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/contentdirectory/search"
 )
@@ -29,9 +29,9 @@ type (
 )
 
 const (
-	Version1 = ssdp.URN("urn:schemas-upnp-org:service:ContentDirectory:1")
-	Version2 = ssdp.URN("urn:schemas-upnp-org:service:ContentDirectory:2")
-	Version3 = ssdp.URN("urn:schemas-upnp-org:service:ContentDirectory:3")
+	Version1 = upnp.URN("urn:schemas-upnp-org:service:ContentDirectory:1")
+	Version2 = upnp.URN("urn:schemas-upnp-org:service:ContentDirectory:2")
+	Version3 = upnp.URN("urn:schemas-upnp-org:service:ContentDirectory:3")
 )
 
 const (

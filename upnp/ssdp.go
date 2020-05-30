@@ -6,17 +6,21 @@ package upnp
 
 import (
 	"context"
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
 
 	"github.com/ethulhu/helix/upnp/httpu"
+	"github.com/ethulhu/helix/upnp/ssdp"
 )
 
 const (
 	discoverMethod = "M-SEARCH"
+	notifyMethod   = "NOTIFY"
 )
 
 var (
@@ -24,6 +28,7 @@ var (
 		IP:   net.IPv4(239, 255, 255, 250),
 		Port: 1900,
 	}
+
 	discoverURL = &url.URL{Opaque: "*"}
 )
 
@@ -51,8 +56,8 @@ func DiscoverURLs(ctx context.Context, urn URN, iface *net.Interface) ([]*url.UR
 	return urls, errs, err
 }
 
-// DiscoverURLs discovers UPnP device manifest URLs using SSDP on the local network.
-// It returns all valid URLs it finds, a slice of errors from invalid SSDP responses, and an error with the actual connection itself.
+// DiscoverDevices discovers UPnP devices using SSDP on the local network.
+// It returns all valid URLs it finds, a slice of errors from invalid SSDP responses or UPnP device manifests, and an error with the actual connection itself.
 func DiscoverDevices(ctx context.Context, urn URN, iface *net.Interface) ([]*Device, []error, error) {
 	urls, errs, err := DiscoverURLs(ctx, urn, iface)
 
@@ -64,7 +69,14 @@ func DiscoverDevices(ctx context.Context, urn URN, iface *net.Interface) ([]*Dev
 			continue
 		}
 		bytes, _ := ioutil.ReadAll(rsp.Body)
-		device, err := newDevice(manifestURL, bytes)
+
+		manifest := ssdp.Document{}
+		if err := xml.Unmarshal(bytes, &manifest); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		device, err := newDevice(manifestURL, manifest)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -72,6 +84,29 @@ func DiscoverDevices(ctx context.Context, urn URN, iface *net.Interface) ([]*Dev
 		devices = append(devices, device)
 	}
 	return devices, errs, err
+}
+
+// BroadcastDevice broadcasts the presence of a UPnP Device, with its SSDP/SCPD served via HTTP at addr.
+func BroadcastDevice(d *Device, addr net.Addr, iface *net.Interface) error {
+	conn, err := net.ListenMulticastUDP("udp", iface, ssdpBroadcastAddr)
+	if err != nil {
+		return fmt.Errorf("could not listen on %v: %v", ssdpBroadcastAddr, err)
+	}
+	defer conn.Close()
+
+	s := &httpu.Server{
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.Method {
+			case discoverMethod:
+				handleDiscover(w, r, d, addr)
+			case notifyMethod:
+				// TODO: handleNotify()
+			default:
+				log.Printf("unknown method: %v", r.Method)
+			}
+		}),
+	}
+	return s.Serve(conn)
 }
 
 func discoverRequest(ctx context.Context, urn URN) *http.Request {
@@ -83,4 +118,20 @@ func discoverRequest(ctx context.Context, urn URN) *http.Request {
 		"ST":  {string(urn)},
 	}
 	return req
+}
+
+func handleDiscover(w http.ResponseWriter, r *http.Request, d *Device, addr net.Addr) {
+	if r.Header.Get("Man") != `"ssdp:discover"` {
+		log.Printf("request lacked correct Man header")
+		return
+	}
+
+	st := URN(r.Header.Get("St"))
+	ok := false
+	for _, urn := range d.Services() {
+		ok = ok || urn == st
+	}
+	if st == RootDevice || st == All || ok {
+		w.Header().Set("Location", fmt.Sprintf("http://%v/", addr))
+	}
 }

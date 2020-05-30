@@ -1,21 +1,86 @@
+// SPDX-FileCopyrightText: 2020 Ethel Morgan
+//
+// SPDX-License-Identifier: MIT
+
 package upnp
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
 	"net"
+	"net/http"
 	"net/url"
 
-	"github.com/ethulhu/helix/upnp/ssdp"
+	"github.com/ethulhu/helix/upnp/httpu"
+)
+
+const (
+	discoverMethod = "M-SEARCH"
+)
+
+var (
+	ssdpBroadcastAddr = &net.UDPAddr{
+		IP:   net.IPv4(239, 255, 255, 250),
+		Port: 1900,
+	}
+	discoverURL = &url.URL{Opaque: "*"}
 )
 
 // DiscoverURLs discovers UPnP device manifest URLs using SSDP on the local network.
 // It returns all valid URLs it finds, a slice of errors from invalid SSDP responses, and an error with the actual connection itself.
 func DiscoverURLs(ctx context.Context, urn URN, iface *net.Interface) ([]*url.URL, []error, error) {
-	return ssdp.DiscoverURLs(ctx, urn, iface)
+	req := discoverRequest(ctx, urn)
+
+	rsps, errs, err := httpu.Do(req, 3, iface)
+
+	locations := map[string]*url.URL{}
+	for _, rsp := range rsps {
+		location, err := rsp.Location()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("could not find SSDP response Location: %w", err))
+			continue
+		}
+		locations[location.String()] = location
+	}
+
+	var urls []*url.URL
+	for _, location := range locations {
+		urls = append(urls, location)
+	}
+	return urls, errs, err
 }
 
 // DiscoverURLs discovers UPnP device manifest URLs using SSDP on the local network.
 // It returns all valid URLs it finds, a slice of errors from invalid SSDP responses, and an error with the actual connection itself.
 func DiscoverDevices(ctx context.Context, urn URN, iface *net.Interface) ([]*Device, []error, error) {
-	return ssdp.Discover(ctx, urn, iface)
+	urls, errs, err := DiscoverURLs(ctx, urn, iface)
+
+	var devices []*Device
+	for _, manifestURL := range urls {
+		rsp, err := http.Get(manifestURL.String())
+		if err != nil {
+			errs = append(errs, fmt.Errorf("could not GET manifest %v: %w", manifestURL, err))
+			continue
+		}
+		bytes, _ := ioutil.ReadAll(rsp.Body)
+		device, err := newDevice(manifestURL, bytes)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		devices = append(devices, device)
+	}
+	return devices, errs, err
+}
+
+func discoverRequest(ctx context.Context, urn URN) *http.Request {
+	req, _ := http.NewRequestWithContext(ctx, discoverMethod, discoverURL.String(), http.NoBody)
+	req.Host = ssdpBroadcastAddr.String()
+	req.Header = http.Header{
+		"MAN": {`"ssdp:discover"`},
+		"MX":  {"2"},
+		"ST":  {string(urn)},
+	}
+	return req
 }

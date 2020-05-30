@@ -1,14 +1,15 @@
+// SPDX-FileCopyrightText: 2020 Ethel Morgan
+//
+// SPDX-License-Identifier: MIT
+
 package upnp
 
-import (
-	"github.com/ethulhu/helix/upnp/ssdp"
-)
-
 type (
-	URN = ssdp.URN
+	// URN is a UPnP service URN.
+	URN string
 )
 
 const (
-	RootDevice = ssdp.RootDevice
-	All        = ssdp.All
+	RootDevice = URN("upnp:rootdevice")
+	All        = URN("ssdp:all")
 )

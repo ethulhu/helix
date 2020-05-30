@@ -414,7 +414,7 @@ func TestLoop(t *testing.T) {
 }
 
 type fakeAVTransport struct {
-	avtransport.Client
+	avtransport.Interface
 	actions []string
 }
 
@@ -440,7 +440,7 @@ func (c *fakeAVTransport) Seek(_ context.Context, elapsed time.Duration) error {
 }
 
 type fakeConnectionManager struct {
-	connectionmanager.Client
+	connectionmanager.Interface
 	actions []string
 }
 

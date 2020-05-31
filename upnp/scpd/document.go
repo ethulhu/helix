@@ -11,6 +11,11 @@ import (
 
 const xmlns = "urn:schemas-upnp-org:service-1-0"
 
+var Version = SpecVersion{
+	Major: 1,
+	Minor: 0,
+}
+
 type (
 	Document struct {
 		XMLName        xml.Name        `xml:"urn:schemas-upnp-org:service-1-0 scpd"`
@@ -54,18 +59,24 @@ type (
 		RelatedStateVariable string    `xml:"relatedStateVariable"`
 	}
 
-	Direction bool
+	Direction int
 )
 
 const (
-	In  = Direction(true)
-	Out = Direction(false)
+	Unknown Direction = iota
+	In
+	Out
 )
 
 func (d Direction) MarshalXML(e *xml.Encoder, el xml.StartElement) error {
-	s := "out"
-	if d == In {
+	var s string
+	switch d {
+	case In:
 		s = "in"
+	case Out:
+		s = "out"
+	default:
+		return fmt.Errorf("direction must be In or Out, found %v", s)
 	}
 	return e.EncodeElement(s, el)
 }

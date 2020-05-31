@@ -23,9 +23,9 @@ func TestSerializeRequest(t *testing.T) {
 				Host:   "239.255.255.250:1900",
 				URL:    &url.URL{Opaque: "*"},
 				Header: http.Header{
-					"MAN":  {`"ssdp:discover"`},
-					"MX":   {"2"},
-					"ST":   {"ssdp:all"},
+					"MAN": {`"ssdp:discover"`},
+					"MX":  {"2"},
+					"ST":  {"ssdp:all"},
 				},
 			},
 			want: `M-SEARCH * HTTP/1.1

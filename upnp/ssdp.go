@@ -21,6 +21,8 @@ import (
 const (
 	discoverMethod = "M-SEARCH"
 	notifyMethod   = "NOTIFY"
+
+	ssdpCacheControl = "max-age=300"
 )
 
 var (
@@ -95,16 +97,18 @@ func BroadcastDevice(d *Device, addr net.Addr, iface *net.Interface) error {
 	defer conn.Close()
 
 	s := &httpu.Server{
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		Handler: func(r *http.Request) []httpu.Response {
 			switch r.Method {
 			case discoverMethod:
-				handleDiscover(w, r, d, addr)
+				return handleDiscover(r, d, addr)
 			case notifyMethod:
 				// TODO: handleNotify()
+				return nil
 			default:
 				log.Printf("unknown method: %v", r.Method)
+				return nil
 			}
-		}),
+		},
 	}
 	return s.Serve(conn)
 }
@@ -120,18 +124,38 @@ func discoverRequest(ctx context.Context, urn URN) *http.Request {
 	return req
 }
 
-func handleDiscover(w http.ResponseWriter, r *http.Request, d *Device, addr net.Addr) {
+func handleDiscover(r *http.Request, d *Device, addr net.Addr) []httpu.Response {
 	if r.Header.Get("Man") != `"ssdp:discover"` {
-		log.Printf("request lacked correct Man header")
-		return
+		log.Print("request lacked correct MAN header")
+		return nil
 	}
 
 	st := URN(r.Header.Get("St"))
+
 	ok := false
-	for _, urn := range d.Services() {
+	for _, urn := range d.allURNs() {
 		ok = ok || urn == st
 	}
-	if st == RootDevice || st == All || ok {
-		w.Header().Set("Location", fmt.Sprintf("http://%v/", addr))
+	if st == All || ok {
+		responses := []httpu.Response{{
+			"CACHE-CONTROL": ssdpCacheControl,
+			"EXT":           "",
+			"LOCATION":      fmt.Sprintf("http://%v/", addr),
+			"SERVER":        fmt.Sprintf("%s %s", d.ModelName, d.ModelNumber),
+			"ST":            d.UDN,
+			"USN":           d.UDN,
+		}}
+		for _, urn := range d.allURNs() {
+			responses = append(responses, httpu.Response{
+				"CACHE-CONTROL": ssdpCacheControl,
+				"EXT":           "",
+				"LOCATION":      fmt.Sprintf("http://%v/", addr),
+				"SERVER":        fmt.Sprintf("%s %s", d.ModelName, d.ModelNumber),
+				"ST":            string(urn),
+				"USN":           fmt.Sprintf("%s::%s", d.UDN, urn),
+			})
+		}
+		return responses
 	}
+	return nil
 }

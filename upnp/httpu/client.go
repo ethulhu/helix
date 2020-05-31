@@ -13,6 +13,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // serializeRequest is a hack because many devices require allcaps headers.
@@ -79,9 +81,11 @@ func Do(req *http.Request, repeats int, iface *net.Interface) ([]*http.Response,
 
 	var rsps []*http.Response
 	var errs []error
-	data := make([]byte, 2048)
+	packet = make([]byte, 2048)
 	for {
-		n, addr, err := conn.ReadFrom(data)
+		fields := log.Fields{}
+
+		n, addr, err := conn.ReadFrom(packet)
 		if err != nil {
 			var netError net.Error
 			if errors.As(err, &netError) && netError.Timeout() {
@@ -89,12 +93,18 @@ func Do(req *http.Request, repeats int, iface *net.Interface) ([]*http.Response,
 			}
 			return rsps, errs, err
 		}
-		rsp, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(data[:n])), req)
+		fields["addr"] = addr
+		rsp, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(packet[:n])), req)
 		if err != nil {
+			fields["error"] = err
+			fields["packet"] = packet[:n]
+			log.WithFields(fields).Warning("malformed HTTPU response")
+
 			errs = append(errs, fmt.Errorf("malformed response from %v: %w", addr, err))
 			continue
 		}
 		rsps = append(rsps, rsp)
+		log.WithFields(fields).Debug("got HTTPU response")
 	}
 	return rsps, errs, nil
 }

@@ -13,12 +13,15 @@ import (
 	"github.com/ethulhu/helix/soap"
 	"github.com/ethulhu/helix/upnp/scpd"
 	"github.com/ethulhu/helix/upnp/ssdp"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type (
 	service struct {
 		SCPD      scpd.Document
 		Interface soap.Interface
+		ID        ServiceID
 	}
 
 	// Device is an UPnP device.
@@ -28,6 +31,21 @@ type (
 
 		// UDN is a unique identifier that can be used to rediscover a device.
 		UDN string
+
+		// DeviceType is yet another URN-alike.
+		DeviceType DeviceType
+
+		Icons []Icon
+
+		// Below are optional metadata fields.
+
+		Manufacturer     string
+		ManufacturerURL  string
+		ModelDescription string
+		ModelName        string
+		ModelNumber      string
+		ModelURL         string
+		SerialNumber     string
 
 		serviceByURN map[URN]service
 	}
@@ -43,6 +61,14 @@ func NewDevice(name, udn string) *Device {
 
 func newDevice(manifestURL *url.URL, manifest ssdp.Document) (*Device, error) {
 	d := NewDevice(manifest.Device.FriendlyName, manifest.Device.UDN)
+	d.Manufacturer = d.Manufacturer
+	d.ManufacturerURL = d.ManufacturerURL
+	d.ModelDescription = d.ModelDescription
+	d.ModelName = d.ModelName
+	d.ModelNumber = d.ModelNumber
+	d.ModelURL = d.ModelURL
+	d.SerialNumber = d.SerialNumber
+
 	for _, s := range manifest.Device.Services {
 		// TODO: get the actual SCPD.
 		serviceURL := *manifestURL
@@ -67,6 +93,9 @@ func (d *Device) Services() []URN {
 	}
 	return urns
 }
+func (d *Device) allURNs() []URN {
+	return append(d.Services(), URN(d.DeviceType), RootDevice)
+}
 
 // SOAPClient returns a SOAP client for the given URN, and whether or not that client exists.
 // A nil Device always returns (nil, false).
@@ -84,12 +113,20 @@ func (d *Device) SOAPInterface(urn URN) (soap.Interface, bool) {
 
 // ServeHTTP serves the SSDP/SCPD UPnP discovery interface, and marshals SOAP requests.
 func (d *Device) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fields := log.Fields{
+		"method": r.Method,
+		"path":   r.URL.Path,
+		"remote": r.RemoteAddr,
+	}
+
 	if r.URL.Path == "/" {
 		bytes, err := xml.Marshal(d.manifest())
 		if err != nil {
 			panic(fmt.Sprintf("could not marshal manifest: %v", err))
 		}
+		fmt.Fprint(w, xml.Header)
 		w.Write(bytes)
+		log.WithFields(fields).Info("served SSDP manifest")
 		return
 	}
 
@@ -101,14 +138,20 @@ func (d *Device) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				panic(fmt.Sprintf("could not marshal SCPD for %v: %v", urn, err))
 			}
+			fmt.Fprint(w, xml.Header)
 			w.Write(bytes)
+			log.WithFields(fields).Info("served SCPD")
 			return
+
 		case "POST":
-			// TODO: handle SOAP calls
-			// soap.Call(w, r, service.Interface)
+			log.WithFields(fields).Info("serving SOAP")
+			soap.Handle(w, r, service.Interface)
+			return
 		}
 	}
 
+	fields["error"] = "not found"
+	log.WithFields(fields).Error("not found")
 	http.NotFound(w, r)
 }
 
@@ -116,24 +159,41 @@ func (d *Device) manifest() ssdp.Document {
 	doc := ssdp.Document{
 		SpecVersion: ssdp.Version,
 		Device: ssdp.Device{
+			DeviceType:   string(d.DeviceType),
 			FriendlyName: d.Name,
 			UDN:          d.UDN,
+
+			Manufacturer:     d.Manufacturer,
+			ManufacturerURL:  d.ManufacturerURL,
+			ModelDescription: d.ModelDescription,
+			ModelName:        d.ModelName,
+			ModelNumber:      d.ModelNumber,
+			ModelURL:         d.ModelURL,
+			SerialNumber:     d.SerialNumber,
 		},
 	}
 
-	for urn := range d.serviceByURN {
+	for urn, service := range d.serviceByURN {
 		doc.Device.Services = append(doc.Device.Services, ssdp.Service{
 			ServiceType: string(urn),
+			ServiceID:   string(service.ID),
 			SCPDURL:     "/" + string(urn),
+			ControlURL:  "/" + string(urn),
+			EventSubURL: "/" + string(urn),
 		})
+	}
+
+	for _, icon := range d.Icons {
+		doc.Device.Icons = append(doc.Device.Icons, icon.ssdpIcon())
 	}
 
 	return doc
 }
 
-func (d *Device) HandleURN(urn URN, doc scpd.Document, handler soap.Interface) {
+func (d *Device) Handle(urn URN, id ServiceID, doc scpd.Document, handler soap.Interface) {
 	d.serviceByURN[urn] = service{
-		SCPD:      doc,
+		ID:        id,
 		Interface: handler,
+		SCPD:      doc,
 	}
 }

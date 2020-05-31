@@ -7,6 +7,9 @@ package upnp
 type (
 	// URN is a UPnP service URN.
 	URN string
+
+	ServiceID  string
+	DeviceType string
 )
 
 const (

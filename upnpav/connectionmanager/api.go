@@ -19,6 +19,7 @@ type (
 )
 
 const (
-	Version1 = upnp.URN("urn:schemas-upnp-org:service:ConnectionManager:1")
-	Version2 = upnp.URN("urn:schemas-upnp-org:service:ConnectionManager:2")
+	Version1  = upnp.URN("urn:schemas-upnp-org:service:ConnectionManager:1")
+	Version2  = upnp.URN("urn:schemas-upnp-org:service:ConnectionManager:2")
+	ServiceID = upnp.ServiceID("urn:upnp-org:serviceId:ConnectionManager")
 )

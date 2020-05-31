@@ -64,8 +64,10 @@ type (
 )
 
 const (
-	Version1 = upnp.URN("urn:schemas-upnp-org:service:AVTransport:1")
-	Version2 = upnp.URN("urn:schemas-upnp-org:service:AVTransport:2")
+	Version1   = upnp.URN("urn:schemas-upnp-org:service:AVTransport:1")
+	Version2   = upnp.URN("urn:schemas-upnp-org:service:AVTransport:2")
+	ServiceID  = upnp.ServiceID("urn:upnp-org:serviceId:AVTransport")
+	DeviceType = upnp.DeviceType("urn:schemas-upnp-org:device:MediaRenderer:1")
 )
 
 const (

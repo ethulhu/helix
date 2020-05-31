@@ -29,9 +29,11 @@ type (
 )
 
 const (
-	Version1 = upnp.URN("urn:schemas-upnp-org:service:ContentDirectory:1")
-	Version2 = upnp.URN("urn:schemas-upnp-org:service:ContentDirectory:2")
-	Version3 = upnp.URN("urn:schemas-upnp-org:service:ContentDirectory:3")
+	Version1   = upnp.URN("urn:schemas-upnp-org:service:ContentDirectory:1")
+	Version2   = upnp.URN("urn:schemas-upnp-org:service:ContentDirectory:2")
+	Version3   = upnp.URN("urn:schemas-upnp-org:service:ContentDirectory:3")
+	ServiceID  = upnp.ServiceID("urn:upnp-org:serviceId:ContentDirectory")
+	DeviceType = upnp.DeviceType("urn:schemas-upnp-org:device:MediaServer:1")
 )
 
 const (

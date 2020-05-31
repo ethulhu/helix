@@ -15,17 +15,22 @@ import (
 
 type (
 	Interface interface {
+		// SearchCapabilities returns the search capabilities of the ContentDirectory service.
+		SearchCapabilities(context.Context) ([]string, error)
+
+		// SortCapabilities returns the sort capabilities of the ContentDirectory service.
+		SortCapabilities(context.Context) ([]string, error)
+
 		// BrowseMetadata shows information about a given object.
 		BrowseMetadata(context.Context, upnpav.ObjectID) (*upnpav.DIDLLite, error)
 
 		// BrowseChildren lists the child objects of a given object.
 		BrowseChildren(context.Context, upnpav.ObjectID) (*upnpav.DIDLLite, error)
 
-		// SearchCapabilities returns the search capabilities of the ContentDirectory service.
-		SearchCapabilities(context.Context) ([]string, error)
-
 		// Search queries the ContentDirectory service for objects under a given object that match a given criteria.
 		Search(context.Context, upnpav.ObjectID, search.Criteria) (*upnpav.DIDLLite, error)
+
+		SystemUpdateID(ctx context.Context) (uint, error)
 	}
 )
 

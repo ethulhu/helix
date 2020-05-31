@@ -7,7 +7,6 @@ package contentdirectory
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/ethulhu/helix/soap"
 	"github.com/ethulhu/helix/upnpav"
@@ -36,7 +35,7 @@ func (c *client) browse(ctx context.Context, bf browseFlag, object upnpav.Object
 	req := browseRequest{
 		Object:     object,
 		BrowseFlag: bf,
-		Filter:     "*",
+		Filter:     commaSeparatedStrings{"*"},
 	}
 
 	rsp := browseResponse{}
@@ -57,14 +56,13 @@ func (c *client) SearchCapabilities(ctx context.Context) ([]string, error) {
 	if err := c.call(ctx, "GetSearchCapabilities", req, &rsp); err != nil {
 		return nil, fmt.Errorf("could not get search capabilities: %w", err)
 	}
-
-	return strings.Split(rsp.Capabilities, ","), nil
+	return rsp.Capabilities, nil
 }
 
 func (c *client) Search(ctx context.Context, container upnpav.ObjectID, criteria search.Criteria) (*upnpav.DIDLLite, error) {
 	req := searchRequest{
 		Container:      container,
-		Filter:         "*",
+		Filter:         commaSeparatedStrings{"*"},
 		SearchCriteria: criteria.String(),
 	}
 

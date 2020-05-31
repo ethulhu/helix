@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"github.com/ethulhu/helix/upnp"
+	"github.com/ethulhu/helix/upnp/scpd"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/contentdirectory/search"
 )
@@ -39,3 +40,11 @@ const (
 const (
 	Root = upnpav.ObjectID("0")
 )
+
+var SCPD = scpd.Must(scpd.Merge(
+	scpd.Must(scpd.FromAction(browse, browseRequest{}, browseResponse{})),
+	scpd.Must(scpd.FromAction(getSearchCapabilities, getSearchCapabilitiesRequest{}, getSearchCapabilitiesResponse{})),
+	scpd.Must(scpd.FromAction(getSortCapabilities, getSortCapabilitiesRequest{}, getSortCapabilitiesResponse{})),
+	scpd.Must(scpd.FromAction(searchA, searchRequest{}, searchResponse{})),
+	scpd.Must(scpd.FromAction(getSystemUpdateID, getSystemUpdateIDRequest{}, getSystemUpdateIDResponse{})),
+))

@@ -5,14 +5,13 @@
 package soap
 
 import (
-	"encoding/xml"
 	"reflect"
 	"testing"
 )
 
 func TestSerializeSOAPEnvelope(t *testing.T) {
 	tests := []struct {
-		input interface{}
+		input []byte
 		want  string
 	}{
 		{
@@ -21,12 +20,7 @@ func TestSerializeSOAPEnvelope(t *testing.T) {
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body></s:Body></s:Envelope>`,
 		},
 		{
-			input: struct {
-				XMLName  xml.Name `xml:"https://mew.purr/cats GetNoises"`
-				Adorable bool     `xml:"Adorable"`
-			}{
-				Adorable: true,
-			},
+			input: []byte(`<GetNoises xmlns="https://mew.purr/cats"><Adorable>true</Adorable></GetNoises>`),
 			want: `<?xml version="1.0" encoding="UTF-8"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><GetNoises xmlns="https://mew.purr/cats"><Adorable>true</Adorable></GetNoises></s:Body></s:Envelope>`,
 		},
@@ -45,7 +39,7 @@ func TestSerializeSOAPEnvelope(t *testing.T) {
 func TestDeserializeSOAPEnvelope(t *testing.T) {
 	tests := []struct {
 		raw     string
-		want    interface{}
+		want    []byte
 		wantErr error
 	}{
 		{
@@ -77,10 +71,10 @@ func TestDeserializeSOAPEnvelope(t *testing.T) {
 
 	for i, tt := range tests {
 		var got interface{} = nil
-		gotErr := deserializeSOAPEnvelope([]byte(tt.raw), got)
+		got, gotErr := deserializeSOAPEnvelope([]byte(tt.raw))
 
 		if !reflect.DeepEqual(tt.want, got) {
-			t.Errorf("[%d], got %v, want %v", i, got, tt.want)
+			t.Errorf("[%d], got %s, want %s", i, got, tt.want)
 		}
 		if !reflect.DeepEqual(tt.wantErr, gotErr) {
 			t.Errorf("[%d], got error %q, want error %q", i, gotErr, tt.wantErr)

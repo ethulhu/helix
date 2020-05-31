@@ -6,6 +6,7 @@ package contentdirectory
 
 import (
 	"context"
+	"encoding/xml"
 	"fmt"
 
 	"github.com/ethulhu/helix/soap"
@@ -22,7 +23,16 @@ func NewClient(soapClient soap.Interface) Interface {
 }
 
 func (c *client) call(ctx context.Context, method string, input, output interface{}) error {
-	return c.Call(ctx, string(Version1), method, input, output)
+	req, err := xml.Marshal(input)
+	if err != nil {
+		panic(fmt.Sprintf("could not marshal SOAP request: %v", err))
+	}
+
+	rsp, err := c.Call(ctx, string(Version1), method, req)
+	if err != nil {
+		return err
+	}
+	return xml.Unmarshal(rsp, output)
 }
 
 func (c *client) BrowseMetadata(ctx context.Context, object upnpav.ObjectID) (*upnpav.DIDLLite, error) {
@@ -39,7 +49,7 @@ func (c *client) browse(ctx context.Context, bf browseFlag, object upnpav.Object
 	}
 
 	rsp := browseResponse{}
-	if err := c.call(ctx, "Browse", req, &rsp); err != nil {
+	if err := c.call(ctx, browse, req, &rsp); err != nil {
 		return nil, fmt.Errorf("could not perform Browse request: %w", err)
 	}
 
@@ -53,7 +63,7 @@ func (c *client) browse(ctx context.Context, bf browseFlag, object upnpav.Object
 func (c *client) SearchCapabilities(ctx context.Context) ([]string, error) {
 	req := getSearchCapabilitiesRequest{}
 	rsp := getSearchCapabilitiesResponse{}
-	if err := c.call(ctx, "GetSearchCapabilities", req, &rsp); err != nil {
+	if err := c.call(ctx, getSearchCapabilities, req, &rsp); err != nil {
 		return nil, fmt.Errorf("could not get search capabilities: %w", err)
 	}
 	return rsp.Capabilities, nil

@@ -58,8 +58,10 @@ import (
 type (
 	// Interface is the SOAP RPC interface.
 	Interface interface {
-		// Call performs SOAP RPCs under a given method namespace.
-		Call(ctx context.Context, namespace, method string, input interface{}, output interface{}) error
+		// Call performs SOAP RPCs under a given action namespace.
+		// It consumes and returns an XML fragment as []byte.
+		// The user is responsible for marshalling and unmarshalling these.
+		Call(ctx context.Context, namespace, action string, input []byte) ([]byte, error)
 	}
 
 	// RemoteError is an error returned by the remote system.

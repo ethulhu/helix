@@ -24,7 +24,16 @@ func NewClient(soapClient soap.Interface) Interface {
 }
 
 func (c *client) call(ctx context.Context, method string, input, output interface{}) error {
-	return c.Call(ctx, string(Version1), method, input, output)
+	req, err := xml.Marshal(input)
+	if err != nil {
+		panic(fmt.Sprintf("could not marshal SOAP request: %v", err))
+	}
+
+	rsp, err := c.Call(ctx, string(Version1), method, req)
+	if err != nil {
+		return err
+	}
+	return xml.Unmarshal(rsp, output)
 }
 
 func (c *client) Play(ctx context.Context) error {

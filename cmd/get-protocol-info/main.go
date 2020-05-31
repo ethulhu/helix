@@ -47,7 +47,7 @@ func main() {
 
 	var manager connectionmanager.Interface
 	for _, device := range devices {
-		if client, ok := device.SOAPInterface(connectionmanager.Version1); ok && device.Name == *server {
+		if client, ok := device.SOAPInterface(connectionmanager.Version1); ok && device.UDN == *server {
 			manager = connectionmanager.NewClient(client)
 			break
 		}

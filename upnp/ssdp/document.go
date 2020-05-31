@@ -8,6 +8,11 @@ import "encoding/xml"
 
 const xmlns = "urn:schemas-upnp-org:device-1-0"
 
+var Version = SpecVersion{
+	Major: 1,
+	Minor: 0,
+}
+
 type (
 	Document struct {
 		XMLName     xml.Name    `xml:"urn:schemas-upnp-org:device-1-0 root"`

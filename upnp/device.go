@@ -114,10 +114,7 @@ func (d *Device) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (d *Device) manifest() ssdp.Document {
 	doc := ssdp.Document{
-		SpecVersion: ssdp.SpecVersion{
-			Major: 1,
-			Minor: 1,
-		},
+		SpecVersion: ssdp.Version,
 		Device: ssdp.Device{
 			FriendlyName: d.Name,
 			UDN:          d.UDN,

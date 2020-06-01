@@ -10,11 +10,11 @@ import (
 	"strings"
 
 	"github.com/ethulhu/helix/upnpav"
+	"github.com/ethulhu/helix/xmltypes"
 )
 
 type (
 	commaSeparatedProtocolInfos []upnpav.ProtocolInfo
-	commaSeparatedInts          []int
 
 	direction string
 	status    string
@@ -54,8 +54,8 @@ type (
 		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ConnectionManager:1 GetCurrentConnectionIDs"`
 	}
 	getCurrentConnectionIDsResponse struct {
-		XMLName       xml.Name           `xml:"urn:schemas-upnp-org:service:ConnectionManager:1 GetCurrentConnectionIDsResponse"`
-		ConnectionIDs commaSeparatedInts `xml:"ConnectionIDs" scpd:"CurrentConnectionIDs,string"`
+		XMLName       xml.Name                    `xml:"urn:schemas-upnp-org:service:ConnectionManager:1 GetCurrentConnectionIDsResponse"`
+		ConnectionIDs xmltypes.CommaSeparatedInts `xml:"ConnectionIDs" scpd:"CurrentConnectionIDs,string"`
 	}
 
 	getCurrentConnectionInfoRequest struct {

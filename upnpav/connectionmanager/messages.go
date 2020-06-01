@@ -95,25 +95,21 @@ const (
 	getCurrentConnectionInfo = "GetCurrentConnectionInfo"
 )
 
-func (ps commaSeparatedProtocolInfos) MarshalXML(e *xml.Encoder, el xml.StartElement) error {
+func (cspi commaSeparatedProtocolInfos) MarshalText() ([]byte, error) {
 	var piStrings []string
-	for _, p := range ps {
+	for _, p := range cspi {
 		piStrings = append(piStrings, p.String())
 	}
-	return e.EncodeElement(strings.Join(piStrings, ","), el)
+	return []byte(strings.Join(piStrings, ",")), nil
 }
-
-func (ps *commaSeparatedProtocolInfos) UnmarshalXML(d *xml.Decoder, el xml.StartElement) error {
-	var s string
-	if err := d.DecodeElement(&s, &el); err != nil {
-		return err
-	}
-	if s == "" {
+func (cspi *commaSeparatedProtocolInfos) UnmarshalText(raw []byte) error {
+	if len(raw) == 0 {
+		*cspi = nil
 		return nil
 	}
 
 	var protocolInfos []upnpav.ProtocolInfo
-	for _, p := range strings.Split(s, ",") {
+	for _, p := range strings.Split(string(raw), ",") {
 		protocolInfo, err := upnpav.ParseProtocolInfo(p)
 		if err != nil {
 			return fmt.Errorf("could not parse ProtocolInfo %q: %v", p, err)
@@ -121,6 +117,6 @@ func (ps *commaSeparatedProtocolInfos) UnmarshalXML(d *xml.Decoder, el xml.Start
 		protocolInfos = append(protocolInfos, protocolInfo)
 	}
 
-	*ps = protocolInfos
+	*cspi = protocolInfos
 	return nil
 }

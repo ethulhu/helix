@@ -130,6 +130,12 @@ type (
 		// ImportURI is "URI via which the resource can be imported to the CDS via ImportResource() or HTTP POST".
 		ImportURI string `xml:"importURI,attr,omitempty"`
 	}
+
+	// EncodedDIDLLite wraps DIDLLites for inclusion in UPnP AV messages.
+	// DIDLLite is not inserted as an XML fragment, but is encoded as text for UPnP AV RPCs.
+	EncodedDIDLLite struct {
+		DIDLLite
+	}
 )
 
 func ParseDIDLLite(src string) (*DIDLLite, error) {
@@ -151,6 +157,18 @@ func (d DIDLLite) String() string {
 		panic(fmt.Sprintf("could not marshal DIDLLite: %v", err))
 	}
 	return xml.Header + string(bytes)
+}
+
+func (ed EncodedDIDLLite) MarshalText() ([]byte, error) {
+	return []byte(ed.DIDLLite.String()), nil
+}
+func (ed *EncodedDIDLLite) UnmarshalText(raw []byte) error {
+	dd, err := ParseDIDLLite(string(raw))
+	if err != nil {
+		return err
+	}
+	*ed = EncodedDIDLLite{*dd}
+	return err
 }
 
 // DIDLForURI returns a minimal DIDL sufficient to get media to play with just a URI.

@@ -13,24 +13,20 @@ import (
 
 type (
 	setAVTransportURIRequest struct {
-		XMLName    xml.Name `xml:"urn:schemas-upnp-org:service:AVTransport:1 SetAVTransportURI"`
-		InstanceID int      `xml:"InstanceID" scpd:"A_ARG_TYPE_InstanceID,ui4"`
-		CurrentURI string   `xml:"CurrentURI" scpd:"AVTransportURI,string"`
-
-		// CurrentMetadata is a DIDL-Lite document.
-		CurrentMetadata []byte `xml:"CurrentURIMetaData" scpd:"AVTransportURIMetaData,string"`
+		XMLName         xml.Name               `xml:"urn:schemas-upnp-org:service:AVTransport:1 SetAVTransportURI"`
+		InstanceID      int                    `xml:"InstanceID"         scpd:"A_ARG_TYPE_InstanceID,ui4"`
+		CurrentURI      string                 `xml:"CurrentURI"         scpd:"AVTransportURI,string"`
+		CurrentMetadata upnpav.EncodedDIDLLite `xml:"CurrentURIMetaData" scpd:"AVTransportURIMetaData,string"`
 	}
 	setAVTransportURIResponse struct {
 		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:AVTransport:1 SetAVTransportURIResponse"`
 	}
 
 	setNextAVTransportURIRequest struct {
-		XMLName    xml.Name `xml:"urn:schemas-upnp-org:service:AVTransport:1 SetNextAVTransportURI"`
-		InstanceID int      `xml:"InstanceID" scpd:"A_ARG_TYPE_InstanceID,ui4"`
-		NextURI    string   `xml:"NextURI"    scpd:"NextAVTransportURI,string"`
-
-		// NextMetadata is a DIDL-Lite document.
-		NextMetadata []byte `xml:"NextURIMetaData" scpd:"NextAVTransportURIMetaData,string"`
+		XMLName      xml.Name               `xml:"urn:schemas-upnp-org:service:AVTransport:1 SetNextAVTransportURI"`
+		InstanceID   int                    `xml:"InstanceID"      scpd:"A_ARG_TYPE_InstanceID,ui4"`
+		NextURI      string                 `xml:"NextURI"         scpd:"NextAVTransportURI,string"`
+		NextMetadata upnpav.EncodedDIDLLite `xml:"NextURIMetaData" scpd:"NextAVTransportURIMetaData,string"`
 	}
 	setNextAVTransportURIResponse struct {
 		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:AVTransport:1 SetNextAVTransportURIResponse"`
@@ -41,15 +37,13 @@ type (
 		InstanceID int      `xml:"InstanceID" scpd:"A_ARG_TYPE_InstanceID,ui4"`
 	}
 	getMediaInfoResponse struct {
-		XMLName    xml.Name `xml:"urn:schemas-upnp-org:service:AVTransport:1 GetMediaInfoResponse"`
-		TrackCount uint     `xml:"NrTracks"      scpd:"NumberOfTracks,ui4,min=4"`
-		Duration   string   `xml:"MediaDuration" scpd:"CurrentMediaDuration,string"`
-		CurrentURI string   `xml:"CurrentURI"    scpd:"AVTransportURI,string"`
-		NextURI    string   `xml:"NextURI"       scpd:"NextAVTransportURI,string"`
-
-		// Metadata is a DIDL-Lite document.
-		CurrentMetadata []byte `xml:"CurrentURIMetaData" scpd:"AVTransportURIMetaData,string"`
-		NextMetadata    []byte `xml:"NextURIMetaData"    scpd:"NextAVTransportURIMetaData,string"`
+		XMLName         xml.Name               `xml:"urn:schemas-upnp-org:service:AVTransport:1 GetMediaInfoResponse"`
+		TrackCount      uint                   `xml:"NrTracks"           scpd:"NumberOfTracks,ui4,min=4"`
+		Duration        string                 `xml:"MediaDuration"      scpd:"CurrentMediaDuration,string"`
+		CurrentURI      string                 `xml:"CurrentURI"         scpd:"AVTransportURI,string"`
+		CurrentMetadata upnpav.EncodedDIDLLite `xml:"CurrentURIMetaData" scpd:"AVTransportURIMetaData,string"`
+		NextURI         string                 `xml:"NextURI"            scpd:"NextAVTransportURI,string"`
+		NextMetadata    upnpav.EncodedDIDLLite `xml:"NextURIMetaData"    scpd:"NextAVTransportURIMetaData,string"`
 
 		PlayMedium   string `xml:"PlayMedium"   scpd:"PlaybackStorageMedium,string"`
 		RecordMedium string `xml:"RecordMedium" scpd:"RecordStorageMedium,string"`
@@ -72,15 +66,15 @@ type (
 		InstanceID int      `xml:"InstanceID" scpd:"A_ARG_TYPE_InstanceID,ui4"`
 	}
 	getPositionInfoResponse struct {
-		XMLName       xml.Name        `xml:"urn:schemas-upnp-org:service:AVTransport:1 GetPositionInfoResponse"`
-		CurrentTrack  uint            `xml:"Track"         scpd:"CurrentTrack,ui4,min=0,step=1"`
-		Duration      upnpav.Duration `xml:"TrackDuration" scpd:"CurrentTrackDuration,string"`
-		Metadata      []byte          `xml:"TrackMetaData" scpd:"CurrentTrackMetaData,string"`
-		URI           string          `xml:"TrackURI"      scpd:"CurrentTrackURI,string"`
-		RelativeTime  upnpav.Duration `xml:"RelTime"       scpd:"RelativeTimePosition,string"`
-		AbsoluteTime  upnpav.Duration `xml:"AbsTime"       scpd:"AbsoluteTimePosition,string"`
-		RelativeCount int             `xml:"RelCount"      scpd:"RelativeCounterPosition,i4"`
-		AbsoluteCount int             `xml:"AbsCount"      scpd:"AbsoluteCounterPosition,i4"`
+		XMLName       xml.Name               `xml:"urn:schemas-upnp-org:service:AVTransport:1 GetPositionInfoResponse"`
+		CurrentTrack  uint                   `xml:"Track"         scpd:"CurrentTrack,ui4,min=0,step=1"`
+		Duration      upnpav.Duration        `xml:"TrackDuration" scpd:"CurrentTrackDuration,string"`
+		Metadata      upnpav.EncodedDIDLLite `xml:"TrackMetaData" scpd:"CurrentTrackMetaData,string"`
+		URI           string                 `xml:"TrackURI"      scpd:"CurrentTrackURI,string"`
+		RelativeTime  upnpav.Duration        `xml:"RelTime"       scpd:"RelativeTimePosition,string"`
+		AbsoluteTime  upnpav.Duration        `xml:"AbsTime"       scpd:"AbsoluteTimePosition,string"`
+		RelativeCount int                    `xml:"RelCount"      scpd:"RelativeCounterPosition,i4"`
+		AbsoluteCount int                    `xml:"AbsCount"      scpd:"AbsoluteCounterPosition,i4"`
 	}
 
 	getDeviceCapabilitiesRequest struct {

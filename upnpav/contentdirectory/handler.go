@@ -109,7 +109,7 @@ func (h SOAPHandler) browse(ctx context.Context, in []byte) ([]byte, error) {
 		return nil, err
 	}
 	rsp := browseResponse{
-		Result: []byte(didllite.String()),
+		Result: upnpav.EncodedDIDLLite{*didllite},
 	}
 	out, err := xml.Marshal(rsp)
 	if err != nil {
@@ -134,7 +134,7 @@ func (h SOAPHandler) search(ctx context.Context, in []byte) ([]byte, error) {
 		return nil, err
 	}
 	rsp := searchResponse{
-		Result: []byte(didllite.String()),
+		Result: upnpav.EncodedDIDLLite{*didllite},
 	}
 	return xml.Marshal(rsp)
 }

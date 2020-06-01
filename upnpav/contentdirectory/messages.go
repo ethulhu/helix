@@ -66,8 +66,7 @@ type (
 	browseResponse struct {
 		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 BrowseResponse"`
 
-		// Result is a DIDL-Lite XML document.
-		Result []byte `xml:"Result" scpd:"A_ARG_TYPE_Result,string"`
+		Result upnpav.EncodedDIDLLite `xml:"Result" scpd:"A_ARG_TYPE_Result,string"`
 
 		// Number of objects returned in this result.
 		// If BrowseMetadata is specified in the BrowseFlags, then NumberReturned = 1
@@ -90,14 +89,11 @@ type (
 		SortCriteria   xmltypes.CommaSeparatedStrings `xml:"SortCriteria"   scpd:"A_ARG_TYPE_SortCriteria,string"`
 	}
 	searchResponse struct {
-		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 SearchResponse"`
-
-		// Result is a DIDL-Lite XML document.
-		Result []byte `xml:"Result" scpd:"A_ARG_TYPE_Result,string"`
-
-		NumberReturned uint `xml:"NumberReturned" scpd:"A_ARG_TYPE_Count,ui4"`
-		TotalMatches   uint `xml:"TotalMatches"   scpd:"A_ARG_TYPE_Count,ui4"`
-		UpdateID       uint `xml:"UpdateID"       scpd:"A_ARG_TYPE_UpdateID,ui4"`
+		XMLName        xml.Name               `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 SearchResponse"`
+		Result         upnpav.EncodedDIDLLite `xml:"Result" scpd:"A_ARG_TYPE_Result,string"`
+		NumberReturned uint                   `xml:"NumberReturned" scpd:"A_ARG_TYPE_Count,ui4"`
+		TotalMatches   uint                   `xml:"TotalMatches"   scpd:"A_ARG_TYPE_Count,ui4"`
+		UpdateID       uint                   `xml:"UpdateID"       scpd:"A_ARG_TYPE_UpdateID,ui4"`
 	}
 
 	createObjectRequest struct {

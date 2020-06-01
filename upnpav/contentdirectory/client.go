@@ -78,12 +78,7 @@ func (c *client) browse(ctx context.Context, bf browseFlag, object upnpav.Object
 	if err := c.call(ctx, browse, req, &rsp); err != nil {
 		return nil, fmt.Errorf("could not perform Browse request: %w", err)
 	}
-
-	metadata, err := upnpav.ParseDIDLLite(string(rsp.Result))
-	if err != nil {
-		return nil, fmt.Errorf("could not unmarshal result: %w", err)
-	}
-	return metadata, nil
+	return &rsp.Result.DIDLLite, nil
 }
 
 func (c *client) Search(ctx context.Context, container upnpav.ObjectID, criteria search.Criteria) (*upnpav.DIDLLite, error) {
@@ -97,10 +92,5 @@ func (c *client) Search(ctx context.Context, container upnpav.ObjectID, criteria
 	if err := c.call(ctx, "Search", req, &rsp); err != nil {
 		return nil, fmt.Errorf("could not perform Search request: %w", err)
 	}
-
-	metadata, err := upnpav.ParseDIDLLite(string(rsp.Result))
-	if err != nil {
-		return nil, fmt.Errorf("could not unmarshal result: %w", err)
-	}
-	return metadata, nil
+	return &rsp.Result.DIDLLite, nil
 }

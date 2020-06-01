@@ -17,6 +17,7 @@ import (
 	"github.com/ethulhu/helix/flag"
 	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav"
+	"github.com/ethulhu/helix/upnpav/connectionmanager"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
 	"github.com/ethulhu/helix/upnpav/contentdirectory/search"
 
@@ -77,6 +78,7 @@ func main() {
 	d.SerialNumber = "00000000"
 
 	d.Handle(contentdirectory.Version1, contentdirectory.ServiceID, contentdirectory.SCPD, contentdirectory.SOAPHandler{&contentDirectory{}})
+	d.Handle(connectionmanager.Version1, connectionmanager.ServiceID, connectionmanager.SCPD, nil)
 
 	go func() {
 		server := &http.Server{Handler: d}
@@ -118,7 +120,7 @@ func (cd *contentDirectory) BrowseMetadata(_ context.Context, id upnpav.ObjectID
 				Object: upnpav.Object{
 					ID:     id,
 					Title:  fi.Name(),
-					Date:   fi.ModTime(),
+					Date:   &upnpav.Date{fi.ModTime()},
 					Class:  upnpav.StorageFolder,
 					Parent: upnpav.ObjectID("-1"),
 				},
@@ -150,7 +152,7 @@ func (cd *contentDirectory) BrowseChildren(_ context.Context, parent upnpav.Obje
 		didllite.Containers = append(didllite.Containers, upnpav.Container{
 			Object: upnpav.Object{
 				ID:     upnpav.ObjectID(path.Join(*filePath, string(parent), fi.Name())),
-				Date:   fi.ModTime(),
+				Date:   &upnpav.Date{fi.ModTime()},
 				Title:  fi.Name(),
 				Class:  upnpav.StorageFolder,
 				Parent: parent,

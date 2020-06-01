@@ -5,7 +5,6 @@
 package upnpav
 
 import (
-	"encoding/xml"
 	"fmt"
 	"strings"
 	"time"
@@ -56,20 +55,14 @@ func (d Duration) String() string {
 	return fmt.Sprintf("%d:%02d:%02d", hours, minutes, seconds)
 }
 
-func (d Duration) MarshalXML(enc *xml.Encoder, el xml.StartElement) error {
-	return enc.EncodeElement(d.String(), el)
+func (d Duration) MarshalText() ([]byte, error) {
+	return []byte(d.String()), nil
 }
-func (d *Duration) UnmarshalXML(dec *xml.Decoder, el xml.StartElement) error {
-	var s string
-	if err := dec.DecodeElement(&s, &el); err != nil {
-		return err
-	}
-
-	newD, err := ParseDuration(s)
+func (d *Duration) UnmarshalText(raw []byte) error {
+	dd, err := ParseDuration(string(raw))
 	if err != nil {
 		return err
 	}
-
-	*d = newD
+	*d = dd
 	return nil
 }

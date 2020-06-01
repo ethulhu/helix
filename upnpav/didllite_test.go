@@ -16,11 +16,11 @@ func TestParseDIDLLite(t *testing.T) {
 		wantErr error
 	}{
 		{
-			raw: `<?xml version="1.0" encoding="utf-8"?><DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/"><item restricted="1" searchable="0"><res protocolInfo="http-get:*:audio/mpeg:*">http://192.168.16.4:8200/MediaItems/36.mp3</res></item></DIDL-Lite>`,
+			raw: `<?xml version="1.0" encoding="UTF-8"?><DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/"><item restricted="1" searchable="0"><res protocolInfo="http-get:*:audio/mpeg:*">http://192.168.16.4:8200/MediaItems/36.mp3</res></item></DIDL-Lite>`,
 			want: &DIDLLite{
 				Items: []Item{{
 					Object: Object{
-						Writeable:  false,
+						Restricted: true,
 						Searchable: false,
 					},
 					Resources: []Resource{{
@@ -64,7 +64,7 @@ xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/">
 						Object: Object{
 							ID:         ObjectID("64"),
 							Parent:     ObjectID("0"),
-							Writeable:  false,
+							Restricted: true,
 							Searchable: true,
 							Title:      "Browse Folders",
 							Class:      StorageFolder,
@@ -76,7 +76,7 @@ xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/">
 						Object: Object{
 							ID:         ObjectID("1"),
 							Parent:     ObjectID("0"),
-							Writeable:  true,
+							Restricted: false,
 							Searchable: false,
 							Title:      "Music",
 							Class:      StorageFolder,
@@ -90,7 +90,7 @@ xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/">
 						Object: Object{
 							ID:         ObjectID("72"),
 							Parent:     ObjectID("4"),
-							Writeable:  true,
+							Restricted: false,
 							Searchable: false,
 						},
 						Resources: []Resource{
@@ -142,9 +142,8 @@ func TestMarshalDIDLLite(t *testing.T) {
 	}{
 		{
 			didllite: &DIDLLite{},
-			want: `<?xml version="1.0" encoding="utf-8"?>
-<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/"></DIDL-Lite>
-`,
+			want: `<?xml version="1.0" encoding="UTF-8"?>
+<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/"></DIDL-Lite>`,
 		},
 		{
 			didllite: &DIDLLite{
@@ -153,7 +152,7 @@ func TestMarshalDIDLLite(t *testing.T) {
 						Object: Object{
 							ID:         ObjectID("64"),
 							Parent:     ObjectID("0"),
-							Writeable:  true,
+							Restricted: false,
 							Searchable: true,
 							Title:      "Browse Folders",
 							Class:      StorageFolder,
@@ -165,7 +164,7 @@ func TestMarshalDIDLLite(t *testing.T) {
 						Object: Object{
 							ID:         ObjectID("1"),
 							Parent:     ObjectID("0"),
-							Writeable:  false,
+							Restricted: true,
 							Searchable: false,
 							Title:      "Music",
 							Class:      StorageFolder,
@@ -175,20 +174,19 @@ func TestMarshalDIDLLite(t *testing.T) {
 					},
 				},
 			},
-			want: `<?xml version="1.0" encoding="utf-8"?>
+			want: `<?xml version="1.0" encoding="UTF-8"?>
 <DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/">
   <container id="64" parentID="0" restricted="0" searchable="1" childCount="4">
-    <dc:title>Browse Folders</dc:title>
-    <upnp:class>object.container.storageFolder</upnp:class>
-    <upnp:storageUsed>-1</upnp:storageUsed>
+    <title xmlns="http://purl.org/dc/elements/1.1/">Browse Folders</title>
+    <class xmlns="urn:schemas-upnp-org:metadata-1-0/upnp/">object.container.storageFolder</class>
+    <storageUsed xmlns="urn:schemas-upnp-org:metadata-1-0/upnp/">-1</storageUsed>
   </container>
   <container id="1" parentID="0" restricted="1" searchable="0" childCount="7">
-    <dc:title>Music</dc:title>
-    <upnp:class>object.container.storageFolder</upnp:class>
-    <upnp:storageUsed>-1</upnp:storageUsed>
+    <title xmlns="http://purl.org/dc/elements/1.1/">Music</title>
+    <class xmlns="urn:schemas-upnp-org:metadata-1-0/upnp/">object.container.storageFolder</class>
+    <storageUsed xmlns="urn:schemas-upnp-org:metadata-1-0/upnp/">-1</storageUsed>
   </container>
-</DIDL-Lite>
-`,
+</DIDL-Lite>`,
 		},
 		{
 			didllite: &DIDLLite{
@@ -197,7 +195,7 @@ func TestMarshalDIDLLite(t *testing.T) {
 						Object: Object{
 							ID:         ObjectID("69"),
 							Parent:     ObjectID("12"),
-							Writeable:  true,
+							Restricted: false,
 							Searchable: true,
 							Title:      "hello",
 						},
@@ -225,15 +223,14 @@ func TestMarshalDIDLLite(t *testing.T) {
 					},
 				},
 			},
-			want: `<?xml version="1.0" encoding="utf-8"?>
+			want: `<?xml version="1.0" encoding="UTF-8"?>
 <DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/">
   <item id="69" parentID="12" restricted="0" searchable="1">
-    <dc:title>hello</dc:title>
+    <title xmlns="http://purl.org/dc/elements/1.1/">hello</title>
     <res protocolInfo="http-get:*:audio/mpeg:*" bitrate="131072">http://mew/purr.mp3</res>
     <res protocolInfo="http-get:*:video/mp4:*" resolution="480x360">http://mew/purr.mp4</res>
   </item>
-</DIDL-Lite>
-`,
+</DIDL-Lite>`,
 		},
 	}
 

@@ -5,7 +5,6 @@
 package upnpav
 
 import (
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"mime"
@@ -37,12 +36,12 @@ var (
 	ErrUnknownMIMEType = errors.New("could not find valid MIME-type for URI")
 )
 
-func ParseProtocolInfo(raw string) (*ProtocolInfo, error) {
+func ParseProtocolInfo(raw string) (ProtocolInfo, error) {
 	parts := strings.Split(raw, ":")
 	if len(parts) != 4 {
-		return nil, fmt.Errorf("ProtocolInfo must have 4 parts, found %v", len(parts))
+		return ProtocolInfo{}, fmt.Errorf("ProtocolInfo must have 4 parts, found %v", len(parts))
 	}
-	return &ProtocolInfo{
+	return ProtocolInfo{
 		Protocol:       Protocol(parts[0]),
 		Network:        parts[1],
 		ContentFormat:  parts[2],
@@ -63,7 +62,7 @@ func ProtocolInfoForURI(uri string) (*ProtocolInfo, error) {
 	}, nil
 }
 
-func (p *ProtocolInfo) String() string {
+func (p ProtocolInfo) String() string {
 	network := "*"
 	if p.Network != "" {
 		network = p.Network
@@ -77,20 +76,14 @@ func (p *ProtocolInfo) String() string {
 	return fmt.Sprintf("%s:%s:%s:%s", p.Protocol, network, p.ContentFormat, additionalInfo)
 }
 
-func (p *ProtocolInfo) MarshalXMLAttr(name xml.Name) (xml.Attr, error) {
-	return xml.Attr{
-		Name:  name,
-		Value: p.String(),
-	}, nil
+func (p ProtocolInfo) MarshalText() ([]byte, error) {
+	return []byte(p.String()), nil
 }
-func (p *ProtocolInfo) UnmarshalXMLAttr(attr xml.Attr) error {
-	pi, err := ParseProtocolInfo(attr.Value)
+func (p *ProtocolInfo) UnmarshalText(raw []byte) error {
+	pp, err := ParseProtocolInfo(string(raw))
 	if err != nil {
 		return err
 	}
-	p.Protocol = pi.Protocol
-	p.Network = pi.Network
-	p.ContentFormat = pi.ContentFormat
-	p.AdditionalInfo = pi.AdditionalInfo
+	*p = pp
 	return nil
 }

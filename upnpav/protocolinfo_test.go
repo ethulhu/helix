@@ -13,22 +13,20 @@ import (
 func TestParseProtocolInfo(t *testing.T) {
 	tests := []struct {
 		raw     string
-		want    *ProtocolInfo
+		want    ProtocolInfo
 		wantErr error
 	}{
 		{
 			raw:     "",
-			want:    nil,
 			wantErr: fmt.Errorf("ProtocolInfo must have 4 parts, found 1"),
 		},
 		{
 			raw:     "a:b:c:d:e",
-			want:    nil,
 			wantErr: fmt.Errorf("ProtocolInfo must have 4 parts, found 5"),
 		},
 		{
 			raw: "http-get:*:audio/mpeg:*",
-			want: &ProtocolInfo{
+			want: ProtocolInfo{
 				Protocol:       ProtocolHTTP,
 				Network:        "*",
 				ContentFormat:  "audio/mpeg",
@@ -38,7 +36,7 @@ func TestParseProtocolInfo(t *testing.T) {
 		},
 		{
 			raw: "a:b:c:d",
-			want: &ProtocolInfo{
+			want: ProtocolInfo{
 				Protocol:       Protocol("a"),
 				Network:        "b",
 				ContentFormat:  "c",

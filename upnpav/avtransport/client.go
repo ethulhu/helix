@@ -33,7 +33,10 @@ func (c *client) call(ctx context.Context, method string, input, output interfac
 	if err != nil {
 		return err
 	}
-	return xml.Unmarshal(rsp, output)
+	if output != nil {
+		return xml.Unmarshal(rsp, output)
+	}
+	return nil
 }
 
 func (c *client) Play(ctx context.Context) error {

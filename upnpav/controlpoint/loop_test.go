@@ -444,9 +444,9 @@ type fakeConnectionManager struct {
 	actions []string
 }
 
-func (c *fakeConnectionManager) ProtocolInfo(_ context.Context) ([]*upnpav.ProtocolInfo, []*upnpav.ProtocolInfo, error) {
+func (c *fakeConnectionManager) ProtocolInfo(_ context.Context) ([]upnpav.ProtocolInfo, []upnpav.ProtocolInfo, error) {
 	c.actions = append(c.actions, "protocolInfo")
-	sinks := []*upnpav.ProtocolInfo{
+	sinks := []upnpav.ProtocolInfo{
 		{
 			Protocol:       upnpav.ProtocolHTTP,
 			Network:        "*",

@@ -13,7 +13,7 @@ import (
 )
 
 type (
-	commaSeparatedProtocolInfos []*upnpav.ProtocolInfo
+	commaSeparatedProtocolInfos []upnpav.ProtocolInfo
 	commaSeparatedInts          []int
 
 	direction string
@@ -112,7 +112,7 @@ func (ps *commaSeparatedProtocolInfos) UnmarshalXML(d *xml.Decoder, el xml.Start
 		return nil
 	}
 
-	var protocolInfos []*upnpav.ProtocolInfo
+	var protocolInfos []upnpav.ProtocolInfo
 	for _, p := range strings.Split(s, ",") {
 		protocolInfo, err := upnpav.ParseProtocolInfo(p)
 		if err != nil {

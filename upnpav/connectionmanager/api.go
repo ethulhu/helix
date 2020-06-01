@@ -27,8 +27,4 @@ const (
 
 var SCPD = scpd.Must(scpd.Merge(
 	scpd.Must(scpd.FromAction(getProtocolInfo, getProtocolInfoRequest{}, getProtocolInfoResponse{})),
-	scpd.Must(scpd.FromAction(prepareForConnection, prepareForConnectionRequest{}, prepareForConnectionResponse{})),
-	scpd.Must(scpd.FromAction(connectionComplete, connectionCompleteRequest{}, connectionCompleteResponse{})),
-	scpd.Must(scpd.FromAction(getCurrentConnectionIDs, getCurrentConnectionIDsRequest{}, getCurrentConnectionIDsResponse{})),
-	scpd.Must(scpd.FromAction(getCurrentConnectionInfo, getCurrentConnectionInfoRequest{}, getCurrentConnectionInfoResponse{})),
 ))

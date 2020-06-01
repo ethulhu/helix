@@ -66,6 +66,8 @@ type (
 		SortCriteria commaSeparatedStrings `xml:"SortCriteria" scpd:"A_ARG_TYPE_SortCriteria,string"`
 	}
 	browseResponse struct {
+		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 BrowseResponse"`
+
 		// Result is a DIDL-Lite XML document.
 		Result []byte `xml:"Result" scpd:"A_ARG_TYPE_Result,string"`
 
@@ -74,8 +76,7 @@ type (
 		NumberReturned uint `xml:"NumberReturned" scpd:"A_ARG_TYPE_Count,ui4"`
 
 		TotalMatches uint `xml:"TotalMatches" scpd:"A_ARG_TYPE_Count,ui4"`
-
-		UpdateID uint `xml:"UpdateID" scpd:"A_ARG_TYPE_UpdateID,ui4"`
+		UpdateID     uint `xml:"UpdateID"     scpd:"A_ARG_TYPE_UpdateID,ui4"`
 	}
 
 	searchRequest struct {
@@ -85,18 +86,106 @@ type (
 
 		SearchCriteria string `xml:"SearchCriteria" scpd:"A_ARG_TYPE_SearchCriteria,string"`
 
-		Filter         commaSeparatedStrings `xml:"Filter" scpd:"A_ARG_TYPE_Filter,string"`
-		StartingIndex  uint                  `xml:"StartingIndex" scpd:"A_ARG_TYPE_Index,ui4"`
+		Filter         commaSeparatedStrings `xml:"Filter"         scpd:"A_ARG_TYPE_Filter,string"`
+		StartingIndex  uint                  `xml:"StartingIndex"  scpd:"A_ARG_TYPE_Index,ui4"`
 		RequestedCount uint                  `xml:"RequestedCount" scpd:"A_ARG_TYPE_Count,ui4"`
-		SortCriteria   commaSeparatedStrings `xml:"SortCriteria" scpd:"A_ARG_TYPE_SortCriteria,string"`
+		SortCriteria   commaSeparatedStrings `xml:"SortCriteria"   scpd:"A_ARG_TYPE_SortCriteria,string"`
 	}
 	searchResponse struct {
+		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 SearchResponse"`
+
 		// Result is a DIDL-Lite XML document.
 		Result []byte `xml:"Result" scpd:"A_ARG_TYPE_Result,string"`
 
 		NumberReturned uint `xml:"NumberReturned" scpd:"A_ARG_TYPE_Count,ui4"`
 		TotalMatches   uint `xml:"TotalMatches"   scpd:"A_ARG_TYPE_Count,ui4"`
 		UpdateID       uint `xml:"UpdateID"       scpd:"A_ARG_TYPE_UpdateID,ui4"`
+	}
+
+	createObjectRequest struct {
+		XMLName   xml.Name        `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 CreateObject"`
+		Container upnpav.ObjectID `xml:"ContainerID" scpd:"A_ARG_TYPE_ObjectID,string"`
+		Elements  string          `xml:"Elements"    scpd:"A_ARG_TYPE_Result,string"`
+	}
+	createObjectResponse struct {
+		XMLName xml.Name        `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 CreateObjectResponse"`
+		Object  upnpav.ObjectID `xml:"ObjectID" scpd:"A_ARG_TYPE_ObjectID,string"`
+		Result  string          `xml:"Result"   scpd:"A_ARG_TYPE_Result,string"`
+	}
+
+	destroyObjectRequest struct {
+		XMLName xml.Name        `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 DestroyObject"`
+		Object  upnpav.ObjectID `xml:"ObjectID" scpd:"A_ARG_TYPE_ObjectID,string"`
+	}
+	destroyObjectResponse struct {
+		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 DestroyObjectResponse"`
+	}
+
+	updateObjectRequest struct {
+		XMLName         xml.Name              `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 UpdateObject"`
+		Object          upnpav.ObjectID       `xml:"ObjectID"        scpd:"A_ARG_TYPE_ObjectID,string"`
+		CurrentTagValue commaSeparatedStrings `xml:"CurrentTagValue" scpd:"A_ARG_TYPE_TagValueList,string"`
+		NewTagValue     commaSeparatedStrings `xml:"NewTagValue"     scpd:"A_ARG_TYPE_TagValueList,string"`
+	}
+	updateObjectResponse struct {
+		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 UpdateObjectResponse"`
+	}
+
+	importResourceRequest struct {
+		XMLName        xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 ImportResource"`
+		SourceURI      string   `xml:"SourceURI"      scpd:"A_ARG_TYPE_URI,uri"`
+		DestinationURI string   `xml:"DestinationURI" scpd:"A_ARG_TYPE_URI,uri"`
+	}
+	importResourceResponse struct {
+		XMLName    xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 ImportResourceResponse"`
+		TransferID uint     `xml:"TransferID" scpd:"A_ARG_TYPE_TransferID,ui4"`
+	}
+
+	exportResourceRequest struct {
+		XMLName        xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 ExportResource"`
+		SourceURI      string   `xml:"SourceURI"      scpd:"A_ARG_TYPE_URI,uri"`
+		DestinationURI string   `xml:"DestinationURI" scpd:"A_ARG_TYPE_URI,uri"`
+	}
+	exportResourceResponse struct {
+		XMLName    xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 ExportResourceResponse"`
+		TransferID uint     `xml:"TransferID" scpd:"A_ARG_TYPE_TransferID,ui4"`
+	}
+
+	stopTransferResourceRequest struct {
+		XMLName    xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 StopTransferResource"`
+		TransferID uint     `xml:"TransferID" scpd:"A_ARG_TYPE_TransferID,ui4"`
+	}
+	stopTransferResourceResponse struct {
+		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 StopTransferResourceResponse"`
+	}
+
+	getTransferProgressRequest struct {
+		XMLName    xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 GetTransferProgress"`
+		TransferID uint     `xml:"TransferID" scpd:"A_ARG_TYPE_TransferID,ui4"`
+	}
+	getTransferProgressResponse struct {
+		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 GetTransferProgressResponse"`
+		Status  string   `xml:"TransferStatus" scpd:"A_ARG_TYPE_TransferStatus,string"`
+		Length  string   `xml:"TransferLength" scpd:"A_ARG_TYPE_TransferLength,string"`
+		Total   string   `xml:"TransferTotal"  scpd:"A_ARG_TYPE_TransferTotal,string"`
+	}
+
+	deleteResourceRequest struct {
+		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 DeleteResource"`
+		URI     string   `xml:"ResourceURI" scpd:"A_ARG_TYPE_URI,uri"`
+	}
+	deleteResourceResponse struct {
+		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 DeleteResourceResponse"`
+	}
+
+	createReferenceRequest struct {
+		XMLName   xml.Name        `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 CreateReference"`
+		Object    upnpav.ObjectID `xml:"ObjectID"    scpd:"A_ARG_TYPE_ObjectID,string"`
+		Container upnpav.ObjectID `xml:"ContainerID" scpd:"A_ARG_TYPE_ObjectID,string"`
+	}
+	createReferenceResponse struct {
+		XMLName xml.Name        `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 CreateReferenceResponse"`
+		Object  upnpav.ObjectID `xml:"NewID" scpd:"A_ARG_TYPE_ObjectID,string"`
 	}
 )
 
@@ -117,12 +206,13 @@ const (
 	destroyObject = "DestroyObject"
 	updateObject  = "UpdateObject"
 
-	createResource       = "CreateResource"
 	deleteResource       = "DeleteResource"
 	exportResource       = "ExportResource"
-	getTransferProgress  = "GetTransferProgress"
 	importResource       = "ImportResource"
 	stopTransferResource = "StopTransferResource"
+	getTransferProgress  = "GetTransferProgress"
+
+	createReference = "CreateReference"
 )
 
 func (csl commaSeparatedStrings) MarshalXML(e *xml.Encoder, el xml.StartElement) error {

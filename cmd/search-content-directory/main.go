@@ -6,13 +6,13 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"time"
 
+	"github.com/ethulhu/helix/flag"
 	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
@@ -20,34 +20,30 @@ import (
 )
 
 var (
-	query  = flag.String("query", "", "query to run")
-	object = flag.String("object", "0", "object to list (0 means root)")
-	server = flag.String("server", "", "name of server to list")
+	query = flag.Custom("query", "", "query to run", func(raw string) (interface{}, error) {
+		return search.Parse(raw)
+	})
 
-	ifaceName = flag.String("interface", "", "network interface to discover on (optional)")
-	timeout   = flag.Duration("timeout", 2*time.Second, "how long to wait for device discovery")
+	object = flag.String("object", "0", "object to list (0 means root)")
+	server = flag.String("server", "", "UDN of server to list")
+
+	timeout = flag.Duration("timeout", 2*time.Second, "how long to wait for device discovery")
+	iface   = flag.Custom("interface", "", "network interface to discover on (optional)", func(raw string) (interface{}, error) {
+		if raw == "" {
+			return (*net.Interface)(nil), nil
+		}
+		return net.InterfaceByName(raw)
+	})
 )
 
 func main() {
 	flag.Parse()
 
-	if *server == "" || *query == "" {
-		log.Fatal("must set -server and -query")
+	if *server == "" {
+		log.Fatal("must set -server")
 	}
-
-	criteria, err := search.Parse(*query)
-	if err != nil {
-		log.Fatalf("could not parse query %q: %v", *query, err)
-	}
-
-	var iface *net.Interface
-	if *ifaceName != "" {
-		var err error
-		iface, err = net.InterfaceByName(*ifaceName)
-		if err != nil {
-			log.Fatalf("could not find interface %s: %v", *ifaceName, err)
-		}
-	}
+	query := (*query).(search.Criteria)
+	iface := (*iface).(*net.Interface)
 
 	ctx := context.Background()
 
@@ -72,7 +68,7 @@ func main() {
 		log.Print("could not find ContentDirectory; sleeping and retrying")
 	}
 
-	didl, err := directory.Search(ctx, upnpav.ObjectID(*object), criteria)
+	didl, err := directory.Search(ctx, upnpav.ObjectID(*object), query)
 	if err != nil {
 		log.Printf("could not search ContentDirectory: %v", err)
 

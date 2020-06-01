@@ -6,32 +6,66 @@ package main
 
 import (
 	"context"
-	"flag"
+	"errors"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"os"
 	"path"
 
+	"github.com/ethulhu/helix/flag"
 	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
 	"github.com/ethulhu/helix/upnpav/contentdirectory/search"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var (
 	filePath = flag.String("path", "", "path to serve")
+
+	iface = flag.Custom("interface", "", "interface to listen on (mandatory)", func(raw string) (interface{}, error) {
+		if raw == "" {
+			return nil, errors.New("must not be empty")
+		}
+		return net.InterfaceByName(raw)
+	})
 )
 
 func main() {
 	flag.Parse()
 
-	httpConn, err := net.Listen("tcp", "192.168.69.195:0")
+	iface := (*iface).(*net.Interface)
+	addrs, err := iface.Addrs()
 	if err != nil {
-		log.Fatalf("could not create HTTP listener: %v", err)
+		log.Fatalf("could not list addresses for interface %q: %v", iface.Name, err)
+	}
+	var ip net.IP
+	for _, addr := range addrs {
+		if addr, ok := addr.(*net.IPNet); ok && addr.IP.To4() != nil {
+			ip = addr.IP.To4()
+			break
+		}
+	}
+	if ip == nil {
+		log.Fatalf("interface %q has no addresses", iface.Name)
+	}
+	addr := &net.TCPAddr{
+		IP: ip,
+	}
+
+	httpConn, err := net.Listen("tcp", addr.String())
+	if err != nil {
+		log.WithFields(log.Fields{
+			"listener": addr,
+			"error":    err,
+		}).Fatal("could not create HTTP listener")
 	}
 	defer httpConn.Close()
+	log.WithFields(log.Fields{
+		"listener": httpConn.Addr(),
+	}).Info("created HTTP listener")
 
 	d := upnp.NewDevice("Helix", "uuid:941b0ec2-aca8-4ce1-b64a-329f5762864d")
 	d.DeviceType = contentdirectory.DeviceType
@@ -42,24 +76,26 @@ func main() {
 	d.ModelNumber = "42"
 	d.ModelURL = "https://ethulhu.co.uk"
 	d.SerialNumber = "00000000"
-	d.Icons = []upnp.Icon{{
-		Width:  48,
-		Height: 48,
-		Depth:  8,
-		URL:    "/icon.png",
-	}}
 
 	d.Handle(contentdirectory.Version1, contentdirectory.ServiceID, contentdirectory.SCPD, contentdirectory.SOAPHandler{&contentDirectory{}})
 
 	go func() {
 		server := &http.Server{Handler: d}
+		log.WithFields(log.Fields{
+			"listener": httpConn.Addr(),
+		}).Info("serving HTTP")
 		if err := server.Serve(httpConn); err != nil {
-			log.Fatalf("could not serve HTTP: %v", err)
+			log.WithFields(log.Fields{
+				"listener": httpConn.Addr(),
+				"error":    err,
+			}).Fatal("could not serve HTTP")
 		}
 	}()
 
 	if err := upnp.BroadcastDevice(d, httpConn.Addr(), nil); err != nil {
-		log.Fatalf("could not broadcast device: %v", err)
+		log.WithFields(log.Fields{
+			"error": err,
+		}).Fatal("could serve SSDP")
 	}
 }
 

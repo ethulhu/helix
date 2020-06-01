@@ -12,6 +12,7 @@ import (
 	"github.com/ethulhu/helix/soap"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/contentdirectory/search"
+	"github.com/ethulhu/helix/xmltypes"
 )
 
 type (
@@ -70,7 +71,7 @@ func (c *client) browse(ctx context.Context, bf browseFlag, object upnpav.Object
 	req := browseRequest{
 		Object:     object,
 		BrowseFlag: bf,
-		Filter:     commaSeparatedStrings{"*"},
+		Filter:     xmltypes.CommaSeparatedStrings{"*"},
 	}
 
 	rsp := browseResponse{}
@@ -88,7 +89,7 @@ func (c *client) browse(ctx context.Context, bf browseFlag, object upnpav.Object
 func (c *client) Search(ctx context.Context, container upnpav.ObjectID, criteria search.Criteria) (*upnpav.DIDLLite, error) {
 	req := searchRequest{
 		Container:      container,
-		Filter:         commaSeparatedStrings{"*"},
+		Filter:         xmltypes.CommaSeparatedStrings{"*"},
 		SearchCriteria: criteria.String(),
 	}
 

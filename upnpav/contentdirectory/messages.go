@@ -6,28 +6,26 @@ package contentdirectory
 
 import (
 	"encoding/xml"
-	"strings"
 
 	"github.com/ethulhu/helix/upnpav"
+	"github.com/ethulhu/helix/xmltypes"
 )
 
 type (
-	commaSeparatedStrings []string
-
 	getSearchCapabilitiesRequest struct {
 		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 GetSearchCapabilities"`
 	}
 	getSearchCapabilitiesResponse struct {
-		XMLName      xml.Name              `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 GetSearchCapabilitiesResponse"`
-		Capabilities commaSeparatedStrings `xml:"SearchCaps" scpd:"SearchCapabilities,string"`
+		XMLName      xml.Name                       `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 GetSearchCapabilitiesResponse"`
+		Capabilities xmltypes.CommaSeparatedStrings `xml:"SearchCaps" scpd:"SearchCapabilities,string"`
 	}
 
 	getSortCapabilitiesRequest struct {
 		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 GetSortCapabilities"`
 	}
 	getSortCapabilitiesResponse struct {
-		XMLName      xml.Name              `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 GetSortCapabilitiesResponse"`
-		Capabilities commaSeparatedStrings `xml:"SortCaps" scpd:"SortCapabilities,string"`
+		XMLName      xml.Name                       `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 GetSortCapabilitiesResponse"`
+		Capabilities xmltypes.CommaSeparatedStrings `xml:"SortCaps" scpd:"SortCapabilities,string"`
 	}
 
 	getSystemUpdateIDRequest struct {
@@ -50,7 +48,7 @@ type (
 		BrowseFlag browseFlag `xml:"BrowseFlag" scpd:"A_ARG_TYPE_BrowseFlag,string,BrowseDirectChildren|BrowseMetadata"`
 
 		// Filter is a comma-separated list of properties (e.g. "upnp:artist"), or "*".
-		Filter commaSeparatedStrings `xml:"Filter" scpd:"A_ARG_TYPE_Filter,string"`
+		Filter xmltypes.CommaSeparatedStrings `xml:"Filter" scpd:"A_ARG_TYPE_Filter,string"`
 
 		// StartingIndex is a zero-based offset to enumerate children under the container specified by ObjectID.
 		// Must be 0 if BrowseFlag is equal to BrowseMetadata.
@@ -63,7 +61,7 @@ type (
 		// SortCriteria is a comma-separated list of "signed" properties.
 		// For example "+upnp:artist" means "return objects sorted ascending by artist",
 		// and "+upnp:artist,-dc:date" means "return objects sorted by (ascending artist, descending date)".
-		SortCriteria commaSeparatedStrings `xml:"SortCriteria" scpd:"A_ARG_TYPE_SortCriteria,string"`
+		SortCriteria xmltypes.CommaSeparatedStrings `xml:"SortCriteria" scpd:"A_ARG_TYPE_SortCriteria,string"`
 	}
 	browseResponse struct {
 		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 BrowseResponse"`
@@ -86,10 +84,10 @@ type (
 
 		SearchCriteria string `xml:"SearchCriteria" scpd:"A_ARG_TYPE_SearchCriteria,string"`
 
-		Filter         commaSeparatedStrings `xml:"Filter"         scpd:"A_ARG_TYPE_Filter,string"`
-		StartingIndex  uint                  `xml:"StartingIndex"  scpd:"A_ARG_TYPE_Index,ui4"`
-		RequestedCount uint                  `xml:"RequestedCount" scpd:"A_ARG_TYPE_Count,ui4"`
-		SortCriteria   commaSeparatedStrings `xml:"SortCriteria"   scpd:"A_ARG_TYPE_SortCriteria,string"`
+		Filter         xmltypes.CommaSeparatedStrings `xml:"Filter"         scpd:"A_ARG_TYPE_Filter,string"`
+		StartingIndex  uint                           `xml:"StartingIndex"  scpd:"A_ARG_TYPE_Index,ui4"`
+		RequestedCount uint                           `xml:"RequestedCount" scpd:"A_ARG_TYPE_Count,ui4"`
+		SortCriteria   xmltypes.CommaSeparatedStrings `xml:"SortCriteria"   scpd:"A_ARG_TYPE_SortCriteria,string"`
 	}
 	searchResponse struct {
 		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 SearchResponse"`
@@ -122,10 +120,10 @@ type (
 	}
 
 	updateObjectRequest struct {
-		XMLName         xml.Name              `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 UpdateObject"`
-		Object          upnpav.ObjectID       `xml:"ObjectID"        scpd:"A_ARG_TYPE_ObjectID,string"`
-		CurrentTagValue commaSeparatedStrings `xml:"CurrentTagValue" scpd:"A_ARG_TYPE_TagValueList,string"`
-		NewTagValue     commaSeparatedStrings `xml:"NewTagValue"     scpd:"A_ARG_TYPE_TagValueList,string"`
+		XMLName         xml.Name                       `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 UpdateObject"`
+		Object          upnpav.ObjectID                `xml:"ObjectID"        scpd:"A_ARG_TYPE_ObjectID,string"`
+		CurrentTagValue xmltypes.CommaSeparatedStrings `xml:"CurrentTagValue" scpd:"A_ARG_TYPE_TagValueList,string"`
+		NewTagValue     xmltypes.CommaSeparatedStrings `xml:"NewTagValue"     scpd:"A_ARG_TYPE_TagValueList,string"`
 	}
 	updateObjectResponse struct {
 		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ContentDirectory:1 UpdateObjectResponse"`
@@ -214,18 +212,3 @@ const (
 
 	createReference = "CreateReference"
 )
-
-func (csl commaSeparatedStrings) MarshalXML(e *xml.Encoder, el xml.StartElement) error {
-	s := strings.Join(csl, ",")
-	return e.EncodeElement(s, el)
-}
-
-func (csl *commaSeparatedStrings) UnmarshalXML(d *xml.Decoder, el xml.StartElement) error {
-	var s string
-	if err := d.DecodeElement(&s, &el); err != nil {
-		return err
-	}
-
-	*csl = strings.Split(s, ",")
-	return nil
-}

@@ -6,14 +6,12 @@ package avtransport
 
 import (
 	"encoding/xml"
-	"strings"
 
 	"github.com/ethulhu/helix/upnpav"
+	"github.com/ethulhu/helix/xmltypes"
 )
 
 type (
-	commaSeparatedStrings []string
-
 	setAVTransportURIRequest struct {
 		XMLName    xml.Name `xml:"urn:schemas-upnp-org:service:AVTransport:1 SetAVTransportURI"`
 		InstanceID int      `xml:"InstanceID" scpd:"A_ARG_TYPE_InstanceID,ui4"`
@@ -90,10 +88,10 @@ type (
 		InstanceID int      `xml:"InstanceID" scpd:"A_ARG_TYPE_InstanceID,ui4"`
 	}
 	getDeviceCapabilitiesResponse struct {
-		XMLName            xml.Name              `xml:"urn:schemas-upnp-org:service:AVTransport:1 GetDeviceCapabilitiesResponse"`
-		PlayMedia          commaSeparatedStrings `xml:"PlayMedia"       scpd:"PossiblePlaybackStorageMedia,string"`
-		RecordMedia        commaSeparatedStrings `xml:"RecMedia"        scpd:"PossibleRecordStorageMedia,string"`
-		RecordQualityModes commaSeparatedStrings `xml:"RecQualityModes" scpd:"PossibleRecordQualityModes,string"`
+		XMLName            xml.Name                       `xml:"urn:schemas-upnp-org:service:AVTransport:1 GetDeviceCapabilitiesResponse"`
+		PlayMedia          xmltypes.CommaSeparatedStrings `xml:"PlayMedia"       scpd:"PossiblePlaybackStorageMedia,string"`
+		RecordMedia        xmltypes.CommaSeparatedStrings `xml:"RecMedia"        scpd:"PossibleRecordStorageMedia,string"`
+		RecordQualityModes xmltypes.CommaSeparatedStrings `xml:"RecQualityModes" scpd:"PossibleRecordQualityModes,string"`
 	}
 
 	getTransportSettingsRequest struct {
@@ -188,8 +186,8 @@ type (
 		InstanceID int      `xml:"InstanceID" scpd:"A_ARG_TYPE_InstanceID,ui4"`
 	}
 	getCurrentTransportActionsResponse struct {
-		XMLName xml.Name              `xml:"urn:schemas-upnp-org:service:AVTransport:1 GetCurrentTransportActionsResponse"`
-		Actions commaSeparatedStrings `xml:"Actions" scpd:"CurrentTransportActions,string"`
+		XMLName xml.Name                       `xml:"urn:schemas-upnp-org:service:AVTransport:1 GetCurrentTransportActionsResponse"`
+		Actions xmltypes.CommaSeparatedStrings `xml:"Actions" scpd:"CurrentTransportActions,string"`
 	}
 )
 
@@ -215,18 +213,3 @@ const (
 	setPlayMode                = "SetPlayMode"
 	setRecordQualityMode       = "SetRecordQualityMode"
 )
-
-func (csl commaSeparatedStrings) MarshalXML(e *xml.Encoder, el xml.StartElement) error {
-	s := strings.Join(csl, ",")
-	return e.EncodeElement(s, el)
-}
-
-func (csl *commaSeparatedStrings) UnmarshalXML(d *xml.Decoder, el xml.StartElement) error {
-	var s string
-	if err := d.DecodeElement(&s, &el); err != nil {
-		return err
-	}
-
-	*csl = strings.Split(s, ",")
-	return nil
-}

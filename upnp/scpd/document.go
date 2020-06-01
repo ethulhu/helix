@@ -7,6 +7,8 @@ package scpd
 import (
 	"encoding/xml"
 	"fmt"
+
+	"github.com/ethulhu/helix/xmltypes"
 )
 
 const xmlns = "urn:schemas-upnp-org:service-1-0"
@@ -31,13 +33,11 @@ type (
 
 	StateVariable struct {
 		Name                string             `xml:"name"`
-		SendEventsAttribute Bool               `xml:"sendEventsAttribute"`
+		SendEventsAttribute xmltypes.YesNoBool `xml:"sendEventsAttribute"`
 		DataType            string             `xml:"dataType"`
 		AllowedValues       *AllowedValues     `xml:"allowedValueList,omitempty"`
 		AllowedValueRange   *AllowedValueRange `xml:"allowedValueRange,omitempty"`
 	}
-
-	Bool bool
 
 	AllowedValues struct {
 		Values []string `xml:"allowedValues"`
@@ -68,69 +68,25 @@ const (
 	Out
 )
 
-func (d Direction) MarshalXML(e *xml.Encoder, el xml.StartElement) error {
-	var s string
+func (d Direction) MarshalText() ([]byte, error) {
 	switch d {
 	case In:
-		s = "in"
+		return []byte("in"), nil
 	case Out:
-		s = "out"
+		return []byte("out"), nil
 	default:
-		return fmt.Errorf("direction must be In or Out, found %v", s)
+		return nil, fmt.Errorf("direction must be In or Out, found %v", d)
 	}
-	return e.EncodeElement(s, el)
 }
-func (d *Direction) UnmarshalXML(dec *xml.Decoder, el xml.StartElement) error {
-	var s string
-	if err := dec.DecodeElement(&s, &el); err != nil {
-		return err
-	}
-	switch s {
+func (d *Direction) UnmarshalText(raw []byte) error {
+	switch string(raw) {
 	case "in":
 		*d = In
+		return nil
 	case "out":
 		*d = Out
+		return nil
 	default:
-		return fmt.Errorf("invalid direction: %v", s)
+		return fmt.Errorf("invalid direction: %s", raw)
 	}
-	return nil
-}
-
-const (
-	Yes = Bool(true)
-	No  = Bool(false)
-)
-
-func (b Bool) MarshalXML(e *xml.Encoder, el xml.StartElement) error {
-	s := "yes"
-	if b == No {
-		s = "no"
-	}
-	return e.EncodeElement(s, el)
-}
-func (b *Bool) UnmarshalXML(d *xml.Decoder, el xml.StartElement) error {
-	var s string
-	if err := d.DecodeElement(&s, &el); err != nil {
-		return err
-	}
-
-	switch s {
-	case "1":
-		fallthrough
-	case "true":
-		fallthrough
-	case "yes":
-		*b = Yes
-
-	case "0":
-		fallthrough
-	case "false":
-		fallthrough
-	case "no":
-		*b = No
-
-	default:
-		return fmt.Errorf("invalid boolean: %v", s)
-	}
-	return nil
 }

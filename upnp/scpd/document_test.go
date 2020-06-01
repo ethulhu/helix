@@ -8,6 +8,8 @@ import (
 	"encoding/xml"
 	"reflect"
 	"testing"
+
+	"github.com/ethulhu/helix/xmltypes"
 )
 
 func TestMarshal(t *testing.T) {
@@ -24,7 +26,7 @@ func TestMarshal(t *testing.T) {
 				StateVariables: []StateVariable{
 					{
 						Name:                "TransportState",
-						SendEventsAttribute: No,
+						SendEventsAttribute: xmltypes.No,
 						DataType:            "string",
 						AllowedValues: &AllowedValues{
 							Values: []string{
@@ -35,7 +37,7 @@ func TestMarshal(t *testing.T) {
 					},
 					{
 						Name:                "NumberOfTracks",
-						SendEventsAttribute: Yes,
+						SendEventsAttribute: xmltypes.Yes,
 						DataType:            "ui4",
 						AllowedValueRange: &AllowedValueRange{
 							Minimum: 0,
@@ -45,7 +47,7 @@ func TestMarshal(t *testing.T) {
 					},
 					{
 						Name:                "TrackCount",
-						SendEventsAttribute: Yes,
+						SendEventsAttribute: xmltypes.Yes,
 						DataType:            "ui4",
 						AllowedValueRange: &AllowedValueRange{
 							Minimum: 0,
@@ -200,7 +202,7 @@ func TestUnmarshal(t *testing.T) {
 				StateVariables: []StateVariable{
 					{
 						Name:                "TransportState",
-						SendEventsAttribute: No,
+						SendEventsAttribute: xmltypes.No,
 						DataType:            "string",
 						AllowedValues: &AllowedValues{
 							Values: []string{
@@ -211,7 +213,7 @@ func TestUnmarshal(t *testing.T) {
 					},
 					{
 						Name:                "NumberOfTracks",
-						SendEventsAttribute: Yes,
+						SendEventsAttribute: xmltypes.Yes,
 						DataType:            "ui4",
 						AllowedValueRange: &AllowedValueRange{
 							Minimum: 0,

@@ -44,8 +44,8 @@ type (
 	}
 	AllowedValueRange struct {
 		Minimum int `xml:"minimum"`
-		Maximum int `xml:"maximum"`
-		Step    int `xml:"step"`
+		Maximum int `xml:"maximum,omitempty"`
+		Step    int `xml:"step,omitempty"`
 	}
 
 	Action struct {

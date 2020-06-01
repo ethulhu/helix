@@ -43,6 +43,14 @@ func TestMarshal(t *testing.T) {
 							Step:    1,
 						},
 					},
+					{
+						Name:                "TrackCount",
+						SendEventsAttribute: Yes,
+						DataType:            "ui4",
+						AllowedValueRange: &AllowedValueRange{
+							Minimum: 0,
+						},
+					},
 				},
 				Actions: []Action{
 					{
@@ -85,6 +93,14 @@ func TestMarshal(t *testing.T) {
         <minimum>0</minimum>
         <maximum>100</maximum>
         <step>1</step>
+      </allowedValueRange>
+    </stateVariable>
+    <stateVariable>
+      <name>TrackCount</name>
+      <sendEventsAttribute>yes</sendEventsAttribute>
+      <dataType>ui4</dataType>
+      <allowedValueRange>
+        <minimum>0</minimum>
       </allowedValueRange>
     </stateVariable>
   </serviceStateTable>

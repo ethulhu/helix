@@ -122,6 +122,53 @@ func TestFromAction(t *testing.T) {
 			name: "GetFoo",
 			req: struct {
 				XMLName xml.Name `xml"GetFoo"`
+				Foo     string   `xml:"foo" scpd:"A_ARG_TYPE_Foo,ui4,min=2"`
+				Bar     string   `xml:"bar" scpd:"A_ARG_TYPE_Bar,i4,min=2,max=3,step=4"`
+			}{},
+			rsp: struct {
+				XMLName xml.Name `xml"GetFooResponse"`
+			}{},
+			want: Document{
+				SpecVersion: Version,
+				Actions: []Action{{
+					Name: "GetFoo",
+					Arguments: []Argument{
+						{
+							Name:                 "foo",
+							Direction:            In,
+							RelatedStateVariable: "A_ARG_TYPE_Foo",
+						},
+						{
+							Name:                 "bar",
+							Direction:            In,
+							RelatedStateVariable: "A_ARG_TYPE_Bar",
+						},
+					},
+				}},
+				StateVariables: []StateVariable{
+					{
+						Name:     "A_ARG_TYPE_Bar",
+						DataType: "i4",
+						AllowedValueRange: &AllowedValueRange{
+							Minimum: 2,
+							Maximum: 3,
+							Step:    4,
+						},
+					},
+					{
+						Name:     "A_ARG_TYPE_Foo",
+						DataType: "ui4",
+						AllowedValueRange: &AllowedValueRange{
+							Minimum: 2,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "GetFoo",
+			req: struct {
+				XMLName xml.Name `xml"GetFoo"`
 				Foo     string   `xml:"foo" scpd:"A_ARG_TYPE_Foo,string"`
 			}{},
 			rsp: struct {

@@ -7,6 +7,7 @@ package scpd
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -69,6 +70,33 @@ func argumentsAndVariables(obj interface{}, d Direction) ([]Argument, []StateVar
 			sv.AllowedValues = &AllowedValues{}
 			for _, allowed := range strings.Split(parts[2], "|") {
 				sv.AllowedValues.Values = append(sv.AllowedValues.Values, allowed)
+			}
+		}
+		if (parts[1] == "i4" || parts[1] == "ui4") && len(parts) > 2 {
+			sv.AllowedValueRange = &AllowedValueRange{}
+			for _, part := range parts[2:] {
+				switch {
+				case strings.HasPrefix(part, "min="):
+					v, err := strconv.Atoi(strings.TrimPrefix(part, "min="))
+					if err != nil {
+						return nil, nil, fmt.Errorf("field %s has an invalid constraint: %s", field.Name, part)
+					}
+					sv.AllowedValueRange.Minimum = v
+				case strings.HasPrefix(part, "max="):
+					v, err := strconv.Atoi(strings.TrimPrefix(part, "max="))
+					if err != nil {
+						return nil, nil, fmt.Errorf("field %s has an invalid constraint: %s", field.Name, part)
+					}
+					sv.AllowedValueRange.Maximum = v
+				case strings.HasPrefix(part, "step="):
+					v, err := strconv.Atoi(strings.TrimPrefix(part, "step="))
+					if err != nil {
+						return nil, nil, fmt.Errorf("field %s has an invalid constraint: %s", field.Name, part)
+					}
+					sv.AllowedValueRange.Step = v
+				default:
+					return nil, nil, fmt.Errorf("field %s has an unexpected constraint: %s", field.Name, part)
+				}
 			}
 		}
 

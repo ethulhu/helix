@@ -24,27 +24,27 @@ type (
 	}
 	getProtocolInfoResponse struct {
 		XMLName xml.Name                    `xml:"urn:schemas-upnp-org:service:ConnectionManager:1 GetProtocolInfoResponse"`
-		Sources commaSeparatedProtocolInfos `xml:"Source"`
-		Sinks   commaSeparatedProtocolInfos `xml:"Sink"`
+		Sources commaSeparatedProtocolInfos `xml:"Source" scpd:"SourceProtocolInfo,string"`
+		Sinks   commaSeparatedProtocolInfos `xml:"Sink"   scpd:"SinkProtocolInfo,string"`
 	}
 
 	prepareForConnectionRequest struct {
 		XMLName               xml.Name  `xml:"urn:schemas-upnp-org:service:ConnectionManager:1 PrepareForConnection"`
-		RemoteProtocolInfo    string    `xml:"RemoteProtocolInfo"`
-		PeerConnectionManager string    `xml:"PeerConnectionManager"`
-		PeerConnectionID      int       `xml:"PeerConnectionID"`
-		Direction             direction `xml:"Direction"`
+		RemoteProtocolInfo    string    `xml:"RemoteProtocolInfo"    scpd:"A_ARG_TYPE_ProtocolInfo,string"`
+		PeerConnectionManager string    `xml:"PeerConnectionManager" scpd:"A_ARG_TYPE_ConnectionManager,string"`
+		PeerConnectionID      int       `xml:"PeerConnectionID"      scpd:"A_ARG_TYPE_ConnectionID,i4"`
+		Direction             direction `xml:"Direction"             scpd:"A_ARG_TYPE_Direction,string,Input|Output"`
 	}
 	prepareForConnectionResponse struct {
 		XMLName       xml.Name `xml:"urn:schemas-upnp-org:service:ConnectionManager:1 PrepareForConnectionResponse"`
-		ConnectionID  int      `xml:"ConnectionID"`
-		AVTransportID int      `xml:"AVTransportID"`
-		ResID         int      `xml:"ResID"`
+		ConnectionID  int      `xml:"ConnectionID"  scpd:"A_ARG_TYPE_ConnectionID,i4"`
+		AVTransportID int      `xml:"AVTransportID" scpd:"A_ARG_TYPE_AVTransportID,i4"`
+		ResID         int      `xml:"ResID"         scpd:"A_ARG_TYPE_ResID,i4"`
 	}
 
 	connectionCompleteRequest struct {
 		XMLName      xml.Name `xml:"urn:schemas-upnp-org:service:ConnectionManager:1 ConnectionComplete"`
-		ConnectionID int      `xml:"ConnectionID"`
+		ConnectionID int      `xml:"ConnectionID" scpd:"A_ARG_TYPE_ConnectionID,i4"`
 	}
 	connectionCompleteResponse struct {
 		XMLName xml.Name `xml:"urn:schemas-upnp-org:service:ConnectionManager:1 ConnectionCompleteResponse"`
@@ -55,22 +55,22 @@ type (
 	}
 	getCurrentConnectionIDsResponse struct {
 		XMLName       xml.Name           `xml:"urn:schemas-upnp-org:service:ConnectionManager:1 GetCurrentConnectionIDsResponse"`
-		ConnectionIDs commaSeparatedInts `xml:"ConnectionIDs"`
+		ConnectionIDs commaSeparatedInts `xml:"ConnectionIDs" scpd:"CurrentConnectionIDs,string"`
 	}
 
 	getCurrentConnectionInfoRequest struct {
 		XMLName      xml.Name `xml:"urn:schemas-upnp-org:service:ConnectionManager:1 GetCurrentConnectionInfo"`
-		ConnectionID int      `xml:"ConnectionID"`
+		ConnectionID int      `xml:"ConnectionID" scpd:"A_ARG_TYPE_ConnectionID,i4"`
 	}
 	getCurrentConnectionInfoResponse struct {
 		XMLName               xml.Name  `xml:"urn:schemas-upnp-org:service:ConnectionManager:1 GetCurrentConnectionInfoResponse"`
-		AVTransportID         int       `xml:"AVTransportID"`
-		ResID                 int       `xml:"ResID"`
-		ProtocolInfo          string    `xml:"ProtocolInfo"`
-		PeerConnecitonManager string    `xml:"PeerConnecitonManager"`
-		PeerConnecitonID      int       `xml:"PeerConnecitonID"`
-		Direction             direction `xml:"Direction"`
-		Status                status    `xml:"Status"`
+		AVTransportID         int       `xml:"AVTransportID"         scpd:"A_ARG_TYPE_AVTransportID,i4"`
+		ResID                 int       `xml:"ResID"                 scpd:"A_ARG_TYPE_ResID,i4"`
+		ProtocolInfo          string    `xml:"ProtocolInfo"          scpd:"A_ARG_TYPE_ProtocolInfo,string"`
+		PeerConnecitonManager string    `xml:"PeerConnecitonManager" scpd:"A_ARG_TYPE_ConnectionManager,string"`
+		PeerConnecitonID      int       `xml:"PeerConnecitonID"      scpd:"A_ARG_TYPE_ConnectionID,i4"`
+		Direction             direction `xml:"Direction"             scpd:"A_ARG_TYPE_Direction,string,Input|Output"`
+		Status                status    `xml:"Status"                scpd:"A_ARG_TYPE_ConnectionStatus,string,OK|ContentFormatMismatch|InsufficientBandwidth|UnreliableChannel|Unknown"`
 	}
 )
 

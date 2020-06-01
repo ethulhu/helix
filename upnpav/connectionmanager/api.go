@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"github.com/ethulhu/helix/upnp"
+	"github.com/ethulhu/helix/upnp/scpd"
 	"github.com/ethulhu/helix/upnpav"
 )
 
@@ -23,3 +24,11 @@ const (
 	Version2  = upnp.URN("urn:schemas-upnp-org:service:ConnectionManager:2")
 	ServiceID = upnp.ServiceID("urn:upnp-org:serviceId:ConnectionManager")
 )
+
+var SCPD = scpd.Must(scpd.Merge(
+	scpd.Must(scpd.FromAction(getProtocolInfo, getProtocolInfoRequest{}, getProtocolInfoResponse{})),
+	scpd.Must(scpd.FromAction(prepareForConnection, prepareForConnectionRequest{}, prepareForConnectionResponse{})),
+	scpd.Must(scpd.FromAction(connectionComplete, connectionCompleteRequest{}, connectionCompleteResponse{})),
+	scpd.Must(scpd.FromAction(getCurrentConnectionIDs, getCurrentConnectionIDsRequest{}, getCurrentConnectionIDsResponse{})),
+	scpd.Must(scpd.FromAction(getCurrentConnectionInfo, getCurrentConnectionInfoRequest{}, getCurrentConnectionInfoResponse{})),
+))

@@ -11,6 +11,12 @@ import (
 )
 
 type (
+	// Duration is of the form H+:MM:SS[.F+] or H+:MM:SS[.F0/F1], where:
+	// H+ is 0 or more digits for hours,
+	// MM is exactly 2 digits for minutes,
+	// SS is exactly 2 digits for seconds,
+	// F+ is 0 or more digits for fractional seconds,
+	// F0/F1 is a fraction, F0 & F1 are at least 1 digit, and F0/F1 < 1.
 	Duration struct {
 		time.Duration
 	}

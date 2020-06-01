@@ -5,7 +5,6 @@
 package upnpav
 
 import (
-	"encoding/xml"
 	"time"
 )
 
@@ -30,21 +29,15 @@ func (d Date) String() string {
 	return d.Format("2006-01-02")
 }
 
-func (d Date) MarshalXML(enc *xml.Encoder, el xml.StartElement) error {
-	return enc.EncodeElement(d.String(), el)
+func (d Date) MarshalText() ([]byte, error) {
+	return []byte(d.String()), nil
 }
 
-func (d *Date) UnmarshalXML(dec *xml.Decoder, el xml.StartElement) error {
-	var s string
-	if err := dec.DecodeElement(&s, &el); err != nil {
-		return err
-	}
-
-	newD, err := ParseDate(s)
+func (d *Date) UnmarshalText(raw []byte) error {
+	dd, err := ParseDate(string(raw))
 	if err != nil {
 		return err
 	}
-
-	*d = newD
+	*d = dd
 	return nil
 }

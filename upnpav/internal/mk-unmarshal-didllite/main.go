@@ -113,6 +113,16 @@ func mkStatements(w io.Writer, element, variable string, t reflect.Type) {
 						%s = t
 					}
 				`, element, name, variableFieldName)
+			case reflect.TypeOf(upnpav.Duration{}):
+				fmt.Fprintf(w, `
+					if el := %s.SelectElement("%s"); el != nil {
+						d, err := ParseDuration(el.Text())
+						if err != nil {
+							return nil, fmt.Errorf("could not parse duration %%q: %%w", el.Text(), err)
+						}
+						%s = d
+					}
+				`, element, name, variableFieldName)
 			default:
 				panic(fmt.Sprintf("unsupported struct type %v for field %v", field.Type, field.Name))
 			}

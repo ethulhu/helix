@@ -62,7 +62,7 @@ func (c *client) Stop(ctx context.Context) error {
 func (c *client) Seek(ctx context.Context, d time.Duration) error {
 	req := seekRequest{
 		Unit:   SeekRelativeTime,
-		Target: upnpav.FormatDuration(d),
+		Target: upnpav.Duration{d}.String(),
 	}
 	return c.call(ctx, seek, req, nil)
 }
@@ -105,16 +105,8 @@ func (c *client) PositionInfo(ctx context.Context) (string, *upnpav.DIDLLite, ti
 			return rsp.URI, nil, 0, 0, fmt.Errorf("could not unmarshal metadata: %w", err)
 		}
 	}
-	duration, err := upnpav.ParseDuration(rsp.Duration)
-	if err != nil && rsp.Duration != "" {
-		return rsp.URI, didl, 0, 0, fmt.Errorf("could not unmarshal duration %q: %w", rsp.Duration, err)
-	}
-	progress, err := upnpav.ParseDuration(rsp.RelativeTime)
-	if err != nil && rsp.RelativeTime != "" {
-		return rsp.URI, didl, duration, 0, fmt.Errorf("could not unmarshal partial time %q: %w", rsp.RelativeTime, err)
-	}
 
-	return rsp.URI, didl, duration, progress, nil
+	return rsp.URI, didl, rsp.Duration.Duration, rsp.RelativeTime.Duration, nil
 }
 func (c *client) TransportInfo(ctx context.Context) (State, Status, error) {
 	req := getTransportInfoRequest{}

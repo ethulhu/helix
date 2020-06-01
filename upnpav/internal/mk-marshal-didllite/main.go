@@ -116,6 +116,16 @@ func mkStatements(w io.Writer, element, variable string, t reflect.Type) {
 				if err := timeIfElement.Execute(w, params); err != nil {
 					panic(fmt.Sprintf("could not write template: %v", err))
 				}
+			case reflect.TypeOf(upnpav.Duration{}):
+				params := simpleParams{
+					Variable:      variable,
+					Field:         field.Name,
+					ParentElement: element,
+					Name:          name,
+				}
+				if err := durationIfElement.Execute(w, params); err != nil {
+					panic(fmt.Sprintf("could not write template: %v", err))
+				}
 			default:
 				panic(fmt.Sprintf("unsupported struct type %v for field %v", field.Type, field.Name))
 			}
@@ -131,11 +141,6 @@ func mkStatements(w io.Writer, element, variable string, t reflect.Type) {
 				`, element, name, variable, field.Name)
 			}
 
-		case reflect.Int64:
-			if field.Type != reflect.TypeOf(time.Duration(0)) {
-				panic(fmt.Sprintf("got non-time.Duration int64 for field %q", field.Name))
-			}
-			fallthrough
 		case reflect.Int:
 			fallthrough
 		case reflect.Uint:
@@ -245,6 +250,12 @@ if {{ .Variable }}.{{ .Field }} != {{ .ZeroValue }} {
 	timeIfElement = template.Must(template.New("timeIfElement").Parse(`
 if {{ .Variable }}.{{ .Field }} != (time.Time{}) {
 	{{ .ParentElement }}.CreateElement("{{ .Name }}").CreateText({{ .Variable }}.{{ .Field }}.Format("2006-01-02"))
+}
+`))
+
+	durationIfElement = template.Must(template.New("durationIfElement").Parse(`
+if {{ .Variable }}.{{ .Field }} != (Duration{}) {
+	{{ .ParentElement }}.CreateElement("{{ .Name }}").CreateText({{ .Variable }}.{{ .Field }}.String())
 }
 `))
 )

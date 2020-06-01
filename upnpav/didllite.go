@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 package upnpav
+
 //go:generate go run ./internal/mk-marshal-didllite -out ./didllite.marshal.go
 //go:generate go run ./internal/mk-unmarshal-didllite -out ./didllite.unmarshal.go
 
@@ -115,14 +116,14 @@ type (
 		// F+ is 0 or more digits for fractional seconds,
 		// F0/F1 is a fraction, F0 & F1 are at least 1 digit, and F0/F1 < 1.
 
-		AudioChannels     uint          `upnpav:"nrAudioChannels,attr"`
-		BitsPerSample     uint          `upnpav:"bitsPerSample,attr"`
-		BitsPerSecond     uint          `upnpav:"bitrate,attr"`
-		ColorDepth        uint          `upnpav:"colorDepth,attr"`
-		Duration          time.Duration `upnpav:"duration,attr"`
-		Resolution        *Resolution   `upnpav:"resolution,attr"`
-		SampleFrequencyHz uint          `upnpav:"sampleFrequency,attr"`
-		SizeBytes         uint          `upnpav:"size,attr"`
+		AudioChannels     uint        `upnpav:"nrAudioChannels,attr"`
+		BitsPerSample     uint        `upnpav:"bitsPerSample,attr"`
+		BitsPerSecond     uint        `upnpav:"bitrate,attr"`
+		ColorDepth        uint        `upnpav:"colorDepth,attr"`
+		Duration          Duration    `upnpav:"duration,attr"`
+		Resolution        *Resolution `upnpav:"resolution,attr"`
+		SampleFrequencyHz uint        `upnpav:"sampleFrequency,attr"`
+		SizeBytes         uint        `upnpav:"size,attr"`
 
 		// Protection is "some identification of a protection system used for the resource".
 		Protection string `upnpav:"protection,attr"`

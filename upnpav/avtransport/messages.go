@@ -7,6 +7,8 @@ package avtransport
 import (
 	"encoding/xml"
 	"strings"
+
+	"github.com/ethulhu/helix/upnpav"
 )
 
 type (
@@ -72,15 +74,15 @@ type (
 		InstanceID int      `xml:"InstanceID" scpd:"A_ARG_TYPE_InstanceID,ui4"`
 	}
 	getPositionInfoResponse struct {
-		XMLName       xml.Name `xml:"urn:schemas-upnp-org:service:AVTransport:1 GetPositionInfoResponse"`
-		CurrentTrack  uint     `xml:"Track"         scpd:"CurrentTrack,ui4,min=0,step=1"`
-		Duration      string   `xml:"TrackDuration" scpd:"CurrentTrackDuration,string"`
-		Metadata      []byte   `xml:"TrackMetaData" scpd:"CurrentTrackMetaData,string"`
-		URI           string   `xml:"TrackURI"      scpd:"CurrentTrackURI,string"`
-		RelativeTime  string   `xml:"RelTime"       scpd:"RelativeTimePosition,string"`
-		AbsoluteTime  string   `xml:"AbsTime"       scpd:"AbsoluteTimePosition,string"`
-		RelativeCount string   `xml:"RelCount"      scpd:"RelativeCounterPosition,i4"`
-		AbsoluteCount string   `xml:"AbsCount"      scpd:"AbsoluteCounterPosition,i4"`
+		XMLName       xml.Name        `xml:"urn:schemas-upnp-org:service:AVTransport:1 GetPositionInfoResponse"`
+		CurrentTrack  uint            `xml:"Track"         scpd:"CurrentTrack,ui4,min=0,step=1"`
+		Duration      upnpav.Duration `xml:"TrackDuration" scpd:"CurrentTrackDuration,string"`
+		Metadata      []byte          `xml:"TrackMetaData" scpd:"CurrentTrackMetaData,string"`
+		URI           string          `xml:"TrackURI"      scpd:"CurrentTrackURI,string"`
+		RelativeTime  upnpav.Duration `xml:"RelTime"       scpd:"RelativeTimePosition,string"`
+		AbsoluteTime  upnpav.Duration `xml:"AbsTime"       scpd:"AbsoluteTimePosition,string"`
+		RelativeCount int             `xml:"RelCount"      scpd:"RelativeCounterPosition,i4"`
+		AbsoluteCount int             `xml:"AbsCount"      scpd:"AbsoluteCounterPosition,i4"`
 	}
 
 	getDeviceCapabilitiesRequest struct {

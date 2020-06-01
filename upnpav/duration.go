@@ -5,26 +5,71 @@
 package upnpav
 
 import (
+	"encoding/xml"
 	"fmt"
 	"strings"
 	"time"
 )
 
-func ParseDuration(raw string) (time.Duration, error) {
-	parts := strings.Split(raw, ":")
-	if len(parts) != 3 {
-		return 0, fmt.Errorf("invalid number of parts")
+type (
+	Duration struct {
+		time.Duration
+	}
+)
+
+func ParseDuration(raw string) (Duration, error) {
+
+	withoutSubseconds := strings.Split(raw, ".")[0]
+
+	parts := strings.Split(withoutSubseconds, ":")
+
+	var hours, minutes, seconds string
+	switch len(parts) {
+	case 2:
+		hours = "0"
+		minutes = parts[0]
+		seconds = parts[1]
+	case 3:
+		hours = parts[0]
+		if hours == "" {
+			hours = "0"
+		}
+		minutes = parts[1]
+		seconds = parts[2]
+	default:
+		return Duration{0}, fmt.Errorf("invalid number of parts")
 	}
 
-	return time.ParseDuration(fmt.Sprintf("%vh%vm%vs", parts[0], parts[1], parts[2]))
+	d, err := time.ParseDuration(fmt.Sprintf("%vh%vm%vs", hours, minutes, seconds))
+	return Duration{d}, err
 }
 
-func FormatDuration(d time.Duration) string {
-	hours := time.Duration(d.Truncate(time.Hour).Hours())
-	d = d - (hours * time.Hour)
-	minutes := time.Duration(d.Truncate(time.Minute).Minutes())
-	d = d - (minutes * time.Minute)
-	seconds := time.Duration(d.Truncate(time.Second).Seconds())
-	d = d - (seconds * time.Second)
+func (d Duration) String() string {
+	td := d.Duration
+
+	hours := time.Duration(td.Truncate(time.Hour).Hours())
+	td = td - (hours * time.Hour)
+	minutes := time.Duration(td.Truncate(time.Minute).Minutes())
+	td = td - (minutes * time.Minute)
+	seconds := time.Duration(td.Truncate(time.Second).Seconds())
+	td = td - (seconds * time.Second)
 	return fmt.Sprintf("%d:%02d:%02d", hours, minutes, seconds)
+}
+
+func (d Duration) MarshalXML(enc *xml.Encoder, el xml.StartElement) error {
+	return enc.EncodeElement(d.String(), el)
+}
+func (d *Duration) UnmarshalXML(dec *xml.Decoder, el xml.StartElement) error {
+	var s string
+	if err := dec.DecodeElement(&s, &el); err != nil {
+		return err
+	}
+
+	newD, err := ParseDuration(s)
+	if err != nil {
+		return err
+	}
+
+	*d = newD
+	return nil
 }

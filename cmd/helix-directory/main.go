@@ -7,6 +7,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -25,9 +26,9 @@ import (
 var (
 	filePath = flag.String("path", "", "path to serve")
 
-	iface = flag.Custom("interface", "", "interface to listen on (mandatory)", func(raw string) (interface{}, error) {
+	iface = flag.Custom("interface", "", "interface to listen on (will try to find a Private IPv4 if unset)", func(raw string) (interface{}, error) {
 		if raw == "" {
-			return nil, errors.New("must not be empty")
+			return (*net.Interface)(nil), nil
 		}
 		return net.InterfaceByName(raw)
 	})
@@ -37,19 +38,17 @@ func main() {
 	flag.Parse()
 
 	iface := (*iface).(*net.Interface)
-	addrs, err := iface.Addrs()
+
+	ip, err := suitableIP(iface)
 	if err != nil {
-		log.Fatalf("could not list addresses for interface %q: %v", iface.Name, err)
-	}
-	var ip net.IP
-	for _, addr := range addrs {
-		if addr, ok := addr.(*net.IPNet); ok && addr.IP.To4() != nil {
-			ip = addr.IP.To4()
-			break
+		name := "ALL"
+		if iface != nil {
+			name = iface.Name
 		}
-	}
-	if ip == nil {
-		log.Fatalf("interface %q has no addresses", iface.Name)
+		log.WithFields(log.Fields{
+			"interface": name,
+			"error":     err,
+		}).Fatal("could not find suitable serving IP")
 	}
 	addr := &net.TCPAddr{
 		IP: ip,
@@ -180,4 +179,38 @@ func (cd *contentDirectory) Search(_ context.Context, _ upnpav.ObjectID, _ searc
 			},
 		},
 	}, nil
+}
+
+func suitableIP(iface *net.Interface) (net.IP, error) {
+	addrs, err := net.InterfaceAddrs()
+	if iface != nil {
+		addrs, err = iface.Addrs()
+	}
+	if err != nil {
+		return nil, fmt.Errorf("could not list addresses: %w", err)
+	}
+
+	err = errors.New("interface has no addresses")
+	for _, addr := range addrs {
+		addr, ok := addr.(*net.IPNet)
+		if !ok {
+			err = errors.New("interface has no IP addresses")
+			continue
+		}
+		if addr.IP.To4() == nil {
+			err = errors.New("interface has no IPv4 addresses")
+			continue
+		}
+		ip := addr.IP.To4()
+
+		// Default IP must be a "LAN IP".
+		// TODO: support 172.16.0.0/12
+		if iface == nil && !(ip[0] == 10 || (ip[0] == 192 && ip[1] == 168)) {
+			err = errors.New("interface has no Private IPv4 addresses")
+			continue
+		}
+
+		return ip, nil
+	}
+	return nil, err
 }

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Ethel Morgan
+//
+// SPDX-License-Identifier: MIT
+
 /*
 Package flag wraps Go's built-in flag package, with the addition of idiomatic custom flags.
 

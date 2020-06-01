@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Helix
+Upstream-Contact: Ethel Morgan <eth@ethulhu.co.uk>
+Source: https://github.com/ethulhu/helix
+
+Files: go.sum .pre-commit-config.yaml
+Copyright: n/a
+License: CC0-1.0

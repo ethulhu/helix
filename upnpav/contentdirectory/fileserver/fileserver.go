@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/ethulhu/helix/upnpav"
@@ -36,8 +37,13 @@ func NewContentDirectory(basePath, baseURL string) (*ContentDirectory, error) {
 		return nil, fmt.Errorf("could not parse base URL: %w", err)
 	}
 
+	absPath, err := filepath.Abs(basePath)
+	if err != nil {
+		return nil, fmt.Errorf("could not get absolute path: %w", err)
+	}
+
 	return &ContentDirectory{
-		basePath: basePath,
+		basePath: absPath,
 		baseURL:  maybeURL,
 	}, nil
 }
@@ -48,7 +54,7 @@ func (cd *ContentDirectory) BrowseMetadata(_ context.Context, id upnpav.ObjectID
 		"object": id,
 	}
 
-	p, ok := cd.path(id)
+	p, ok := pathForObjectID(cd.basePath, id)
 	if !ok {
 		log.WithFields(fields).Error("bad path")
 		return nil, contentdirectory.ErrNoSuchObject
@@ -88,27 +94,40 @@ func (cd *ContentDirectory) BrowseMetadata(_ context.Context, id upnpav.ObjectID
 	return &upnpav.DIDLLite{Items: []upnpav.Item{item}}, nil
 }
 
-func (cd *ContentDirectory) path(id upnpav.ObjectID) (string, bool) {
+func pathForObjectID(basePath string, id upnpav.ObjectID) (string, bool) {
 	if id == contentdirectory.Root {
-		return cd.basePath, true
+		return basePath, true
 	}
 
-	maybePath := path.Clean(path.Join(cd.basePath, string(id)))
-	if strings.HasPrefix(maybePath, ".") || strings.HasPrefix(maybePath, "/") {
+	maybePath := path.Clean(path.Join(basePath, string(id)))
+	if !strings.HasPrefix(maybePath, basePath) {
 		return "", false
 	}
 	return maybePath, true
+}
+func objectIDForPath(basePath, p string) upnpav.ObjectID {
+	if relPath, err := filepath.Rel(basePath, p); err == nil && relPath != "." {
+		return upnpav.ObjectID(relPath)
+	}
+	return contentdirectory.Root
+}
+func parentIDForPath(basePath, p string) upnpav.ObjectID {
+	id := objectIDForPath(basePath, p)
+	if id == contentdirectory.Root {
+		return upnpav.ObjectID("-1")
+	}
+	return objectIDForPath(basePath, path.Dir(p))
 }
 
 func (cd *ContentDirectory) containerFromPath(p string) (upnpav.Container, error) {
 	container := upnpav.Container{
 		Object: upnpav.Object{
-			ID:     upnpav.ObjectID(p),
+			ID:     objectIDForPath(cd.basePath, p),
+			Parent: parentIDForPath(cd.basePath, p),
 			Class:  upnpav.StorageFolder,
-			Parent: upnpav.ObjectID(path.Dir(p)), // TODO: wat.
-			// Parent: upnpav.ObjectID("-1"),
 		},
 	}
+
 	fi, err := os.Stat(p)
 	if err != nil {
 		return container, err
@@ -142,9 +161,10 @@ func (cd *ContentDirectory) itemFromPath(p string) (upnpav.Item, bool, error) {
 
 	item := upnpav.Item{
 		Object: upnpav.Object{
-			ID:    upnpav.ObjectID(p),
-			Class: class,
-			Title: path.Base(p),
+			ID:     objectIDForPath(cd.basePath, p),
+			Parent: parentIDForPath(cd.basePath, p),
+			Class:  class,
+			Title:  path.Base(p),
 		},
 		Resources: []upnpav.Resource{{
 			URI: (&uri).String(),
@@ -165,7 +185,7 @@ func (cd *ContentDirectory) BrowseChildren(_ context.Context, parent upnpav.Obje
 		"object": parent,
 	}
 
-	p, ok := cd.path(parent)
+	p, ok := pathForObjectID(cd.basePath, parent)
 	if !ok {
 		log.WithFields(fields).Error("bad path")
 		return nil, contentdirectory.ErrNoSuchObject

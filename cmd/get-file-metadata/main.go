@@ -22,7 +22,15 @@ func main() {
 		os.Exit(2)
 	}
 
-	md, err := media.MetadataFromFile(*path)
+	cache := &media.MetadataCache{}
+
+	md, err := cache.MetadataForFile(*path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(md)
+
+	md, err = cache.MetadataForFile(*path)
 	if err != nil {
 		log.Fatal(err)
 	}

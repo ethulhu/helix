@@ -132,7 +132,8 @@ func (cd *ContentDirectory) itemFromPath(p string) (upnpav.Item, bool, error) {
 	}
 
 	uri := *(cd.baseURL)
-	uri.Path = path.Join(uri.Path, p)
+	relPath, _ := filepath.Rel(cd.basePath, p)
+	uri.Path = path.Join(uri.Path, relPath)
 
 	item := upnpav.Item{
 		Object: upnpav.Object{

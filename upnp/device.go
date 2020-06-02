@@ -144,7 +144,6 @@ func (d *Device) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 
 		case "POST":
-			log.WithFields(fields).Info("serving SOAP")
 			soap.Handle(w, r, service.Interface)
 			return
 		}

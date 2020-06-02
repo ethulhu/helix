@@ -8,38 +8,52 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func Handle(w http.ResponseWriter, r *http.Request, handler Interface) {
+	fields := log.Fields{
+		"method": r.Method,
+		"path":   r.URL.Path,
+		"remote": r.RemoteAddr,
+	}
 
 	soapAction := r.Header.Get("SOAPAction")
 	if soapAction == "" {
 		http.Error(w, "must set SOAPAction header", http.StatusBadRequest)
+		log.WithFields(fields).Warning("missing SOAPAction header")
 		return
 	}
+
 	parts := strings.Split(strings.Trim(soapAction, `"`), "#")
 	if len(parts) != 2 {
 		http.Error(w, fmt.Sprintf(`SOAPAction header must be of form "namespace#action", got %q`, soapAction), http.StatusBadRequest)
-		log.Printf("bad request")
+
+		fields["SOAPAction"] = soapAction
+		log.WithFields(fields).Warning("invalid SOAPAction header")
 		return
 	}
+
 	namespace := parts[0]
 	action := parts[1]
+	fields["action"] = action
 
 	envelope, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Printf("could not read body of SOAP request: %v", err)
+		fields["error"] = err
+		log.WithFields(fields).Warning("could not read body of SOAP request")
 		return
 	}
 
 	in, err := deserializeSOAPEnvelope(envelope)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Printf("could not deserialize SOAP envelope: %v", err)
+		fields["error"] = err
+		log.WithFields(fields).Warning("could not deserialize SOAP envelope")
 		return
 	}
 
@@ -55,4 +69,11 @@ func Handle(w http.ResponseWriter, r *http.Request, handler Interface) {
 
 	envelope = serializeSOAPEnvelope(out, err)
 	w.Write(envelope)
+
+	if err != nil {
+		fields["error"] = err
+		log.WithFields(fields).Warning("served SOAP error")
+		return
+	}
+	log.WithFields(fields).Info("served SOAP request")
 }

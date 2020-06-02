@@ -102,18 +102,21 @@ func main() {
 		HeadersRegexp("Accept", "(application|text)/json").
 		HandlerFunc(getDirectoryJSON)
 
-	m.Path("/directories/{udn}/{object}").
+	// {object:.+} is required in case ObjectID has a "/" in it.
+	m.Path("/directories/{udn}/{object:.+}").
 		Methods("GET", "HEAD").
 		HeadersRegexp("Accept", "(application|text)/json").
 		Queries("search", "{query}").
 		HandlerFunc(searchUnderObjectJSON)
 
-	m.Path("/directories/{udn}/{object}").
+	// {object:.+} is required in case ObjectID has a "/" in it.
+	m.Path("/directories/{udn}/{object:.+}").
 		Methods("GET").
 		HeadersRegexp("Accept", "(application|text)/json").
 		HandlerFunc(getObjectJSON)
 
-	m.Path("/directories/{udn}/{object}").
+	// {object:.+} is required in case ObjectID has a "/" in it.
+	m.Path("/directories/{udn}/{object:.+}").
 		Methods("GET", "HEAD").
 		Queries("accept", "{mimetype}").
 		HandlerFunc(getObjectByType)

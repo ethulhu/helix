@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ethulhu/helix/media"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
 	"github.com/ethulhu/helix/upnpav/contentdirectory/search"
@@ -28,6 +29,8 @@ type (
 	ContentDirectory struct {
 		basePath string
 		baseURL  *url.URL
+
+		metadataCache *media.MetadataCache
 	}
 )
 
@@ -45,6 +48,8 @@ func NewContentDirectory(basePath, baseURL string) (*ContentDirectory, error) {
 	return &ContentDirectory{
 		basePath: absPath,
 		baseURL:  maybeURL,
+
+		metadataCache: &media.MetadataCache{},
 	}, nil
 }
 
@@ -153,6 +158,11 @@ func (cd *ContentDirectory) itemFromPath(p string) (upnpav.Item, bool, error) {
 	}
 
 	// TODO: something with ffprobe, probably.
+	if md, err := cd.metadataCache.MetadataForFile(p); err == nil {
+		for i := range item.Resources {
+			item.Resources[i].Duration = &upnpav.Duration{md.Duration}
+		}
+	}
 
 	return item, true, nil
 }

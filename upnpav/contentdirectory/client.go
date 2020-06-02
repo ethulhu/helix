@@ -31,7 +31,7 @@ func (c *client) call(ctx context.Context, method string, input, output interfac
 
 	rsp, err := c.Call(ctx, string(Version1), method, req)
 	if err != nil {
-		return err
+		return upnpav.MaybeError(err)
 	}
 	return xml.Unmarshal(rsp, output)
 }

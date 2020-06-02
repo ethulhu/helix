@@ -5,6 +5,7 @@
 package soap
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 )
@@ -12,22 +13,41 @@ import (
 func TestSerializeSOAPEnvelope(t *testing.T) {
 	tests := []struct {
 		input []byte
+		err   error
 		want  string
 	}{
 		{
 			input: nil,
+			err:   nil,
 			want: `<?xml version="1.0" encoding="UTF-8"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body></s:Body></s:Envelope>`,
 		},
 		{
 			input: []byte(`<GetNoises xmlns="https://mew.purr/cats"><Adorable>true</Adorable></GetNoises>`),
+			err:   nil,
 			want: `<?xml version="1.0" encoding="UTF-8"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><GetNoises xmlns="https://mew.purr/cats"><Adorable>true</Adorable></GetNoises></s:Body></s:Envelope>`,
+		},
+		{
+			input: nil,
+			err:   errors.New("foo"),
+			want: `<?xml version="1.0" encoding="UTF-8"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><s:Fault><s:faultcode>s:Server</s:faultcode><s:faultstring>Server Error</s:faultstring><s:detail>foo</s:detail></s:Fault></s:Body></s:Envelope>`,
+		},
+		{
+			input: nil,
+			err:   remoteError{
+				faultCode: FaultClient,
+				faultString: "UPnPError",
+				detail: "blahblah",
+			},
+			want: `<?xml version="1.0" encoding="UTF-8"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"><s:Body><s:Fault><s:faultcode>s:Client</s:faultcode><s:faultstring>UPnPError</s:faultstring><s:detail>blahblah</s:detail></s:Fault></s:Body></s:Envelope>`,
 		},
 	}
 
 	for i, tt := range tests {
-		got := serializeSOAPEnvelope(tt.input)
+		got := serializeSOAPEnvelope(tt.input, tt.err)
 		want := []byte(tt.want)
 
 		if !reflect.DeepEqual(got, want) {
@@ -58,10 +78,10 @@ func TestDeserializeSOAPEnvelope(t *testing.T) {
 </s:Body>
 </s:Envelope>`,
 			want: nil,
-			wantErr: &RemoteError{
-				FaultCode:   FaultClient,
-				FaultString: "UPnPError",
-				Detail: `<UPnPError xmlns="urn:schemas-upnp-org:control-1-0">
+			wantErr: remoteError{
+				faultCode:   FaultClient,
+				faultString: "UPnPError",
+				detail: `<UPnPError xmlns="urn:schemas-upnp-org:control-1-0">
 <errorCode>501</errorCode>
 <errorDescription>Action Failed</errorDescription>
 </UPnPError>`,

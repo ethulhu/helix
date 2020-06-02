@@ -46,6 +46,28 @@ const (
 	Root = upnpav.ObjectID("0")
 )
 
+var (
+	ErrNoSuchObject                    = upnpav.Error{Code: 701, Description: "No such object"}
+	ErrInvalidCurrentTag               = upnpav.Error{Code: 702, Description: "Invalid CurrentTagValue"}
+	ErrInvalidNewTag                   = upnpav.Error{Code: 703, Description: "Invalid NewTagValue"}
+	ErrRequiredTag                     = upnpav.Error{Code: 704, Description: "Required tag"}
+	ErrReadOnlyTag                     = upnpav.Error{Code: 705, Description: "Read Only tag"}
+	ErrParameterMismatch               = upnpav.Error{Code: 706, Description: "Parameter mismatch"}
+	ErrInvalidSearchCriteria           = upnpav.Error{Code: 708, Description: "Unsupported or invalid search criteria"}
+	ErrInvalidSortCriteria             = upnpav.Error{Code: 709, Description: "Unsupported or invalid sort criteria"}
+	ErrNoSuchContainer                 = upnpav.Error{Code: 710, Description: "No such container"}
+	ErrRestrictedObject                = upnpav.Error{Code: 711, Description: "Restricted object"}
+	ErrBadMetadata                     = upnpav.Error{Code: 712, Description: "Bad metadata"}
+	ErrRestrictedParent                = upnpav.Error{Code: 713, Description: "Restricted parent object"}
+	ErrNoSuchResource                  = upnpav.Error{Code: 714, Description: "No such resource"}
+	ErrSourceResourceAccessDenied      = upnpav.Error{Code: 715, Description: "Resource access denied"}
+	ErrTransferBusy                    = upnpav.Error{Code: 716, Description: "Transfer busy"}
+	ErrNoSuchTransfer                  = upnpav.Error{Code: 717, Description: "No such file transfer"}
+	ErrNoSuchDestinationResource       = upnpav.Error{Code: 718, Description: "No such destination resource"}
+	ErrDestinationResourceAccessDenied = upnpav.Error{Code: 718, Description: "Destination resource access denied"}
+	ErrCannotProcessRequest            = upnpav.Error{Code: 720, Description: "Cannot process the request"}
+)
+
 var SCPD = scpd.Must(scpd.Merge(
 	scpd.Must(scpd.FromAction(browse, browseRequest{}, browseResponse{})),
 	scpd.Must(scpd.FromAction(getSearchCapabilities, getSearchCapabilitiesRequest{}, getSearchCapabilitiesResponse{})),

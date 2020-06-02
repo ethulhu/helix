@@ -5,6 +5,7 @@
 package soap
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -44,12 +45,14 @@ func Handle(w http.ResponseWriter, r *http.Request, handler Interface) {
 
 	ctx := r.Context()
 	out, err := handler.Call(ctx, namespace, action, in)
-	if err != nil {
-		// TODO: do proper SOAP errors.
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	var rErr Error
+	if err != nil && errors.As(err, &rErr) && rErr.FaultCode() != FaultServer {
+		http.Error(w, "", http.StatusBadRequest)
+	} else if err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
 	}
 
-	envelope = serializeSOAPEnvelope(out)
+	envelope = serializeSOAPEnvelope(out, err)
 	w.Write(envelope)
 }

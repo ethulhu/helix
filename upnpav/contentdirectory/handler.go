@@ -36,14 +36,14 @@ func (h SOAPHandler) Call(ctx context.Context, namespace, action string, in []by
 	case searchA:
 		return h.search(ctx, in)
 	default:
-		return nil, fmt.Errorf("not implemented")
+		return nil, upnpav.ErrInvalidAction
 	}
 }
 
 func (h SOAPHandler) getSearchCapabilities(ctx context.Context, in []byte) ([]byte, error) {
 	req := getSearchCapabilitiesRequest{}
 	if err := xml.Unmarshal(in, &req); err != nil {
-		return nil, err
+		return nil, upnpav.ErrInvalidArgs
 	}
 
 	caps, err := h.Interface.SearchCapabilities(ctx)
@@ -92,7 +92,8 @@ func (h SOAPHandler) getSystemUpdateID(ctx context.Context, in []byte) ([]byte, 
 func (h SOAPHandler) browse(ctx context.Context, in []byte) ([]byte, error) {
 	req := browseRequest{}
 	if err := xml.Unmarshal(in, &req); err != nil {
-		return nil, fmt.Errorf("could not unmarshal request: %w", err)
+		// log.Printf("could not unmarshal request: %v", err)
+		return nil, upnpav.ErrInvalidArgs
 	}
 
 	var err error
@@ -103,19 +104,17 @@ func (h SOAPHandler) browse(ctx context.Context, in []byte) ([]byte, error) {
 	case browseChildren:
 		didllite, err = h.Interface.BrowseChildren(ctx, req.Object)
 	default:
-		return nil, fmt.Errorf("invalid BrowseFlag: %v", req.BrowseFlag)
+		return nil, upnpav.ErrInvalidArgs
 	}
 	if err != nil {
 		return nil, err
 	}
-	rsp := browseResponse{
-		Result: upnpav.EncodedDIDLLite{*didllite},
+
+	rsp := browseResponse{}
+	if didllite != nil {
+		rsp.Result = upnpav.EncodedDIDLLite{*didllite}
 	}
-	out, err := xml.Marshal(rsp)
-	if err != nil {
-		panic(fmt.Sprintf("could not marshal BrowseResponse: %v", err))
-	}
-	return out, nil
+	return xml.Marshal(rsp)
 }
 
 func (h SOAPHandler) search(ctx context.Context, in []byte) ([]byte, error) {
@@ -133,8 +132,10 @@ func (h SOAPHandler) search(ctx context.Context, in []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	rsp := searchResponse{
-		Result: upnpav.EncodedDIDLLite{*didllite},
+
+	rsp := searchResponse{}
+	if didllite != nil {
+		rsp.Result = upnpav.EncodedDIDLLite{*didllite}
 	}
 	return xml.Marshal(rsp)
 }

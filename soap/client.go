@@ -26,7 +26,7 @@ func NewClient(baseURL *url.URL) Interface {
 }
 
 func (c *client) Call(ctx context.Context, namespace, action string, input []byte) ([]byte, error) {
-	reqBytes := serializeSOAPEnvelope(input)
+	reqBytes := serializeSOAPEnvelope(input, nil)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL.String(), bytes.NewReader(reqBytes))
 	if err != nil {

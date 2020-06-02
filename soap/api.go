@@ -64,11 +64,12 @@ type (
 		Call(ctx context.Context, namespace, action string, input []byte) ([]byte, error)
 	}
 
-	// RemoteError is an error returned by the remote system.
-	RemoteError struct {
-		FaultCode   FaultCode
-		FaultString string
-		Detail      string
+	// Error is an error returned by the remote system.
+	// Non-application errors (e.g. connection failure) will be passed through as normal.
+	Error interface {
+		FaultCode() FaultCode
+		FaultString() string
+		Detail() string
 	}
 
 	// FaultCode is a SOAP error <faultcode>
@@ -82,6 +83,21 @@ const (
 	FaultServer          = FaultCode("Server")
 )
 
-func (e *RemoteError) Error() string {
-	return fmt.Sprintf("%v error (%v): %v", e.FaultCode, e.FaultString, e.Detail)
+type remoteError struct {
+	faultCode   FaultCode
+	faultString string
+	detail      string
+}
+
+func (e remoteError) Error() string {
+	return fmt.Sprintf("%v error (%v): %v", e.faultCode, e.faultString, e.detail)
+}
+func (e remoteError) FaultCode() FaultCode {
+	return e.faultCode
+}
+func (e remoteError) FaultString() string {
+	return e.faultString
+}
+func (e remoteError) Detail() string {
+	return e.detail
 }

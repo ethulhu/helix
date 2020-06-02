@@ -57,7 +57,7 @@ func main() {
 		log.Fatalf("could not find ContentDirectory server %v", *server)
 	}
 
-	ctx, _ = context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, _ = context.WithTimeout(context.Background(), 5*time.Second)
 	didl, err := directory.BrowseChildren(ctx, upnpav.ObjectID(*object))
 	if err != nil {
 		log.Fatalf("could not list ContentDirectory root: %v", err)

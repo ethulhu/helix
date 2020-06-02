@@ -143,7 +143,8 @@ func (cd *ContentDirectory) itemFromPath(p string) (upnpav.Item, bool, error) {
 			Title:  path.Base(p),
 		},
 		Resources: []upnpav.Resource{{
-			URI: (&uri).String(),
+			// TODO: figure out what's actually going wrong here.
+			URI: strings.Replace((&uri).String(), "&", "%26", -1),
 			ProtocolInfo: &upnpav.ProtocolInfo{
 				Protocol:      upnpav.ProtocolHTTP,
 				ContentFormat: mimetype,

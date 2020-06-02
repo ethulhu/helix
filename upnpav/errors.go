@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Ethel Morgan
+//
+// SPDX-License-Identifier: MIT
+
 package upnpav
 
 import (
@@ -52,5 +56,3 @@ func (e Error) Detail() string {
 	}
 	return string(bytes)
 }
-
-// <UPnPError xmlns="urn:schemas-upnp-org:control-1-0"><errorCode>701</errorCode><errorDescription>No such object error</errorDescription></UPnPError>

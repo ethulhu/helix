@@ -5,10 +5,12 @@
 package main
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/ethulhu/helix/flag"
 	"github.com/ethulhu/helix/upnp"
@@ -27,6 +29,28 @@ var (
 		return raw, nil
 	})
 
+	udn = flag.Custom("udn", "", "UDN to broadcast (if unset, will generate one)", func(raw string) (interface{}, error) {
+		if raw == "" {
+			bytes := make([]byte, 16)
+			if _, err := rand.Read(bytes); err != nil {
+				panic(err)
+			}
+			return fmt.Sprintf("uuid:%x-%x-%x-%x-%x", bytes[0:4], bytes[4:6], bytes[6:8], bytes[8:10], bytes[10:]), nil
+		}
+		return raw, nil
+	})
+
+	friendlyName = flag.Custom("friendly-name", "", "human-readable name to broadcast (if unset, will generate one)", func(raw string) (interface{}, error) {
+		if raw == "" {
+			hostname, err := os.Hostname()
+			if err != nil {
+				panic(err)
+			}
+			return fmt.Sprintf("Helix (%s)", hostname), nil
+		}
+		return raw, nil
+	})
+
 	iface = flag.Custom("interface", "", "interface to listen on (will try to find a Private IPv4 if unset)", func(raw string) (interface{}, error) {
 		if raw == "" {
 			return (*net.Interface)(nil), nil
@@ -39,7 +63,9 @@ func main() {
 	flag.Parse()
 
 	basePath := (*basePath).(string)
+	friendlyName := (*friendlyName).(string)
 	iface := (*iface).(*net.Interface)
+	udn := (*udn).(string)
 
 	ip, err := suitableIP(iface)
 	if err != nil {
@@ -68,7 +94,7 @@ func main() {
 		"listener": httpConn.Addr(),
 	}).Info("created HTTP listener")
 
-	device := upnp.NewDevice("Helix", "uuid:941b0ec2-aca8-4ce1-b64a-329f5762864d")
+	device := upnp.NewDevice(friendlyName, udn)
 	device.DeviceType = contentdirectory.DeviceType
 	device.Manufacturer = "Eth Morgan"
 	device.ManufacturerURL = "https://ethulhu.co.uk"

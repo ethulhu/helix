@@ -4,9 +4,6 @@
 
 package upnpav
 
-//go:generate go run ./internal/mk-marshal-didllite -out ./didllite.marshal.go
-//go:generate go run ./internal/mk-unmarshal-didllite -out ./didllite.unmarshal.go
-
 import (
 	"encoding/xml"
 	"fmt"

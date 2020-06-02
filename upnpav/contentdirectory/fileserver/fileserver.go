@@ -99,73 +99,6 @@ func (cd *ContentDirectory) BrowseMetadata(_ context.Context, id upnpav.ObjectID
 	return &upnpav.DIDLLite{Items: []upnpav.Item{item}}, nil
 }
 
-func (cd *ContentDirectory) containerFromPath(p string) (upnpav.Container, error) {
-	container := upnpav.Container{
-		Object: upnpav.Object{
-			ID:     objectIDForPath(cd.basePath, p),
-			Parent: parentIDForPath(cd.basePath, p),
-			Class:  upnpav.StorageFolder,
-		},
-	}
-
-	fi, err := os.Stat(p)
-	if err != nil {
-		return container, err
-	}
-	container.Title = fi.Name()
-	container.Date = &upnpav.Date{fi.ModTime()}
-
-	fs, err := ioutil.ReadDir(p)
-	if err != nil {
-		return container, err
-	}
-	container.ChildCount = len(fs)
-
-	return container, nil
-}
-
-func (cd *ContentDirectory) itemFromPath(p string) (upnpav.Item, bool, error) {
-	var class upnpav.Class
-	mimetype := mime.TypeByExtension(path.Ext(p))
-	switch strings.Split(mimetype, "/")[0] {
-	case "audio":
-		class = upnpav.AudioItem
-	case "video":
-		class = upnpav.VideoItem
-	default:
-		return upnpav.Item{}, false, nil
-	}
-
-	uri := *(cd.baseURL)
-	relPath, _ := filepath.Rel(cd.basePath, p)
-	uri.Path = path.Join(uri.Path, relPath)
-
-	item := upnpav.Item{
-		Object: upnpav.Object{
-			ID:     objectIDForPath(cd.basePath, p),
-			Parent: parentIDForPath(cd.basePath, p),
-			Class:  class,
-			Title:  path.Base(p),
-		},
-		Resources: []upnpav.Resource{{
-			// TODO: figure out what's actually going wrong here.
-			URI: strings.Replace((&uri).String(), "&", "%26", -1),
-			ProtocolInfo: &upnpav.ProtocolInfo{
-				Protocol:      upnpav.ProtocolHTTP,
-				ContentFormat: mimetype,
-			},
-		}},
-	}
-
-	// TODO: something with ffprobe, probably.
-	if md, err := cd.metadataCache.MetadataForFile(p); err == nil {
-		for i := range item.Resources {
-			item.Resources[i].Duration = &upnpav.Duration{md.Duration}
-		}
-	}
-
-	return item, true, nil
-}
 func (cd *ContentDirectory) BrowseChildren(_ context.Context, parent upnpav.ObjectID) (*upnpav.DIDLLite, error) {
 	fields := log.Fields{
 		"method": "BrowseChildren",
@@ -238,4 +171,72 @@ func (cd *ContentDirectory) SystemUpdateID(_ context.Context) (uint, error) {
 }
 func (cd *ContentDirectory) Search(_ context.Context, _ upnpav.ObjectID, _ search.Criteria) (*upnpav.DIDLLite, error) {
 	return nil, nil
+}
+
+func (cd *ContentDirectory) containerFromPath(p string) (upnpav.Container, error) {
+	container := upnpav.Container{
+		Object: upnpav.Object{
+			ID:     objectIDForPath(cd.basePath, p),
+			Parent: parentIDForPath(cd.basePath, p),
+			Class:  upnpav.StorageFolder,
+		},
+	}
+
+	fi, err := os.Stat(p)
+	if err != nil {
+		return container, err
+	}
+	container.Title = fi.Name()
+	container.Date = &upnpav.Date{fi.ModTime()}
+
+	fs, err := ioutil.ReadDir(p)
+	if err != nil {
+		return container, err
+	}
+	container.ChildCount = len(fs)
+
+	return container, nil
+}
+
+func (cd *ContentDirectory) itemFromPath(p string) (upnpav.Item, bool, error) {
+	var class upnpav.Class
+	mimetype := mime.TypeByExtension(path.Ext(p))
+	switch strings.Split(mimetype, "/")[0] {
+	case "audio":
+		class = upnpav.AudioItem
+	case "video":
+		class = upnpav.VideoItem
+	default:
+		return upnpav.Item{}, false, nil
+	}
+
+	uri := *(cd.baseURL)
+	relPath, _ := filepath.Rel(cd.basePath, p)
+	uri.Path = path.Join(uri.Path, relPath)
+
+	item := upnpav.Item{
+		Object: upnpav.Object{
+			ID:     objectIDForPath(cd.basePath, p),
+			Parent: parentIDForPath(cd.basePath, p),
+			Class:  class,
+			Title:  path.Base(p),
+		},
+		Resources: []upnpav.Resource{{
+			// TODO: figure out what's actually going wrong here.
+			URI: strings.Replace((&uri).String(), "&", "%26", -1),
+			ProtocolInfo: &upnpav.ProtocolInfo{
+				Protocol:      upnpav.ProtocolHTTP,
+				ContentFormat: mimetype,
+			},
+		}},
+	}
+
+	// TODO: something with ffprobe, probably.
+	if md, err := cd.metadataCache.MetadataForFile(p); err == nil {
+		for i := range item.Resources {
+			item.Resources[i].Duration = &upnpav.Duration{md.Duration}
+		}
+	}
+
+	return item, true, nil
 }

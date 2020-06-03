@@ -1,9 +1,12 @@
+// SPDX-FileCopyrightText: 2020 Ethel Morgan
+//
+// SPDX-License-Identifier: MIT
+
 package media
 
 import (
 	"encoding/json"
 	"fmt"
-	"mime"
 	"os"
 	"os/exec"
 	"path"
@@ -77,9 +80,7 @@ func (mc *MetadataCache) Warm(basePath string) {
 		if fi.IsDir() {
 			return nil
 		}
-		ext := path.Ext(fi.Name())
-		mimeType := mime.TypeByExtension(ext)
-		if strings.HasPrefix(mimeType, "audio/") || strings.HasPrefix(mimeType, "video/") {
+		if IsAudioOrVideo(fi.Name()) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()

@@ -3,6 +3,7 @@ package media
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path"
@@ -82,7 +83,7 @@ func MetadataForFile(p string) (*Metadata, error) {
 
 	duration, err := strconv.ParseFloat(raw.Format.DurationSeconds, 64)
 	if err != nil {
-		return nil, fmt.Errorf("could not parse duration %q: %w", raw.Format.DurationSeconds, err)
+		log.Printf("could not parse duration %q: %w", raw.Format.DurationSeconds, err)
 	}
 
 	title := strings.TrimSuffix(path.Base(p), path.Ext(p))

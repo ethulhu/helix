@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
 
 type (
 	Metadata struct {
+		Title    string
 		Duration time.Duration
 		Tags     map[string]string
 	}
@@ -35,11 +38,12 @@ type (
 
 var ffprobeArgs = []string{"-hide_banner", "-print_format", "json", "-show_format"}
 
-func (mc *MetadataCache) MetadataForFile(path string) (*Metadata, error) {
-	fi, err := os.Stat(path)
+func (mc *MetadataCache) MetadataForFile(p string) (*Metadata, error) {
+	fi, err := os.Stat(p)
 	if err != nil {
 		return nil, fmt.Errorf("could not stat: %w", err)
 	}
+
 	mtime := fi.ModTime()
 
 	mc.mu.Lock()
@@ -49,24 +53,24 @@ func (mc *MetadataCache) MetadataForFile(path string) (*Metadata, error) {
 		mc.metadataByPath = map[string]metadataCacheEntry{}
 	}
 
-	if md, ok := mc.metadataByPath[path]; ok && md.mtime == mtime {
+	if md, ok := mc.metadataByPath[p]; ok && md.mtime == mtime {
 		return md.metadata, nil
 	}
 
-	md, err := MetadataForFile(path)
+	md, err := MetadataForFile(p)
 	if err != nil {
 		return nil, err
 	}
 
-	mc.metadataByPath[path] = metadataCacheEntry{
+	mc.metadataByPath[p] = metadataCacheEntry{
 		metadata: md,
 		mtime:    mtime,
 	}
 	return md, nil
 }
 
-func MetadataForFile(path string) (*Metadata, error) {
-	bytes, err := exec.Command("ffprobe", append(ffprobeArgs, path)...).Output()
+func MetadataForFile(p string) (*Metadata, error) {
+	bytes, err := exec.Command("ffprobe", append(ffprobeArgs, p)...).Output()
 	if err != nil {
 		return nil, fmt.Errorf("could not run ffprobe: %w", err)
 	}
@@ -81,7 +85,13 @@ func MetadataForFile(path string) (*Metadata, error) {
 		return nil, fmt.Errorf("could not parse duration %q: %w", raw.Format.DurationSeconds, err)
 	}
 
+	title := strings.TrimSuffix(path.Base(p), path.Ext(p))
+	if maybeTitle, ok := raw.Format.Tags["title"]; ok {
+		title = maybeTitle
+	}
+
 	return &Metadata{
+		Title:    title,
 		Duration: time.Duration(duration) * time.Second,
 		Tags:     raw.Format.Tags,
 	}, nil

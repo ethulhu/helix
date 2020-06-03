@@ -29,10 +29,4 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println(md)
-
-	md, err = cache.MetadataForFile(*path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(md)
 }

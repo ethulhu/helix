@@ -31,7 +31,7 @@ type (
 		ID     ObjectID `xml:"id,attr"`
 		Parent ObjectID `xml:"parentID,attr"`
 
-		// (Restricted == true) == (writeable == false).
+		// Restricted == !writable.
 		Restricted xmltypes.IntBool `xml:"restricted,attr"`
 		Searchable xmltypes.IntBool `xml:"searchable,attr"`
 
@@ -93,7 +93,7 @@ type (
 		Albums    []string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ album",omitempty`
 		Playlists []string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ playlist,omitempty"`
 
-		AlbumArtURI          []string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ albumArtURI,omitempty"`
+		AlbumArtURIs         []string `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ albumArtURI,omitempty"`
 		ArtistDiscographyURI string   `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ artistDiscographyURI,omitempty"`
 		LyricsURI            string   `xml:"urn:schemas-upnp-org:metadata-1-0/upnp/ lyricsURI,omitempty"`
 		RelationURI          string   `xml:"http://purl.org/dc/elements/1.1/ relation,omitempty"`

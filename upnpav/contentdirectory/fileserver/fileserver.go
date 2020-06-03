@@ -35,7 +35,7 @@ type (
 	}
 )
 
-func NewContentDirectory(basePath, baseURL string) (contentdirectory.Interface, error) {
+func NewContentDirectory(basePath, baseURL string, metadataCache media.MetadataCache) (contentdirectory.Interface, error) {
 	maybeURL, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse base URL: %w", err)
@@ -46,7 +46,6 @@ func NewContentDirectory(basePath, baseURL string) (contentdirectory.Interface, 
 		return nil, fmt.Errorf("could not get absolute path: %w", err)
 	}
 
-	metadataCache := media.NewMetadataCache()
 	go func() {
 		fields := log.Fields{"path": absPath}
 		log.WithFields(fields).Info("warming metadata cache")

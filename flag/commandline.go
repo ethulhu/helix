@@ -41,3 +41,6 @@ func Duration(flagName string, defaultValue time.Duration, description string) *
 func Custom(flagName, defaultValue, description string, parser ParseFunc) *interface{} {
 	return CommandLine.Custom(flagName, defaultValue, description, parser)
 }
+func Bool(flagName string, defaultValue bool, description string) *bool {
+	return CommandLine.Bool(flagName, defaultValue, description)
+}

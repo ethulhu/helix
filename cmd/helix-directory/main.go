@@ -13,6 +13,7 @@ import (
 	"os"
 
 	"github.com/ethulhu/helix/flag"
+	"github.com/ethulhu/helix/media"
 	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav/connectionmanager"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
@@ -57,6 +58,8 @@ var (
 		}
 		return net.InterfaceByName(raw)
 	})
+
+	disableMetadataCache = flag.Bool("disable-metadata-cache", false, "disable the metadata cache")
 )
 
 func main() {
@@ -104,7 +107,12 @@ func main() {
 	device.ModelURL = "https://ethulhu.co.uk"
 	device.SerialNumber = "00000000"
 
-	cd, err := fileserver.NewContentDirectory(basePath, fmt.Sprintf("http://%v/objects/", httpConn.Addr()))
+	metadataCache := media.NewMetadataCache()
+	if *disableMetadataCache {
+		metadataCache = media.NoOpCache{}
+	}
+
+	cd, err := fileserver.NewContentDirectory(basePath, fmt.Sprintf("http://%v/objects/", httpConn.Addr()), metadataCache)
 	if err != nil {
 		panic(fmt.Sprintf("could not create ContentDirectory object: %v", err))
 	}

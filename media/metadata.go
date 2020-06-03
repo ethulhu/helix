@@ -37,6 +37,8 @@ type (
 		mtime    time.Time
 	}
 
+	NoOpCache struct{}
+
 	ffprobeOutput struct {
 		Format struct {
 			DurationSeconds string            `json:"duration"`
@@ -46,6 +48,11 @@ type (
 )
 
 var ffprobeArgs = []string{"-hide_banner", "-print_format", "json", "-show_format"}
+
+func (_ NoOpCache) MetadataForFile(p string) (*Metadata, error) {
+	return MetadataForFile(p)
+}
+func (_ NoOpCache) Warm(p string) {}
 
 func NewMetadataCache() MetadataCache {
 	return &metadataCache{

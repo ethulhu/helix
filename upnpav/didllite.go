@@ -177,10 +177,12 @@ func DIDLForURI(uri string) (*DIDLLite, error) {
 	if err != nil {
 		return nil, fmt.Errorf("could not create ProtocolInfo: %w", err)
 	}
-	class, err := ClassForURI(uri)
+
+	class, err := ClassForMIMEType(protocolInfo.ContentFormat)
 	if err != nil {
 		return nil, fmt.Errorf("could not find item class: %w", err)
 	}
+
 	return &DIDLLite{
 		Items: []Item{{
 			Object: Object{

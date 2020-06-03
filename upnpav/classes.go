@@ -4,11 +4,7 @@
 
 package upnpav
 
-import (
-	"mime"
-	"path/filepath"
-	"strings"
-)
+import "strings"
 
 type (
 	// Class is a UPnP AV object class.
@@ -42,12 +38,11 @@ var (
 	StorageFolder = Class("object.container.storageFolder")
 )
 
-func ClassForURI(uri string) (Class, error) {
-	mimeType := mime.TypeByExtension(filepath.Ext(uri))
-	if mimeType == "" {
+func ClassForMIMEType(mimetype string) (Class, error) {
+	if mimetype == "" {
 		return Class(""), ErrUnknownMIMEType
 	}
-	parts := strings.Split(mimeType, "/")
+	parts := strings.Split(mimetype, "/")
 	switch parts[0] {
 	case "audio":
 		return AudioItem, nil

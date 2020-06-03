@@ -7,6 +7,7 @@ package media
 import (
 	"encoding/json"
 	"fmt"
+	"mime"
 	"os"
 	"os/exec"
 	"path"
@@ -19,13 +20,15 @@ import (
 
 type (
 	Metadata struct {
-		Title    string
 		Duration time.Duration
+		MIMEType string
 		Tags     map[string]string
+		Title    string
 	}
 
 	MetadataCache interface {
-		MetadataForFile(string) (*Metadata, error)
+		MetadataForPath(string) (*Metadata, error)
+		MetadataForPaths([]string) []*Metadata
 		Warm(string)
 	}
 	metadataCache struct {
@@ -49,8 +52,16 @@ type (
 
 var ffprobeArgs = []string{"-hide_banner", "-print_format", "json", "-show_format"}
 
-func (_ NoOpCache) MetadataForFile(p string) (*Metadata, error) {
-	return MetadataForFile(p)
+func (_ NoOpCache) MetadataForPath(p string) (*Metadata, error) {
+	return MetadataForPath(p)
+}
+func (_ NoOpCache) MetadataForPaths(paths []string) []*Metadata {
+	var mds []*Metadata
+	for _, p := range paths {
+		md, _ := MetadataForPath(p)
+		mds = append(mds, md)
+	}
+	return mds
 }
 func (_ NoOpCache) Warm(p string) {}
 
@@ -60,7 +71,7 @@ func NewMetadataCache() MetadataCache {
 	}
 }
 
-func (mc *metadataCache) MetadataForFile(p string) (*Metadata, error) {
+func (mc *metadataCache) MetadataForPath(p string) (*Metadata, error) {
 	fi, err := os.Stat(p)
 	if err != nil {
 		return nil, fmt.Errorf("could not stat: %w", err)
@@ -76,9 +87,10 @@ func (mc *metadataCache) MetadataForFile(p string) (*Metadata, error) {
 		return cacheEntry.metadata, nil
 	}
 
-	md, err := MetadataForFile(p)
+	md, err := MetadataForPath(p)
 	if err != nil {
-		return nil, err
+		// Return something, but don't add it to the cache.
+		return md, err
 	}
 
 	mc.mu.Lock()
@@ -89,6 +101,43 @@ func (mc *metadataCache) MetadataForFile(p string) (*Metadata, error) {
 	mc.mu.Unlock()
 
 	return md, nil
+}
+func (mc *metadataCache) MetadataForPaths(paths []string) []*Metadata {
+	mtimes := make([]time.Time, len(paths))
+	for i, p := range paths {
+		fi, err := os.Stat(p)
+		if err != nil {
+			continue
+		}
+		mtimes[i] = fi.ModTime()
+	}
+
+	mds := make([]*Metadata, len(paths))
+
+	mc.mu.Lock()
+	for i, p := range paths {
+		cacheEntry, ok := mc.metadataByPath[p]
+		if ok && cacheEntry.mtime == mtimes[i] {
+			mds[i] = cacheEntry.metadata
+			continue
+		}
+
+		md, err := MetadataForPath(p)
+		if err != nil {
+			// We got something, but don't put it in the cache.
+			mds[i] = md
+			continue
+		}
+
+		mc.metadataByPath[p] = metadataCacheEntry{
+			metadata: md,
+			mtime:    mtimes[i],
+		}
+		mds[i] = md
+	}
+	mc.mu.Unlock()
+
+	return mds
 }
 
 func (mc *metadataCache) Warm(basePath string) {
@@ -101,7 +150,7 @@ func (mc *metadataCache) Warm(basePath string) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				_, _ = mc.MetadataForFile(p)
+				_, _ = mc.MetadataForPath(p)
 			}()
 		}
 		return nil
@@ -109,30 +158,31 @@ func (mc *metadataCache) Warm(basePath string) {
 	wg.Wait()
 }
 
-func MetadataForFile(p string) (*Metadata, error) {
+func MetadataForPath(p string) (*Metadata, error) {
+	md := &Metadata{
+		MIMEType: mime.TypeByExtension(path.Ext(p)),
+		Title:    strings.TrimSuffix(path.Base(p), path.Ext(p)),
+	}
+
 	bytes, err := exec.Command("ffprobe", append(ffprobeArgs, p)...).Output()
 	if err != nil {
-		return nil, fmt.Errorf("could not run ffprobe: %w", err)
+		return md, fmt.Errorf("could not run ffprobe: %w", err)
 	}
 
 	var raw ffprobeOutput
 	if err := json.Unmarshal(bytes, &raw); err != nil {
-		return nil, fmt.Errorf("could not unmarshal ffprobe output: %w", err)
+		return md, fmt.Errorf("could not unmarshal ffprobe output: %w", err)
 	}
 
-	duration := 0
-	if maybeDuration, err := strconv.ParseFloat(raw.Format.DurationSeconds, 64); err == nil {
-		duration = int(maybeDuration)
+	if duration, err := strconv.ParseFloat(raw.Format.DurationSeconds, 64); err == nil {
+		md.Duration = time.Duration(duration) * time.Second
 	}
 
-	title := strings.TrimSuffix(path.Base(p), path.Ext(p))
-	if maybeTitle, ok := raw.Format.Tags["title"]; ok {
-		title = maybeTitle
+	if title, ok := raw.Format.Tags["title"]; ok {
+		md.Title = title
 	}
 
-	return &Metadata{
-		Title:    title,
-		Duration: time.Duration(duration) * time.Second,
-		Tags:     raw.Format.Tags,
-	}, nil
+	md.Tags = raw.Format.Tags
+
+	return md, nil
 }

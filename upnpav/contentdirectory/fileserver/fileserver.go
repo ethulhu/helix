@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-// Package fileserver is a basic "serve a directory" ContentDirectory handler.
+// Package fileserver is a basic "serve a directory" contentDirectory handler.
 package fileserver
 
 import (
@@ -27,7 +27,7 @@ import (
 )
 
 type (
-	ContentDirectory struct {
+	contentDirectory struct {
 		basePath string
 		baseURL  *url.URL
 
@@ -35,7 +35,7 @@ type (
 	}
 )
 
-func NewContentDirectory(basePath, baseURL string) (*ContentDirectory, error) {
+func NewContentDirectory(basePath, baseURL string) (contentdirectory.Interface, error) {
 	maybeURL, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse base URL: %w", err)
@@ -58,7 +58,7 @@ func NewContentDirectory(basePath, baseURL string) (*ContentDirectory, error) {
 		log.WithFields(fields).Info("finished warming metadata cache")
 	}()
 
-	return &ContentDirectory{
+	return &contentDirectory{
 		basePath: absPath,
 		baseURL:  maybeURL,
 
@@ -66,7 +66,7 @@ func NewContentDirectory(basePath, baseURL string) (*ContentDirectory, error) {
 	}, nil
 }
 
-func (cd *ContentDirectory) BrowseMetadata(_ context.Context, id upnpav.ObjectID) (*upnpav.DIDLLite, error) {
+func (cd *contentDirectory) BrowseMetadata(_ context.Context, id upnpav.ObjectID) (*upnpav.DIDLLite, error) {
 	fields := log.Fields{
 		"method": "BrowseMetadata",
 		"object": id,
@@ -112,7 +112,7 @@ func (cd *ContentDirectory) BrowseMetadata(_ context.Context, id upnpav.ObjectID
 	return &upnpav.DIDLLite{Items: []upnpav.Item{item}}, nil
 }
 
-func (cd *ContentDirectory) BrowseChildren(_ context.Context, parent upnpav.ObjectID) (*upnpav.DIDLLite, error) {
+func (cd *contentDirectory) BrowseChildren(_ context.Context, parent upnpav.ObjectID) (*upnpav.DIDLLite, error) {
 	fields := log.Fields{
 		"method": "BrowseChildren",
 		"object": parent,
@@ -173,20 +173,20 @@ func (cd *ContentDirectory) BrowseChildren(_ context.Context, parent upnpav.Obje
 	}
 	return didllite, nil
 }
-func (cd *ContentDirectory) SearchCapabilities(_ context.Context) ([]string, error) {
+func (cd *contentDirectory) SearchCapabilities(_ context.Context) ([]string, error) {
 	return []string{"dc:title"}, nil
 }
-func (cd *ContentDirectory) SortCapabilities(_ context.Context) ([]string, error) {
+func (cd *contentDirectory) SortCapabilities(_ context.Context) ([]string, error) {
 	return nil, nil
 }
-func (cd *ContentDirectory) SystemUpdateID(_ context.Context) (uint, error) {
+func (cd *contentDirectory) SystemUpdateID(_ context.Context) (uint, error) {
 	return 0, nil
 }
-func (cd *ContentDirectory) Search(_ context.Context, _ upnpav.ObjectID, _ search.Criteria) (*upnpav.DIDLLite, error) {
+func (cd *contentDirectory) Search(_ context.Context, _ upnpav.ObjectID, _ search.Criteria) (*upnpav.DIDLLite, error) {
 	return nil, nil
 }
 
-func (cd *ContentDirectory) containerFromPath(p string) (upnpav.Container, error) {
+func (cd *contentDirectory) containerFromPath(p string) (upnpav.Container, error) {
 	container := upnpav.Container{
 		Object: upnpav.Object{
 			ID:     objectIDForPath(cd.basePath, p),
@@ -211,7 +211,7 @@ func (cd *ContentDirectory) containerFromPath(p string) (upnpav.Container, error
 	return container, nil
 }
 
-func (cd *ContentDirectory) itemFromPath(p string) (upnpav.Item, bool, error) {
+func (cd *contentDirectory) itemFromPath(p string) (upnpav.Item, bool, error) {
 	var class upnpav.Class
 	mimetype := mime.TypeByExtension(path.Ext(p))
 	switch strings.Split(mimetype, "/")[0] {
@@ -251,7 +251,7 @@ func (cd *ContentDirectory) itemFromPath(p string) (upnpav.Item, bool, error) {
 	return item, true, nil
 }
 
-func (cd *ContentDirectory) uri(p string) string {
+func (cd *contentDirectory) uri(p string) string {
 	uri := *(cd.baseURL)
 	relPath, _ := filepath.Rel(cd.basePath, p)
 	uri.Path = path.Join(uri.Path, relPath)

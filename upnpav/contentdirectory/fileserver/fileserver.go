@@ -31,7 +31,7 @@ type (
 		basePath string
 		baseURL  *url.URL
 
-		metadataCache *media.MetadataCache
+		metadataCache media.MetadataCache
 	}
 )
 
@@ -46,7 +46,7 @@ func NewContentDirectory(basePath, baseURL string) (*ContentDirectory, error) {
 		return nil, fmt.Errorf("could not get absolute path: %w", err)
 	}
 
-	metadataCache := &media.MetadataCache{}
+	metadataCache := media.NewMetadataCache()
 	go func() {
 		fields := log.Fields{"path": absPath}
 		log.WithFields(fields).Info("warming metadata cache")

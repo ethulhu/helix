@@ -24,7 +24,11 @@ type (
 		Tags     map[string]string
 	}
 
-	MetadataCache struct {
+	MetadataCache interface {
+		MetadataForFile(string) (*Metadata, error)
+		Warm(string)
+	}
+	metadataCache struct {
 		mu             sync.RWMutex
 		metadataByPath map[string]metadataCacheEntry
 	}
@@ -43,19 +47,19 @@ type (
 
 var ffprobeArgs = []string{"-hide_banner", "-print_format", "json", "-show_format"}
 
-func (mc *MetadataCache) MetadataForFile(p string) (*Metadata, error) {
+func NewMetadataCache() MetadataCache {
+	return &metadataCache{
+		metadataByPath: map[string]metadataCacheEntry{},
+	}
+}
+
+func (mc *metadataCache) MetadataForFile(p string) (*Metadata, error) {
 	fi, err := os.Stat(p)
 	if err != nil {
 		return nil, fmt.Errorf("could not stat: %w", err)
 	}
 
 	mtime := fi.ModTime()
-
-	mc.mu.Lock()
-	if mc.metadataByPath == nil {
-		mc.metadataByPath = map[string]metadataCacheEntry{}
-	}
-	mc.mu.Unlock()
 
 	mc.mu.RLock()
 	cacheEntry, ok := mc.metadataByPath[p]
@@ -80,7 +84,7 @@ func (mc *MetadataCache) MetadataForFile(p string) (*Metadata, error) {
 	return md, nil
 }
 
-func (mc *MetadataCache) Warm(basePath string) {
+func (mc *metadataCache) Warm(basePath string) {
 	var wg sync.WaitGroup
 	_ = filepath.Walk(basePath, func(p string, fi os.FileInfo, err error) error {
 		if fi.IsDir() {

@@ -20,7 +20,7 @@ func main() {
 		log.Fatal("must set -base-path")
 	}
 
-	cache := &media.MetadataCache{}
+	cache := media.NewMetadataCache()
 
 	cold := getMetadata(cache, *basePath)
 	fmt.Printf("cold cache: %v\n", cold)
@@ -29,7 +29,7 @@ func main() {
 	fmt.Printf("warm cache: %v\n", warm)
 }
 
-func getMetadata(cache *media.MetadataCache, basePath string) time.Duration {
+func getMetadata(cache media.MetadataCache, basePath string) time.Duration {
 	start := time.Now()
 	cache.Warm(basePath)
 	return time.Since(start)

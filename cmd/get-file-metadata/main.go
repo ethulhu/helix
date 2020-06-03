@@ -22,7 +22,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	cache := &media.MetadataCache{}
+	cache := media.NewMetadataCache()
 
 	md, err := cache.MetadataForFile(*path)
 	if err != nil {

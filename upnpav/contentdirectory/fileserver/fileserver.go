@@ -223,10 +223,6 @@ func (cd *ContentDirectory) itemFromPath(p string) (upnpav.Item, bool, error) {
 		return upnpav.Item{}, false, nil
 	}
 
-	uri := *(cd.baseURL)
-	relPath, _ := filepath.Rel(cd.basePath, p)
-	uri.Path = path.Join(uri.Path, relPath)
-
 	item := upnpav.Item{
 		Object: upnpav.Object{
 			ID:     objectIDForPath(cd.basePath, p),
@@ -236,7 +232,7 @@ func (cd *ContentDirectory) itemFromPath(p string) (upnpav.Item, bool, error) {
 		},
 		Resources: []upnpav.Resource{{
 			// TODO: figure out what's actually going wrong here.
-			URI: strings.Replace((&uri).String(), "&", "%26", -1),
+			URI: cd.uri(p),
 			ProtocolInfo: &upnpav.ProtocolInfo{
 				Protocol:      upnpav.ProtocolHTTP,
 				ContentFormat: mimetype,
@@ -252,4 +248,11 @@ func (cd *ContentDirectory) itemFromPath(p string) (upnpav.Item, bool, error) {
 	}
 
 	return item, true, nil
+}
+
+func (cd *ContentDirectory) uri(p string) string {
+	uri := *(cd.baseURL)
+	relPath, _ := filepath.Rel(cd.basePath, p)
+	uri.Path = path.Join(uri.Path, relPath)
+	return strings.Replace((&uri).String(), "&", "%26", -1)
 }

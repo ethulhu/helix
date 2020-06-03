@@ -105,7 +105,7 @@ func MetadataForFile(p string) (*Metadata, error) {
 
 	duration := 0
 	if maybeDuration, err := strconv.ParseFloat(raw.Format.DurationSeconds, 64); err == nil {
-		duration = maybeDuration
+		duration = int(maybeDuration)
 	}
 
 	title := strings.TrimSuffix(path.Base(p), path.Ext(p))

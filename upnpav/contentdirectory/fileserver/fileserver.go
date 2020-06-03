@@ -16,6 +16,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/ethulhu/helix/media"
 	"github.com/ethulhu/helix/upnpav"
@@ -45,11 +46,23 @@ func NewContentDirectory(basePath, baseURL string) (*ContentDirectory, error) {
 		return nil, fmt.Errorf("could not get absolute path: %w", err)
 	}
 
+	metadataCache := &media.MetadataCache{}
+	go func() {
+		fields := log.Fields{"path": absPath}
+		log.WithFields(fields).Info("warming metadata cache")
+
+		start := time.Now()
+		metadataCache.Warm(absPath)
+		fields["duration"] = time.Since(start)
+
+		log.WithFields(fields).Info("finished warming metadata cache")
+	}()
+
 	return &ContentDirectory{
 		basePath: absPath,
 		baseURL:  maybeURL,
 
-		metadataCache: &media.MetadataCache{},
+		metadataCache: metadataCache,
 	}, nil
 }
 

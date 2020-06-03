@@ -25,7 +25,7 @@ type (
 	}
 
 	MetadataCache struct {
-		mu             sync.Mutex
+		mu             sync.RWMutex
 		metadataByPath map[string]metadataCacheEntry
 	}
 	metadataCacheEntry struct {
@@ -52,14 +52,17 @@ func (mc *MetadataCache) MetadataForFile(p string) (*Metadata, error) {
 	mtime := fi.ModTime()
 
 	mc.mu.Lock()
-	defer mc.mu.Unlock()
-
 	if mc.metadataByPath == nil {
 		mc.metadataByPath = map[string]metadataCacheEntry{}
 	}
+	mc.mu.Unlock()
 
-	if md, ok := mc.metadataByPath[p]; ok && md.mtime == mtime {
-		return md.metadata, nil
+	mc.mu.RLock()
+	cacheEntry, ok := mc.metadataByPath[p]
+	mc.mu.RUnlock()
+
+	if ok && cacheEntry.mtime == mtime {
+		return cacheEntry.metadata, nil
 	}
 
 	md, err := MetadataForFile(p)
@@ -67,10 +70,13 @@ func (mc *MetadataCache) MetadataForFile(p string) (*Metadata, error) {
 		return nil, err
 	}
 
+	mc.mu.Lock()
 	mc.metadataByPath[p] = metadataCacheEntry{
 		metadata: md,
 		mtime:    mtime,
 	}
+	mc.mu.Unlock()
+
 	return md, nil
 }
 

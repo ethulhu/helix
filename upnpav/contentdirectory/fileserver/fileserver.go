@@ -245,6 +245,7 @@ func (cd *ContentDirectory) itemFromPath(p string) (upnpav.Item, bool, error) {
 		for i := range item.Resources {
 			item.Resources[i].Duration = &upnpav.Duration{md.Duration}
 		}
+		item.Title = md.Title
 	}
 
 	return item, true, nil

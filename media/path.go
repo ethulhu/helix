@@ -15,3 +15,9 @@ func IsAudioOrVideo(p string) bool {
 	mimeType := mime.TypeByExtension(ext)
 	return strings.HasPrefix(mimeType, "audio/") || strings.HasPrefix(mimeType, "video/")
 }
+
+func IsImage(p string) bool {
+	ext := path.Ext(p)
+	mimeType := mime.TypeByExtension(ext)
+	return strings.HasPrefix(mimeType, "image/")
+}

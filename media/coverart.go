@@ -6,21 +6,98 @@ package media
 
 import (
 	"io/ioutil"
-	"mime"
 	"os"
 	"path"
 	"strings"
 )
 
-var basenames = map[string]bool{
+var coverArtNames = map[string]bool{
 	"cover":  true,
 	"folder": true,
 	"thumb":  true,
 }
 
-func CoverArtForPath(p string) []string {
-	paths, _ := coverArtForPath(realFS{}, p)
-	return paths
+func CoverArtForPaths(paths []string) [][]string {
+	return coverArtForPaths(realFS{}, paths)
+}
+
+func coverArtForPaths(filesystem fs, paths []string) [][]string {
+	listings := map[string][]string{}
+	for _, p := range paths {
+		p := path.Clean(p)
+
+		fi, err := filesystem.Stat(p)
+		if err != nil {
+			continue
+		}
+
+		dir := p
+		if !fi.IsDir() {
+			dir = path.Dir(p)
+		}
+
+		if _, ok := listings[dir]; ok {
+			continue
+		}
+
+		fis, err := filesystem.List(dir)
+		if err != nil {
+			continue
+		}
+		for _, fi := range fis {
+			if !fi.IsDir() && IsImage(fi.Name()) {
+				listings[dir] = append(listings[dir], fi.Name())
+			}
+		}
+	}
+
+	var allArtPaths [][]string
+	for _, p := range paths {
+		p := path.Clean(p)
+
+		// Only directories are in the listings, so if it's not it must be a file.
+		if _, ok := listings[p]; !ok {
+			dir := path.Dir(p)
+			file := path.Base(p)
+
+			artPaths := coverArtForFile(dir, file, listings[dir])
+
+			if len(artPaths) > 0 {
+				allArtPaths = append(allArtPaths, artPaths)
+				continue
+			}
+
+			// Fallback to the parent directory's art.
+			p = dir
+		}
+
+		allArtPaths = append(allArtPaths, coverArtForDir(p, listings[p]))
+	}
+
+	return allArtPaths
+}
+
+func coverArtForFile(dir, file string, candidates []string) []string {
+	withoutExt := strings.TrimSuffix(file, path.Ext(file))
+
+	var artPaths []string
+	for _, candidate := range candidates {
+		imageWithoutExt := strings.TrimSuffix(candidate, path.Ext(candidate))
+		if imageWithoutExt == file || imageWithoutExt == withoutExt {
+			artPaths = append(artPaths, path.Join(dir, candidate))
+		}
+	}
+	return artPaths
+}
+func coverArtForDir(dir string, candidates []string) []string {
+	var artPaths []string
+	for _, candidate := range candidates {
+		imageWithoutExt := strings.TrimSuffix(candidate, path.Ext(candidate))
+		if coverArtNames[imageWithoutExt] {
+			artPaths = append(artPaths, path.Join(dir, candidate))
+		}
+	}
+	return artPaths
 }
 
 type (
@@ -37,59 +114,4 @@ func (_ realFS) Stat(p string) (os.FileInfo, error) {
 }
 func (_ realFS) List(p string) ([]os.FileInfo, error) {
 	return ioutil.ReadDir(p)
-}
-
-func coverArtForPath(filesystem fs, p string) ([]string, error) {
-	fi, err := filesystem.Stat(p)
-	if err != nil {
-		return nil, err
-	}
-
-	if !fi.IsDir() {
-		// Check our neighbors, e.g. for foo.mp3:
-		// - foo.jpg
-		// - foo.mp3.jpg
-		//
-		// TODO: include foo-cover.jpg ?
-		fs, err := filesystem.List(path.Dir(p))
-		if err != nil {
-			return nil, err
-		}
-		basename := path.Base(p)
-		withoutExt := strings.TrimSuffix(basename, path.Ext(basename))
-
-		var paths []string
-		for _, f := range fs {
-			ext := path.Ext(f.Name())
-			if !strings.HasPrefix(mime.TypeByExtension(ext), "image/") {
-				continue
-			}
-
-			imageWithoutExt := strings.TrimSuffix(f.Name(), ext)
-			if imageWithoutExt == basename || imageWithoutExt == withoutExt {
-				paths = append(paths, path.Join(path.Dir(p), f.Name()))
-			}
-		}
-		if len(paths) > 0 {
-			return paths, nil
-		}
-
-		// Fallback to the parent directory's art.
-		p = path.Dir(p)
-	}
-
-	fis, err := filesystem.List(p)
-	if err != nil {
-		return nil, err
-	}
-
-	var paths []string
-	for _, fi := range fis {
-		ext := path.Ext(fi.Name())
-		basename := strings.TrimSuffix(fi.Name(), ext)
-		if basenames[basename] && strings.HasPrefix(mime.TypeByExtension(ext), "image/") {
-			paths = append(paths, path.Join(p, fi.Name()))
-		}
-	}
-	return paths, nil
 }

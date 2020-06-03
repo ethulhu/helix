@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"mime"
 	"net/url"
 	"os"
 	"path"
@@ -98,17 +97,18 @@ func (cd *contentDirectory) BrowseMetadata(_ context.Context, id upnpav.ObjectID
 		return &upnpav.DIDLLite{Containers: []upnpav.Container{container}}, nil
 	}
 
-	item, ok, err := cd.itemFromPath(p)
+	if !media.IsAudioOrVideo(p) {
+		log.WithFields(fields).Warning("item exists but is not a media item")
+		return nil, contentdirectory.ErrNoSuchObject
+	}
+
+	items, err := cd.itemsForPaths(p)
 	if err != nil {
 		fields["error"] = err
 		log.WithFields(fields).Warning("could not describe item from path")
 		return nil, upnpav.ErrActionFailed
 	}
-	if !ok {
-		log.WithFields(fields).Warning("item exists but is not a media item")
-		return nil, contentdirectory.ErrNoSuchObject
-	}
-	return &upnpav.DIDLLite{Items: []upnpav.Item{item}}, nil
+	return &upnpav.DIDLLite{Items: items}, nil
 }
 
 func (cd *contentDirectory) BrowseChildren(_ context.Context, parent upnpav.ObjectID) (*upnpav.DIDLLite, error) {
@@ -148,28 +148,31 @@ func (cd *contentDirectory) BrowseChildren(_ context.Context, parent upnpav.Obje
 		return didllite, upnpav.ErrActionFailed
 	}
 
+	var itemPaths []string
 	for _, fi := range fs {
-		if fi.IsDir() {
-			container, err := cd.containerFromPath(path.Join(p, fi.Name()))
-			if err != nil {
-				fields["error"] = err
-				log.WithFields(fields).Warning("could not create container from path")
-				continue
+		if !fi.IsDir() {
+			if media.IsAudioOrVideo(fi.Name()) {
+				itemPaths = append(itemPaths, path.Join(p, fi.Name()))
 			}
-			didllite.Containers = append(didllite.Containers, container)
-		} else {
-			item, ok, err := cd.itemFromPath(path.Join(p, fi.Name()))
-			if err != nil {
-				fields["error"] = err
-				log.WithFields(fields).Warning("could not create item from path")
-				continue
-			}
-			if !ok {
-				continue
-			}
-			didllite.Items = append(didllite.Items, item)
+			continue
 		}
+
+		container, err := cd.containerFromPath(path.Join(p, fi.Name()))
+		if err != nil {
+			fields["error"] = err
+			log.WithFields(fields).Warning("could not create container from path")
+			continue
+		}
+		didllite.Containers = append(didllite.Containers, container)
 	}
+
+	items, err := cd.itemsForPaths(itemPaths...)
+	if err != nil {
+		fields["error"] = err
+		log.WithFields(fields).Warning("could not create items from paths")
+	}
+	didllite.Items = items
+
 	return didllite, nil
 }
 func (cd *contentDirectory) SearchCapabilities(_ context.Context) ([]string, error) {
@@ -210,49 +213,44 @@ func (cd *contentDirectory) containerFromPath(p string) (upnpav.Container, error
 	return container, nil
 }
 
-func (cd *contentDirectory) itemFromPath(p string) (upnpav.Item, bool, error) {
-	var class upnpav.Class
-	mimetype := mime.TypeByExtension(path.Ext(p))
-	switch strings.Split(mimetype, "/")[0] {
-	case "audio":
-		class = upnpav.AudioItem
-	case "video":
-		class = upnpav.VideoItem
-	default:
-		return upnpav.Item{}, false, nil
-	}
+func (cd *contentDirectory) itemsForPaths(paths ...string) ([]upnpav.Item, error) {
+	coverArts := media.CoverArtForPaths(paths)
+	metadatas := cd.metadataCache.MetadataForPaths(paths)
 
-	var albumArtURIs []string
-	for _, artPath := range media.CoverArtForPath(p) {
-		albumArtURIs = append(albumArtURIs, cd.uri(artPath))
-	}
+	var items []upnpav.Item
+	for i, p := range paths {
+		md := metadatas[i]
 
-	item := upnpav.Item{
-		Object: upnpav.Object{
-			ID:     objectIDForPath(cd.basePath, p),
-			Parent: parentIDForPath(cd.basePath, p),
-			Class:  class,
-			Title:  path.Base(p),
-		},
-		AlbumArtURIs: albumArtURIs,
-		Resources: []upnpav.Resource{{
-			URI: cd.uri(p),
-			ProtocolInfo: &upnpav.ProtocolInfo{
-				Protocol:      upnpav.ProtocolHTTP,
-				ContentFormat: mimetype,
-			},
-		}},
-	}
-
-	// TODO: something with ffprobe, probably.
-	if md, err := cd.metadataCache.MetadataForFile(p); err == nil {
-		for i := range item.Resources {
-			item.Resources[i].Duration = &upnpav.Duration{md.Duration}
+		class, err := upnpav.ClassForMIMEType(md.MIMEType)
+		if err != nil {
+			panic(fmt.Sprintf("should only have audio or video MIME-Types, got %q for path %q", md.MIMEType, p))
 		}
-		item.Title = md.Title
+
+		var albumArtURIs []string
+		for _, artPath := range coverArts[i] {
+			albumArtURIs = append(albumArtURIs, cd.uri(artPath))
+		}
+
+		items = append(items, upnpav.Item{
+			Object: upnpav.Object{
+				ID:     objectIDForPath(cd.basePath, p),
+				Parent: parentIDForPath(cd.basePath, p),
+				Class:  class,
+				Title:  md.Title,
+			},
+			AlbumArtURIs: albumArtURIs,
+			Resources: []upnpav.Resource{{
+				URI:      cd.uri(p),
+				Duration: &upnpav.Duration{md.Duration},
+				ProtocolInfo: &upnpav.ProtocolInfo{
+					Protocol:      upnpav.ProtocolHTTP,
+					ContentFormat: md.MIMEType,
+				},
+			}},
+		})
 	}
 
-	return item, true, nil
+	return items, nil
 }
 
 func (cd *contentDirectory) uri(p string) string {

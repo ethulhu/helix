@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2020 Ethel Morgan
+//
+// SPDX-License-Identifier: MIT
+
 package main
 
 import (
@@ -24,7 +28,7 @@ func main() {
 
 	cache := media.NewMetadataCache()
 
-	md, err := cache.MetadataForFile(*path)
+	md, err := cache.MetadataForPath(*path)
 	if err != nil {
 		log.Fatal(err)
 	}

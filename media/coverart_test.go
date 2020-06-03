@@ -14,35 +14,35 @@ import (
 
 func TestCoverArtForPath(t *testing.T) {
 	tests := []struct {
-		fs   fakeFS
-		path string
-		want []string
+		fs    fakeFS
+		paths []string
+		want  [][]string
 	}{
 		{
 			fs: fakeFS{
 				"/music":            true,
 				"/music/folder.jpg": false,
 			},
-			path: "/music",
-			want: []string{
-				"/music/folder.jpg",
+			paths: []string{"/music"},
+			want: [][]string{
+				{"/music/folder.jpg"},
 			},
 		},
 		{
 			fs: fakeFS{
 				"/music": true,
 			},
-			path: "/music",
-			want: nil,
+			paths: []string{"/music"},
+			want:  [][]string{nil},
 		},
 		{
 			fs: fakeFS{
 				"/music":            true,
 				"/music/folder.jpg": false,
 			},
-			path: "/music",
-			want: []string{
-				"/music/folder.jpg",
+			paths: []string{"/music"},
+			want: [][]string{
+				{"/music/folder.jpg"},
 			},
 		},
 		{
@@ -51,9 +51,9 @@ func TestCoverArtForPath(t *testing.T) {
 				"/music/folder.jpg": false,
 				"/music/foo.mp3":    false,
 			},
-			path: "/music/foo.mp3",
-			want: []string{
-				"/music/folder.jpg",
+			paths: []string{"/music/foo.mp3"},
+			want: [][]string{
+				{"/music/folder.jpg"},
 			},
 		},
 		{
@@ -64,10 +64,9 @@ func TestCoverArtForPath(t *testing.T) {
 				"/music/foo.png":     false,
 				"/music/foo.mp3.jpg": false,
 			},
-			path: "/music/foo.mp3",
-			want: []string{
-				"/music/foo.mp3.jpg",
-				"/music/foo.png",
+			paths: []string{"/music/foo.mp3"},
+			want: [][]string{
+				{"/music/foo.mp3.jpg", "/music/foo.png"},
 			},
 		},
 		{
@@ -79,20 +78,17 @@ func TestCoverArtForPath(t *testing.T) {
 				"/music/foo 2.mp3":   false,
 				"/music/foo 2.png":   false,
 			},
-			path: "/music/foo.mp3",
-			want: []string{
-				"/music/foo.mp3.jpg",
+			paths: []string{"/music/foo.mp3"},
+			want: [][]string{
+				{"/music/foo.mp3.jpg"},
 			},
 		},
 	}
 
 	for i, tt := range tests {
-		got, err := coverArtForPath(tt.fs, tt.path)
-		if err != nil {
-			t.Fatalf("[%d]: got error: %v", i, err)
-		}
+		got := coverArtForPaths(tt.fs, tt.paths)
 		if !reflect.DeepEqual(got, tt.want) {
-			t.Errorf("[%d]: coverArtForPath(_, %q) == %q, want %q", i, tt.path, got, tt.want)
+			t.Errorf("[%d]: coverArtForPath(_, %q) == %q, want %q", i, tt.paths, got, tt.want)
 		}
 	}
 }

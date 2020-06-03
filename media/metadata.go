@@ -3,10 +3,11 @@ package media
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"mime"
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -70,6 +71,26 @@ func (mc *MetadataCache) MetadataForFile(p string) (*Metadata, error) {
 	return md, nil
 }
 
+func (mc *MetadataCache) Warm(basePath string) {
+	var wg sync.WaitGroup
+	_ = filepath.Walk(basePath, func(p string, fi os.FileInfo, err error) error {
+		if fi.IsDir() {
+			return nil
+		}
+		ext := path.Ext(fi.Name())
+		mimeType := mime.TypeByExtension(ext)
+		if strings.HasPrefix(mimeType, "audio/") || strings.HasPrefix(mimeType, "video/") {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				_, _ = mc.MetadataForFile(p)
+			}()
+		}
+		return nil
+	})
+	wg.Wait()
+}
+
 func MetadataForFile(p string) (*Metadata, error) {
 	bytes, err := exec.Command("ffprobe", append(ffprobeArgs, p)...).Output()
 	if err != nil {
@@ -81,9 +102,9 @@ func MetadataForFile(p string) (*Metadata, error) {
 		return nil, fmt.Errorf("could not unmarshal ffprobe output: %w", err)
 	}
 
-	duration, err := strconv.ParseFloat(raw.Format.DurationSeconds, 64)
-	if err != nil {
-		log.Printf("could not parse duration %q: %w", raw.Format.DurationSeconds, err)
+	duration := 0
+	if maybeDuration, err := strconv.ParseFloat(raw.Format.DurationSeconds, 64); err == nil {
+		duration = maybeDuration
 	}
 
 	title := strings.TrimSuffix(path.Base(p), path.Ext(p))

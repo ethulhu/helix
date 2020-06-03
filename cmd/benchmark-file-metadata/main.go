@@ -4,37 +4,33 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"sync"
 	"time"
 
 	"github.com/ethulhu/helix/media"
 )
 
+var (
+	basePath = flag.String("base-path", "", "base path to explore")
+)
+
 func main() {
 	flag.Parse()
 
+	if *basePath == "" {
+		log.Fatal("must set -base-path")
+	}
+
 	cache := &media.MetadataCache{}
 
-	cold := getMetadata(cache, flag.Args())
+	cold := getMetadata(cache, *basePath)
 	fmt.Printf("cold cache: %v\n", cold)
 
-	warm := getMetadata(cache, flag.Args())
+	warm := getMetadata(cache, *basePath)
 	fmt.Printf("warm cache: %v\n", warm)
 }
 
-func getMetadata(cache *media.MetadataCache, paths []string) time.Duration {
+func getMetadata(cache *media.MetadataCache, basePath string) time.Duration {
 	start := time.Now()
-	var wg sync.WaitGroup
-	for _, path := range flag.Args() {
-		path := path
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if _, err := cache.MetadataForFile(path); err != nil {
-				log.Printf("could not get metadata for %q: %v", path, err)
-			}
-		}()
-	}
-	wg.Wait()
+	cache.Warm(basePath)
 	return time.Since(start)
 }

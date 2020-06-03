@@ -36,18 +36,18 @@ type (
 var ffprobeArgs = []string{"-hide_banner", "-print_format", "json", "-show_format"}
 
 func (mc *MetadataCache) MetadataForFile(path string) (*Metadata, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("could not stat: %w", err)
+	}
+	mtime := fi.ModTime()
+
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 
 	if mc.metadataByPath == nil {
 		mc.metadataByPath = map[string]metadataCacheEntry{}
 	}
-
-	fi, err := os.Stat(path)
-	if err != nil {
-		return nil, fmt.Errorf("could not stat: %w", err)
-	}
-	mtime := fi.ModTime()
 
 	if md, ok := mc.metadataByPath[path]; ok && md.mtime == mtime {
 		return md.metadata, nil

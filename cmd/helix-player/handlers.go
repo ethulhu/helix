@@ -7,7 +7,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"mime"
 	"net/http"
 	"strconv"
@@ -138,8 +137,6 @@ func getObjectByType(w http.ResponseWriter, r *http.Request) {
 	udn := mux.Vars(r)["udn"]
 	object := mux.Vars(r)["object"]
 	mimetypeRaw := mux.Vars(r)["mimetype"]
-
-	log.Printf("%v udn %q object %q MIME-type %q", r.Method, udn, object, mimetypeRaw)
 
 	mimetype, _, err := mime.ParseMediaType(mimetypeRaw)
 	mimeParts := strings.Split(mimetype, "/")

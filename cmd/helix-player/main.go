@@ -243,6 +243,8 @@ func main() {
 			Handler(http.FileServer(httputil.TryFiles{httputil.BroccoliFS{"static", assets}}))
 	}
 
+	m.Use(httputil.Log)
+
 	log.Printf("starting HTTP server on %v", conn.Addr())
 	if err := http.Serve(conn, m); err != nil {
 		log.Fatalf("HTTP server failed: %v", err)

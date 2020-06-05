@@ -9,9 +9,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
+	"github.com/ethulhu/helix/logger"
 	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/avtransport"
@@ -40,11 +40,10 @@ func NewLoop() *Loop {
 	go func() {
 		// We're using UDNs instead of pointer equality for the case.
 		prevDevice := loop.transport
-		// prevTransport, _ := clients(prevDevice)
-		// prevObservedState, err := newTransportState(ctx, prevTransport)
 		prevObservedState, err := newTransportState(ctx, nil)
 		if err != nil {
-			log.Printf("could not get initial transport state: %v", err)
+			// We passed a nil transport, so it shouldn't be possible to get errors here.
+			panic(fmt.Sprintf("could not get initial transport state: %v", err))
 		}
 
 		for _ = range time.Tick(1 * time.Second) {
@@ -54,26 +53,46 @@ func NewLoop() *Loop {
 			transportChanged := currUDN != prevUDN
 
 			if transportChanged && prevDevice != nil {
-				log.Print("transport changed, stopping old transport")
 				go func() {
+					log, ctx := logger.FromContext(ctx)
+					log.AddField("transport.previous.udn", prevDevice.UDN)
+					log.AddField("transport.previous.name", prevDevice.Name)
+
 					prevTransport, _ := clients(prevDevice)
 					if err := prevTransport.Stop(ctx); err != nil {
-						log.Printf("could not stop old transport: %v", err)
+						log.WithError(err).Warning("could not stop previous transport")
 						return
 					}
-					log.Print("stopped old transport")
+					log.Info("stopped previous transport")
 				}()
 			}
 
 			if loop.transport != nil {
+				log, ctx := logger.FromContext(ctx)
+				log.AddField("transport.udn", loop.transport.UDN)
+				log.AddField("transport.name", loop.transport.Name)
+
 				currTransport, currManager := clients(loop.transport)
 				currObservedState, err := newTransportState(ctx, currTransport)
+				if err != nil {
+					log.WithError(err).Warning("could not get transport state")
+					continue
+				}
+
+				log.AddField("current.state", currObservedState.state)
+				if currObservedState.uri != "" {
+					log.AddField("current.uri", currObservedState.uri)
+				}
 
 				newDesiredState, err := tick(ctx, prevObservedState, currObservedState, currTransport, currManager, loop.state, loop.queue, transportChanged)
 				if err != nil {
-					log.Print(err.Error())
+					log.WithError(err).Warning("error determining new loop state")
 				} else {
-					loop.state = newDesiredState
+					if loop.state != newDesiredState {
+						loop.state = newDesiredState
+						log.AddField("new.state", newDesiredState)
+						log.Info("updated desired loop state")
+					}
 				}
 				prevObservedState = currObservedState
 			}
@@ -140,18 +159,20 @@ func tick(ctx context.Context,
 	queue Queue,
 	transportChanged bool) (avtransport.State, error) {
 
+	log, ctx := logger.FromContext(ctx)
+
 	if transport == nil {
-		log.Print("no current transport, doing nothing")
+		log.Info("no current transport, doing nothing")
 		return desiredState, nil
 	}
 
 	if queue == nil {
-		log.Print("no current queue, doing nothing")
+		log.Info("no current queue, doing nothing")
 		return desiredState, nil
 	}
 
 	if curr.state == avtransport.StateTransitioning {
-		log.Printf("transport in state %v, doing nothing", avtransport.StateTransitioning)
+		log.Info(fmt.Sprintf("transport in state %v, doing nothing", avtransport.StateTransitioning))
 		return desiredState, nil
 	}
 
@@ -160,43 +181,45 @@ func tick(ctx context.Context,
 	case avtransport.StateStopped:
 		switch curr.state {
 		case avtransport.StateStopped:
-			log.Printf("transport in desired state %v, doing nothing", desiredState)
+			log.Info("transport in desired state, doing nothing")
 		default:
-			log.Print("stopping transport")
 			if err := transport.Stop(ctx); err != nil {
+				log.WithError(err).Error("could not stop transport")
 				return desiredState, fmt.Errorf("could not stop transport: %w", err)
 			}
+			log.Info("stopped transport")
 		}
 		return desiredState, nil
 
 	case avtransport.StatePaused:
 		switch curr.state {
 		case avtransport.StatePaused:
-			log.Printf("transport in desired state %v, doing nothing", desiredState)
+			log.Info("transport in desired state, doing nothing")
 		default:
 			// TODO: also check URI & elapsed time?
 			if prev.state == avtransport.StatePaused && curr.state == avtransport.StatePlaying {
-				log.Print("transport was previously paused, but was starting playing externally, doing nothing")
+				log.Info("transport was previously paused, but was started playing externally, doing nothing")
 				return avtransport.StatePlaying, nil
 			}
 
-			log.Print("pausing transport")
 			if err := transport.Pause(ctx); err != nil {
+				log.WithError(err).Error("could not pause transport")
 				return desiredState, fmt.Errorf("could not pause transport: %w", err)
 			}
+			log.Info("paused transport")
 		}
 		return desiredState, nil
 
 	case avtransport.StatePlaying:
 		// TODO: generalize to "everything else matches, and prev.state matched, but the curr.state differs"?
 		if prev.state == avtransport.StatePlaying && curr.state == avtransport.StatePaused {
-			log.Print("transport was previously playing, but was paused externally, doing nothing")
+			log.Info("transport was previously playing, but was paused externally, doing nothing")
 			return avtransport.StatePaused, nil
 		}
 
 		currentItem, ok := queue.Current()
 		if !ok {
-			log.Print("reached end of queue, doing nothing")
+			log.Info("reached end of queue, doing nothing")
 			return avtransport.StateStopped, nil
 		}
 
@@ -204,11 +227,12 @@ func tick(ctx context.Context,
 		if currentItem.HasURI(curr.uri) {
 			switch curr.state {
 			case avtransport.StatePlaying:
-				log.Print("current transport URI & state match, doing nothing")
+				log.Info("transport URI & state match, doing nothing")
 				return desiredState, nil
 			default:
-				log.Printf("current transport URI matches but state is %v, starting playback", curr.state)
+				log.Info("transport URI matches, starting playback")
 				if err := transport.Play(ctx); err != nil {
+					log.WithError(err).Error("could not play transport")
 					return desiredState, fmt.Errorf("could not play transport: %w", err)
 				}
 				return desiredState, nil
@@ -216,7 +240,7 @@ func tick(ctx context.Context,
 		}
 
 		if !transportChanged && currentItem.HasURI(prev.uri) { // TODO: && prev.state == avtransport.StatePlaying ?
-			log.Print("controller has fallen behind, skipping track")
+			log.Info("controller has fallen behind, skipping track")
 			currentItem, ok = queue.Skip()
 		}
 
@@ -225,14 +249,16 @@ func tick(ctx context.Context,
 			seek = 0
 		}
 
-		log.Print("getting ProtocolInfos for transport")
 		_, sinks, err := manager.ProtocolInfo(ctx)
 		if err != nil {
+			log.WithError(err).Error("could not get sink protocols for transport")
 			return desiredState, fmt.Errorf("could not get sink protocols for device: %w", err)
 		}
 		if len(sinks) == 0 {
+			log.Error("got 0 sink protocols for transport, expected at least 1")
 			return desiredState, errors.New("got 0 sink protocols for device, expected at least 1")
 		}
+		log.Info("got sink protocols for transport")
 
 		currentURI, ok := currentItem.URIForProtocolInfos(sinks)
 		if !ok {
@@ -251,33 +277,39 @@ func tick(ctx context.Context,
 				}
 			}
 			if !ok {
-				log.Print("reached end of queue, doing nothing")
+				log.Info("reached end of queue, doing nothing")
 				return avtransport.StateStopped, nil
 			}
 		}
 
+		log.AddField("new.uri", currentURI)
+
 		// TODO: make this less abrupt, gapless playback, etc.
 		if curr.state != avtransport.StateStopped {
-			log.Print("temporarily stopping transport")
+			log.Info("temporarily stopping transport")
 			_ = transport.Stop(ctx)
 		}
 
-		log.Print("setting current transport URI")
 		metadata := &upnpav.DIDLLite{Items: []upnpav.Item{currentItem}}
 		if err := transport.SetCurrentURI(ctx, currentURI, metadata); err != nil {
+			log.WithError(err).Error("could not set transport URI")
 			return desiredState, fmt.Errorf("could not set transport URI: %w", err)
 		}
+		log.Info("set transport URI")
 
-		log.Print("starting transport playing")
 		if err := transport.Play(ctx); err != nil {
+			log.WithError(err).Error("could not start transport playing")
 			return desiredState, fmt.Errorf("could not play: %w", err)
 		}
+		log.Info("started transport playing")
 
 		if transportChanged && seek != 0 {
-			log.Printf("seeking transport to %v", seek)
+			log.AddField("seek", seek)
 			if err := transport.Seek(ctx, seek); err != nil {
+				log.WithError(err).Error("could not seek")
 				return desiredState, fmt.Errorf("could not seek: %w", err)
 			}
+			log.Info("seeked transport")
 		}
 		return desiredState, nil
 

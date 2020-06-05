@@ -10,11 +10,10 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/ethulhu/helix/logger"
 	"github.com/ethulhu/helix/soap"
 	"github.com/ethulhu/helix/upnp/scpd"
 	"github.com/ethulhu/helix/upnp/ssdp"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type (
@@ -113,11 +112,12 @@ func (d *Device) SOAPInterface(urn URN) (soap.Interface, bool) {
 
 // ServeHTTP serves the SSDP/SCPD UPnP discovery interface, and marshals SOAP requests.
 func (d *Device) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fields := log.Fields{
-		"method": r.Method,
-		"path":   r.URL.Path,
-		"remote": r.RemoteAddr,
-	}
+	log, ctx := logger.FromContext(r.Context())
+	r = r.WithContext(ctx)
+
+	log.AddField("http.client", r.RemoteAddr)
+	log.AddField("http.method", r.Method)
+	log.AddField("http.path", r.URL.Path)
 
 	if r.URL.Path == "/" {
 		bytes, err := xml.Marshal(d.manifest())
@@ -126,7 +126,7 @@ func (d *Device) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Fprint(w, xml.Header)
 		w.Write(bytes)
-		log.WithFields(fields).Info("served SSDP manifest")
+		log.Info("served SSDP manifest")
 		return
 	}
 
@@ -140,7 +140,7 @@ func (d *Device) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			fmt.Fprint(w, xml.Header)
 			w.Write(bytes)
-			log.WithFields(fields).Info("served SCPD")
+			log.Info("served SCPD")
 			return
 
 		case "POST":
@@ -149,8 +149,7 @@ func (d *Device) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	fields["error"] = "not found"
-	log.WithFields(fields).Error("not found")
+	log.Warning("not found")
 	http.NotFound(w, r)
 }
 

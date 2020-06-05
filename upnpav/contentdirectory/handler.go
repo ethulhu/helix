@@ -9,6 +9,7 @@ import (
 	"encoding/xml"
 	"fmt"
 
+	"github.com/ethulhu/helix/logger"
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/contentdirectory/search"
 )
@@ -92,7 +93,8 @@ func (h SOAPHandler) getSystemUpdateID(ctx context.Context, in []byte) ([]byte, 
 func (h SOAPHandler) browse(ctx context.Context, in []byte) ([]byte, error) {
 	req := browseRequest{}
 	if err := xml.Unmarshal(in, &req); err != nil {
-		// log.Printf("could not unmarshal request: %v", err)
+		log, _ := logger.FromContext(ctx)
+		log.WithError(err).Warning("could not unmarshal request")
 		return nil, upnpav.ErrInvalidArgs
 	}
 
@@ -120,7 +122,9 @@ func (h SOAPHandler) browse(ctx context.Context, in []byte) ([]byte, error) {
 func (h SOAPHandler) search(ctx context.Context, in []byte) ([]byte, error) {
 	req := searchRequest{}
 	if err := xml.Unmarshal(in, &req); err != nil {
-		return nil, fmt.Errorf("could not unmarshal request: %w", err)
+		log, _ := logger.FromContext(ctx)
+		log.WithError(err).Warning("could not unmarshal request")
+		return nil, upnpav.ErrInvalidArgs
 	}
 
 	criteria, err := search.Parse(req.SearchCriteria)

@@ -80,7 +80,7 @@ func NewLoop() *Loop {
 				}
 
 				log.AddField("current.state", currObservedState.state)
-				if currObservedState.uri != "" {
+				if currObservedState.state == avtransport.StatePlaying || currObservedState.state == avtransport.StatePaused {
 					log.AddField("current.uri", currObservedState.uri)
 				}
 

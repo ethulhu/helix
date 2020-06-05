@@ -396,7 +396,9 @@ func TestLoop(t *testing.T) {
 			queue.Append(item)
 		}
 
-		gotDesiredState, err := tick(nil, tt.prevObservedState, tt.currObservedState, transport, manager, tt.desiredState, queue, tt.transportChanged)
+		ctx := context.Background()
+
+		gotDesiredState, err := tick(ctx, tt.prevObservedState, tt.currObservedState, transport, manager, tt.desiredState, queue, tt.transportChanged)
 		if err != nil {
 			t.Fatalf("[%d]: got error: %v", i, err)
 		}

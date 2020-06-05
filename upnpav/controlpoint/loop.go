@@ -285,7 +285,8 @@ func tick(ctx context.Context,
 		log.AddField("new.uri", currentURI)
 
 		// TODO: make this less abrupt, gapless playback, etc.
-		if curr.state != avtransport.StateStopped {
+		// ERRATA: check curr.uri != "" because some Renders seem to put themselves into StatePlaying before they've loaded the URI, causing stuttering.
+		if curr.state != avtransport.StateStopped && curr.uri != "" {
 			log.Info("temporarily stopping transport")
 			_ = transport.Stop(ctx)
 		}

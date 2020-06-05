@@ -6,11 +6,11 @@ package upnp
 
 import (
 	"context"
-	"log"
 	"net"
 	"sync"
 	"time"
 
+	"github.com/ethulhu/helix/logger"
 )
 
 type (
@@ -70,10 +70,13 @@ func (d *DeviceCache) Refresh() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
+	log := logger.Background()
+	log.AddField("upnp.urn", d.urn)
+
 	ctx, _ := context.WithTimeout(context.Background(), discoveryTimeout)
 	devices, _, err := DiscoverDevices(ctx, d.urn, d.iface)
 	if err != nil {
-		log.Printf("could not find UPnP devices for URN %q: %v", d.urn, err)
+		log.Warning("could not find UPnP devices")
 		return
 	}
 
@@ -83,6 +86,7 @@ func (d *DeviceCache) Refresh() {
 	}
 
 	d.devices = newDevices
+	log.Debug("updated UPnP device cache")
 }
 
 // Devices lists all currently known Devices.

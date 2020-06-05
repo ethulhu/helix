@@ -27,6 +27,7 @@ type (
 		// WithError is a convenience method for one-off forks to log error messages under the key "error".
 		WithError(err error) Logger
 
+		Debug(string)
 		Info(string)
 		Warning(string)
 		Error(string)
@@ -50,9 +51,7 @@ func FromContext(ctx context.Context) (Logger, context.Context) {
 	maybeLogger := ctx.Value(loggerKey)
 
 	if maybeLogger == nil {
-		l := &logger{
-			values: map[string]interface{}{},
-		}
+		l := Background()
 		return l, context.WithValue(ctx, loggerKey, l)
 	}
 
@@ -61,6 +60,11 @@ func FromContext(ctx context.Context) (Logger, context.Context) {
 	}
 
 	panic(fmt.Sprintf("expected logger in context, found %+v", maybeLogger))
+}
+func Background() Logger {
+	return &logger{
+		values: map[string]interface{}{},
+	}
 }
 
 func (l *logger) AddField(name string, value interface{}) {
@@ -86,6 +90,12 @@ func (l *logger) WithField(name string, value interface{}) Logger {
 }
 func (l *logger) WithError(err error) Logger {
 	return l.WithField("error", err)
+}
+func (l *logger) Debug(message string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	log.WithFields(log.Fields(l.values)).Debug(message)
 }
 func (l *logger) Info(message string) {
 	l.mu.Lock()

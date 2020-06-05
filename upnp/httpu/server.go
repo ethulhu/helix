@@ -7,12 +7,13 @@ package httpu
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"sort"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/ethulhu/helix/logger"
 )
 
 type (
@@ -59,35 +60,32 @@ Loop:
 			return fmt.Errorf("could not receive HTTPU packet: %w", err)
 		}
 
-		fields := log.Fields{
-			"address": addr,
-		}
+		log, ctx := logger.FromContext(context.TODO())
+		log.AddField("httpu.client", addr)
 
 		req, err := http.ReadRequest(bufio.NewReader(bytes.NewReader(packet[:n])))
 		if err != nil {
-			fields["error"] = err
-			fields["packet"] = packet[:n]
-			log.WithFields(fields).Warning("could not deserialize HTTPU request")
+			log.WithField("packet", packet[:n])
+			log.WithError(err).Warning("could not deserialize HTTPU request")
 			continue
 		}
-		fields["method"] = req.Method
-		fields["url"] = req.URL
+		log.AddField("httpu.method", req.Method)
+		log.AddField("httpu.url", req.URL)
 
-		rsps := s.Handler(req)
+		rsps := s.Handler(req.WithContext(ctx))
 		if len(rsps) == 0 {
-			log.WithFields(fields).Debug("not sending an HTTPU response")
+			log.Debug("not sending an HTTPU response")
 			continue
 		}
 
 		for _, rsp := range rsps {
 			if _, err := s.conn.WriteTo(rsp.Bytes(), addr); err != nil {
-				fields["error"] = err
-				log.WithFields(fields).Warning("could not send HTTPU response")
+				log.WithError(err).Warning("could not send HTTPU response")
 				continue Loop
 			}
 		}
 
-		log.WithFields(fields).Info("served HTTPU responses")
+		log.Info("served HTTPU responses")
 	}
 	return nil
 }

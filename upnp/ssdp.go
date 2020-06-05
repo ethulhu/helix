@@ -9,11 +9,11 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
 
+	"github.com/ethulhu/helix/logger"
 	"github.com/ethulhu/helix/upnp/httpu"
 	"github.com/ethulhu/helix/upnp/ssdp"
 )
@@ -96,6 +96,8 @@ func BroadcastDevice(d *Device, addr net.Addr, iface *net.Interface) error {
 	}
 	defer conn.Close()
 
+	log, _ := logger.FromContext(context.TODO())
+	log.WithField("httpu.listener", ssdpBroadcastAddr).Info("serving HTTPU")
 	s := &httpu.Server{
 		Handler: func(r *http.Request) []httpu.Response {
 			switch r.Method {
@@ -105,7 +107,8 @@ func BroadcastDevice(d *Device, addr net.Addr, iface *net.Interface) error {
 				// TODO: handleNotify()
 				return nil
 			default:
-				log.Printf("unknown method: %v", r.Method)
+				log, _ := logger.FromContext(r.Context())
+				log.Warning("unknown method")
 				return nil
 			}
 		},
@@ -125,8 +128,10 @@ func discoverRequest(ctx context.Context, urn URN) *http.Request {
 }
 
 func handleDiscover(r *http.Request, d *Device, addr net.Addr) []httpu.Response {
+	log, _ := logger.FromContext(r.Context())
+
 	if r.Header.Get("Man") != `"ssdp:discover"` {
-		log.Print("request lacked correct MAN header")
+		log.Warning("request lacked correct MAN header")
 		return nil
 	}
 

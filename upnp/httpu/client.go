@@ -14,7 +14,7 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/ethulhu/helix/logger"
 )
 
 // serializeRequest is a hack because many devices require allcaps headers.
@@ -83,7 +83,7 @@ func Do(req *http.Request, repeats int, iface *net.Interface) ([]*http.Response,
 	var errs []error
 	packet = make([]byte, 2048)
 	for {
-		fields := log.Fields{}
+		log := logger.Background()
 
 		n, addr, err := conn.ReadFrom(packet)
 		if err != nil {
@@ -93,18 +93,18 @@ func Do(req *http.Request, repeats int, iface *net.Interface) ([]*http.Response,
 			}
 			return rsps, errs, err
 		}
-		fields["addr"] = addr
+		log.AddField("httpu.server", addr)
+
 		rsp, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(packet[:n])), req)
 		if err != nil {
-			fields["error"] = err
-			fields["packet"] = packet[:n]
-			log.WithFields(fields).Warning("malformed HTTPU response")
+			log.AddField("packet", string(packet[:n]))
+			log.WithError(err).Warning("malformed HTTPU response")
 
 			errs = append(errs, fmt.Errorf("malformed response from %v: %w", addr, err))
 			continue
 		}
 		rsps = append(rsps, rsp)
-		log.WithFields(fields).Debug("got HTTPU response")
+		log.Debug("got HTTPU response")
 	}
 	return rsps, errs, nil
 }

@@ -93,9 +93,6 @@ func main() {
 		}).Fatal("could not create HTTP listener")
 	}
 	defer httpConn.Close()
-	log.WithFields(log.Fields{
-		"listener": httpConn.Addr(),
-	}).Info("created HTTP listener")
 
 	device := upnp.NewDevice(friendlyName, udn)
 	device.DeviceType = contentdirectory.DeviceType
@@ -128,12 +125,12 @@ func main() {
 
 	go func() {
 		log.WithFields(log.Fields{
-			"listener": httpConn.Addr(),
+			"http.listener": httpConn.Addr(),
 		}).Info("serving HTTP")
 		if err := server.Serve(httpConn); err != nil {
 			log.WithFields(log.Fields{
-				"listener": httpConn.Addr(),
-				"error":    err,
+				"http.listener": httpConn.Addr(),
+				"error":         err,
 			}).Fatal("could not serve HTTP")
 		}
 	}()
@@ -141,7 +138,7 @@ func main() {
 	if err := upnp.BroadcastDevice(device, httpConn.Addr(), nil); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
-		}).Fatal("could serve SSDP")
+		}).Fatal("could not serve SSDP")
 	}
 }
 

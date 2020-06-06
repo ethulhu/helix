@@ -24,10 +24,11 @@ type (
 	}
 
 	ffprobeOutput struct {
-		Format struct {
-			DurationSeconds string            `json:"duration"`
-			Tags            map[string]string `json:"tags"`
-		} `json:"format"`
+		Format ffprobeFormat `json:"format"`
+	}
+	ffprobeFormat struct {
+		DurationSeconds string            `json:"duration"`
+		Tags            map[string]string `json:"tags"`
 	}
 )
 
@@ -47,7 +48,6 @@ func MetadataForPath(p string) (*Metadata, error) {
 	md := &Metadata{
 		MIMEType: mime.TypeByExtension(path.Ext(p)),
 		Title:    strings.TrimSuffix(path.Base(p), path.Ext(p)),
-		Tags:     map[string]string{},
 	}
 
 	bytes, err := exec.Command("ffprobe", append(ffprobeArgs, p)...).Output()
@@ -55,16 +55,24 @@ func MetadataForPath(p string) (*Metadata, error) {
 		return md, fmt.Errorf("could not run ffprobe: %w", err)
 	}
 
-	var raw ffprobeOutput
-	if err := json.Unmarshal(bytes, &raw); err != nil {
+	var ffprobe ffprobeOutput
+	if err := json.Unmarshal(bytes, &ffprobe); err != nil {
 		return md, fmt.Errorf("could not unmarshal ffprobe output: %w", err)
 	}
 
-	if duration, err := strconv.ParseFloat(raw.Format.DurationSeconds, 64); err == nil {
+	err = mergeFFProbeOutput(md, ffprobe)
+	return md, err
+}
+
+func mergeFFProbeOutput(md *Metadata, ffprobe ffprobeOutput) error {
+	if duration, err := strconv.ParseFloat(ffprobe.Format.DurationSeconds, 64); err == nil {
 		md.Duration = time.Duration(duration) * time.Second
 	}
 
-	for k, v := range raw.Format.Tags {
+	if md.Tags == nil {
+		md.Tags = map[string]string{}
+	}
+	for k, v := range ffprobe.Format.Tags {
 		switch strings.ToLower(k) {
 		case "title":
 			md.Title = v
@@ -73,5 +81,5 @@ func MetadataForPath(p string) (*Metadata, error) {
 		}
 	}
 
-	return md, nil
+	return nil
 }

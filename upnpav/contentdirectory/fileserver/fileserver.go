@@ -150,6 +150,10 @@ func (cd *contentDirectory) BrowseChildren(_ context.Context, parent upnpav.Obje
 
 	var itemPaths []string
 	for _, fi := range fs {
+		if strings.HasPrefix(fi.Name(), ".") {
+			continue
+		}
+
 		if !fi.IsDir() {
 			if media.IsAudioOrVideo(fi.Name()) {
 				itemPaths = append(itemPaths, path.Join(p, fi.Name()))

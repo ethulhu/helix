@@ -50,6 +50,16 @@ type (
 	}
 )
 
+func (m Metadata) Tag(key string) string {
+	key = strings.ToLower(key)
+	for k, v := range m.Tags {
+		if strings.ToLower(k) == key {
+			return v
+		}
+	}
+	return ""
+}
+
 var ffprobeArgs = []string{"-hide_banner", "-print_format", "json", "-show_format"}
 
 func (_ NoOpCache) MetadataForPath(p string) (*Metadata, error) {
@@ -162,6 +172,7 @@ func MetadataForPath(p string) (*Metadata, error) {
 	md := &Metadata{
 		MIMEType: mime.TypeByExtension(path.Ext(p)),
 		Title:    strings.TrimSuffix(path.Base(p), path.Ext(p)),
+		Tags:     map[string]string{},
 	}
 
 	bytes, err := exec.Command("ffprobe", append(ffprobeArgs, p)...).Output()
@@ -178,11 +189,14 @@ func MetadataForPath(p string) (*Metadata, error) {
 		md.Duration = time.Duration(duration) * time.Second
 	}
 
-	if title, ok := raw.Format.Tags["title"]; ok {
-		md.Title = title
+	for k, v := range raw.Format.Tags {
+		switch strings.ToLower(k) {
+		case "title":
+			md.Title = v
+		default:
+			md.Tags[k] = v
+		}
 	}
-
-	md.Tags = raw.Format.Tags
 
 	return md, nil
 }

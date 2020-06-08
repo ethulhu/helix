@@ -20,16 +20,51 @@ import (
 
 type (
 	Loop struct {
-		state     avtransport.State
-		transport *upnp.Device
-		queue     Queue
+		device *upnp.Device
+		queue  Queue
+
+		state   avtransport.State
+		elapsed time.Duration
 	}
 	transportState struct {
 		state   avtransport.State
 		uri     string
 		elapsed time.Duration
 	}
+
+	action int
 )
+
+const (
+	doNothing action = iota
+	play
+	pause
+	stop
+	seek
+	setURI
+	skipTrack
+)
+
+func (a action) String() string {
+	switch a {
+	case doNothing:
+		return "doNothing"
+	case play:
+		return "play"
+	case pause:
+		return "pause"
+	case stop:
+		return "stop"
+	case seek:
+		return "seek"
+	case setURI:
+		return "setURI"
+	case skipTrack:
+		return "skipTrack"
+	default:
+		panic(fmt.Sprintf("unknown action: %#v", a))
+	}
+}
 
 func NewLoop() *Loop {
 	loop := &Loop{
@@ -39,27 +74,24 @@ func NewLoop() *Loop {
 	ctx := context.Background()
 	go func() {
 		// We're using UDNs instead of pointer equality for the case.
-		prevDevice := loop.transport
-		prevObservedState, err := newTransportState(ctx, nil)
+		var prevDevice *upnp.Device
+		prevTransportState, err := newTransportState(ctx, nil)
 		if err != nil {
 			// We passed a nil transport, so it shouldn't be possible to get errors here.
 			panic(fmt.Sprintf("could not get initial transport state: %v", err))
 		}
+		var protocolInfos []upnpav.ProtocolInfo
 
 		for _ = range time.Tick(1 * time.Second) {
-			prevUDN := udnOrDefault(prevDevice, "")
-			currUDN := udnOrDefault(loop.transport, "")
+			deviceChanged := udnOrDefault(prevDevice, "") != udnOrDefault(loop.device, "")
 
-			transportChanged := currUDN != prevUDN
-
-			if transportChanged && prevDevice != nil {
+			if deviceChanged && prevDevice != nil {
 				go func() {
 					log, ctx := logger.FromContext(ctx)
 					log.AddField("transport.previous.udn", prevDevice.UDN)
 					log.AddField("transport.previous.name", prevDevice.Name)
 
-					prevTransport, _ := clients(prevDevice)
-					if err := prevTransport.Stop(ctx); err != nil {
+					if err := transport(prevDevice).Stop(ctx); err != nil {
 						log.WithError(err).Warning("could not stop previous transport")
 						return
 					}
@@ -67,37 +99,57 @@ func NewLoop() *Loop {
 				}()
 			}
 
-			if loop.transport != nil {
-				log, ctx := logger.FromContext(ctx)
-				log.AddField("transport.udn", loop.transport.UDN)
-				log.AddField("transport.name", loop.transport.Name)
+			log, ctx := logger.FromContext(ctx)
+			if loop.device == nil {
+				if deviceChanged {
+					log.Info("no current renderer device")
+				}
+				continue
+			}
+			log.AddField("transport.udn", loop.device.UDN)
+			log.AddField("transport.name", loop.device.Name)
 
-				currTransport, currManager := clients(loop.transport)
-				currObservedState, err := newTransportState(ctx, currTransport)
+			if deviceChanged { // && loop.device != nil
+				var err error
+				_, protocolInfos, err = manager(loop.device).ProtocolInfo(ctx)
 				if err != nil {
-					log.WithError(err).Warning("could not get transport state")
+					loop.device = nil
+					log.WithError(err).Error("could not get sink protocols for renderer")
 					continue
 				}
-
-				log.AddField("current.state", currObservedState.state)
-				if currObservedState.state == avtransport.StatePlaying || currObservedState.state == avtransport.StatePaused {
-					log.AddField("current.uri", currObservedState.uri)
+				if len(protocolInfos) == 0 {
+					loop.device = nil
+					log.WithError(err).Error("got 0 sink protocols for renderer, expected at least 1")
+					continue
 				}
-
-				newDesiredState, err := tick(ctx, prevObservedState, currObservedState, currTransport, currManager, loop.state, loop.queue, transportChanged)
-				if err != nil {
-					log.WithError(err).Warning("error determining new loop state")
-				} else {
-					if loop.state != newDesiredState {
-						loop.state = newDesiredState
-						log.AddField("new.state", newDesiredState)
-						log.Info("updated desired loop state")
-					}
-				}
-				prevObservedState = currObservedState
+				log.Info("got sink protocols for renderer")
 			}
 
-			prevDevice = loop.transport
+			currTransport := transport(loop.device)
+			currTransportState, err := newTransportState(ctx, currTransport)
+			if err != nil {
+				log.WithError(err).Error("could not get transport state")
+				continue
+			}
+
+			log.AddField("current.state", currTransportState.state)
+			if currTransportState.state == avtransport.StatePlaying || currTransportState.state == avtransport.StatePaused {
+				log.AddField("current.uri", currTransportState.uri)
+			}
+
+			newLoopState, newLoopElapsed, action := tick(loop.queue, protocolInfos, prevTransportState, currTransportState, loop.state, loop.elapsed, deviceChanged)
+
+			if loop.state != newLoopState {
+				loop.state = newLoopState
+				log.AddField("new.state", newLoopState)
+				log.Info("updated desired loop state")
+			}
+			loop.elapsed = newLoopElapsed
+
+			loop.enact(ctx, protocolInfos, action)
+
+			prevTransportState = currTransportState
+			prevDevice = loop.device
 		}
 	}()
 	return loop
@@ -117,11 +169,11 @@ func (loop *Loop) SetQueue(queue Queue) {
 }
 
 func (loop *Loop) Transport() *upnp.Device {
-	return loop.transport
+	return loop.device
 }
 func (loop *Loop) SetTransport(device *upnp.Device) error {
 	if device == nil {
-		loop.transport = nil
+		loop.device = nil
 		return nil
 	}
 
@@ -132,190 +184,175 @@ func (loop *Loop) SetTransport(device *upnp.Device) error {
 		return errors.New("device does not support ConnectionManager")
 	}
 
-	loop.transport = device
+	loop.device = device
 	return nil
 }
 
-// clients will panic if device is invalid because SetTransport should make that impossible.
-func clients(device *upnp.Device) (avtransport.Interface, connectionmanager.Interface) {
-	transportClient, ok := device.SOAPInterface(avtransport.Version1)
-	if !ok {
-		panic(fmt.Sprintf("transport does not support AVTransport"))
+func (loop *Loop) enact(ctx context.Context, protocolInfos []upnpav.ProtocolInfo, action action) {
+	log, ctx := logger.FromContext(ctx)
+	transport := transport(loop.device)
+
+	switch action {
+	case doNothing:
+		return
+	case skipTrack:
+		log.AddField("action", "skip")
+		_, _ = loop.queue.Skip()
+		log.Info("skipped track")
+	case play:
+		log.AddField("action", "play")
+		if err := transport.Play(ctx); err != nil {
+			log.WithError(err).Warning("could not play transport")
+			return
+		}
+		log.Info("set transport playing")
+	case pause:
+		log.AddField("action", "pause")
+		if err := transport.Pause(ctx); err != nil {
+			log.WithError(err).Warning("could not pause transport")
+			return
+		}
+		log.Info("paused transport")
+	case stop:
+		log.AddField("action", "stop")
+		if err := transport.Stop(ctx); err != nil {
+			log.WithError(err).Warning("could not stop transport")
+			return
+		}
+		log.Info("stopped transport")
+	case seek:
+		log.AddField("action", "seek")
+		log.AddField("seek", loop.elapsed)
+		if err := transport.Seek(ctx, loop.elapsed); err != nil {
+			log.WithError(err).Warning("could not seek transport")
+			return
+		}
+		log.Info("seeked transport")
+	case setURI:
+		log.AddField("action", "setURI")
+
+		item, ok := loop.queue.Current()
+		if !ok {
+			panic("got empty queue for action setURI")
+		}
+		uri, ok := item.URIForProtocolInfos(protocolInfos)
+		if !ok {
+			panic("got an unplayable item for action setURI")
+		}
+
+		log.AddField("uri", "new.uri")
+		metadata := &upnpav.DIDLLite{Items: []upnpav.Item{item}}
+
+		_ = transport.Stop(ctx)
+		if err := transport.SetCurrentURI(ctx, uri, metadata); err != nil {
+			log.WithError(err).Error("could not set transport URI")
+			return
+		}
+		if err := transport.Play(ctx); err != nil {
+			log.WithError(err).Error("could not start transport playing")
+			return
+		}
+		log.Info("set transport URI")
+
+	default:
+		panic(fmt.Sprintf("got unhandled action %#v", action))
 	}
+}
+
+// manager will panic if device is invalid because SetTransport should make that impossible.
+func manager(device *upnp.Device) connectionmanager.Interface {
 	managerClient, ok := device.SOAPInterface(connectionmanager.Version1)
 	if !ok {
 		panic(fmt.Sprintf("transport does not support ConnectionManager"))
 	}
-	return avtransport.NewClient(transportClient), connectionmanager.NewClient(managerClient)
+	return connectionmanager.NewClient(managerClient)
+}
+
+// transport will panic if device is invalid because SetTransport should make that impossible.
+func transport(device *upnp.Device) avtransport.Interface {
+	transportClient, ok := device.SOAPInterface(avtransport.Version1)
+	if !ok {
+		panic(fmt.Sprintf("transport does not support AVTransport"))
+	}
+	return avtransport.NewClient(transportClient)
 }
 
 // tick is a 7-argument monstrosity to make it clear what it consumes.
-func tick(ctx context.Context,
+func tick(
+	queue Queue,
+	protocolInfos []upnpav.ProtocolInfo,
 	prev transportState,
 	curr transportState,
-	transport avtransport.Interface,
-	manager connectionmanager.Interface,
-	desiredState avtransport.State,
-	queue Queue,
-	transportChanged bool) (avtransport.State, error) {
+	loopState avtransport.State,
+	loopElapsed time.Duration,
+	deviceChanged bool) (avtransport.State, time.Duration, action) {
 
-	log, ctx := logger.FromContext(ctx)
-
-	if transport == nil {
-		log.Info("no current transport, doing nothing")
-		return desiredState, nil
+	if curr.state == avtransport.StateTransitioning {
+		return loopState, loopElapsed, doNothing
 	}
 
 	if queue == nil {
-		log.Info("no current queue, doing nothing")
-		return desiredState, nil
+		return avtransport.StateStopped, 0, doNothing
 	}
 
-	if curr.state == avtransport.StateTransitioning {
-		log.Info(fmt.Sprintf("transport in state %v, doing nothing", avtransport.StateTransitioning))
-		return desiredState, nil
-	}
-
-	switch desiredState {
+	switch loopState {
 
 	case avtransport.StateStopped:
 		switch curr.state {
 		case avtransport.StateStopped:
-			log.Info("transport in desired state, doing nothing")
+			return avtransport.StateStopped, 0, doNothing
 		default:
-			if err := transport.Stop(ctx); err != nil {
-				log.WithError(err).Error("could not stop transport")
-				return desiredState, fmt.Errorf("could not stop transport: %w", err)
-			}
-			log.Info("stopped transport")
+			return avtransport.StateStopped, 0, stop
 		}
-		return desiredState, nil
 
 	case avtransport.StatePaused:
 		switch curr.state {
 		case avtransport.StatePaused:
-			log.Info("transport in desired state, doing nothing")
+			return avtransport.StatePaused, curr.elapsed, doNothing
 		default:
 			// TODO: also check URI & elapsed time?
 			if prev.state == avtransport.StatePaused && curr.state == avtransport.StatePlaying {
-				log.Info("transport was previously paused, but was started playing externally, doing nothing")
-				return avtransport.StatePlaying, nil
+				return avtransport.StatePlaying, curr.elapsed, doNothing
 			}
 
-			if err := transport.Pause(ctx); err != nil {
-				log.WithError(err).Error("could not pause transport")
-				return desiredState, fmt.Errorf("could not pause transport: %w", err)
-			}
-			log.Info("paused transport")
+			return avtransport.StatePaused, curr.elapsed, pause
 		}
-		return desiredState, nil
 
 	case avtransport.StatePlaying:
 		// TODO: generalize to "everything else matches, and prev.state matched, but the curr.state differs"?
 		if prev.state == avtransport.StatePlaying && curr.state == avtransport.StatePaused {
-			log.Info("transport was previously playing, but was paused externally, doing nothing")
-			return avtransport.StatePaused, nil
+			return avtransport.StatePaused, curr.elapsed, doNothing
 		}
 
-		currentItem, ok := queue.Current()
-		if !ok {
-			log.Info("reached end of queue, doing nothing")
-			return avtransport.StateStopped, nil
+		currentItem, tracksLeftInQueue := queue.Current()
+		if !tracksLeftInQueue {
+			return avtransport.StateStopped, 0, stop
+		}
+		if _, ok := currentItem.URIForProtocolInfos(protocolInfos); !ok {
+			return avtransport.StatePlaying, 0, skipTrack
 		}
 
-		// TODO: maybe check seek?
-		if currentItem.HasURI(curr.uri) {
-			switch curr.state {
-			case avtransport.StatePlaying:
-				log.Info("transport URI & state match, doing nothing")
-				return desiredState, nil
-			default:
-				log.Info("transport URI matches, starting playback")
-				if err := transport.Play(ctx); err != nil {
-					log.WithError(err).Error("could not play transport")
-					return desiredState, fmt.Errorf("could not play transport: %w", err)
-				}
-				return desiredState, nil
+		if deviceChanged {
+			return avtransport.StatePlaying, prev.elapsed, setURI
+		}
+
+		if !currentItem.HasURI(curr.uri) {
+			if currentItem.HasURI(prev.uri) {
+				return avtransport.StatePlaying, 0, skipTrack
 			}
+			return avtransport.StatePlaying, 0, setURI
+		}
+		if sufficientlyDeviant(curr.elapsed, loopElapsed) {
+			return avtransport.StatePlaying, loopElapsed, seek
+		}
+		if curr.state != avtransport.StatePlaying {
+			return avtransport.StatePlaying, curr.elapsed, play
 		}
 
-		if !transportChanged && currentItem.HasURI(prev.uri) { // TODO: && prev.state == avtransport.StatePlaying ?
-			log.Info("controller has fallen behind, skipping track")
-			currentItem, ok = queue.Skip()
-		}
-
-		seek := prev.elapsed
-		if !transportChanged && !currentItem.HasURI(curr.uri) {
-			seek = 0
-		}
-
-		_, sinks, err := manager.ProtocolInfo(ctx)
-		if err != nil {
-			log.WithError(err).Error("could not get sink protocols for transport")
-			return desiredState, fmt.Errorf("could not get sink protocols for device: %w", err)
-		}
-		if len(sinks) == 0 {
-			log.Error("got 0 sink protocols for transport, expected at least 1")
-			return desiredState, errors.New("got 0 sink protocols for device, expected at least 1")
-		}
-		log.Info("got sink protocols for transport")
-
-		currentURI, ok := currentItem.URIForProtocolInfos(sinks)
-		if !ok {
-			for {
-				currentItem, ok = queue.Skip()
-				if !ok {
-					// We ran out of tracks.
-					break
-				}
-				seek = 0
-
-				currentURI, ok = currentItem.URIForProtocolInfos(sinks)
-				if ok {
-					// We found a playable track.
-					break
-				}
-			}
-			if !ok {
-				log.Info("reached end of queue, doing nothing")
-				return avtransport.StateStopped, nil
-			}
-		}
-
-		log.AddField("new.uri", currentURI)
-
-		// TODO: make this less abrupt, gapless playback, etc.
-		// ERRATA: check curr.uri != "" because some Renders seem to put themselves into StatePlaying before they've loaded the URI, causing stuttering.
-		if curr.state != avtransport.StateStopped && curr.uri != "" {
-			log.Info("temporarily stopping transport")
-			_ = transport.Stop(ctx)
-		}
-
-		metadata := &upnpav.DIDLLite{Items: []upnpav.Item{currentItem}}
-		if err := transport.SetCurrentURI(ctx, currentURI, metadata); err != nil {
-			log.WithError(err).Error("could not set transport URI")
-			return desiredState, fmt.Errorf("could not set transport URI: %w", err)
-		}
-		log.Info("set transport URI")
-
-		if err := transport.Play(ctx); err != nil {
-			log.WithError(err).Error("could not start transport playing")
-			return desiredState, fmt.Errorf("could not play: %w", err)
-		}
-		log.Info("started transport playing")
-
-		if transportChanged && seek != 0 {
-			log.AddField("seek", seek)
-			if err := transport.Seek(ctx, seek); err != nil {
-				log.WithError(err).Error("could not seek")
-				return desiredState, fmt.Errorf("could not seek: %w", err)
-			}
-			log.Info("seeked transport")
-		}
-		return desiredState, nil
+		return avtransport.StatePlaying, curr.elapsed, doNothing
 
 	default:
-		panic(fmt.Sprintf("can only have desired states %v, got %q", []avtransport.State{avtransport.StatePlaying, avtransport.StatePaused, avtransport.StateStopped}, desiredState))
+		panic(fmt.Sprintf("can only have loop states %v, got %q", []avtransport.State{avtransport.StatePlaying, avtransport.StatePaused, avtransport.StateStopped}, loopState))
 	}
 }
 
@@ -348,4 +385,12 @@ func udnOrDefault(device *upnp.Device, def string) string {
 		return def
 	}
 	return device.UDN
+}
+
+func sufficientlyDeviant(t1, t2 time.Duration) bool {
+	diff := t1 - t2
+	if diff < 0 {
+		diff = -diff
+	}
+	return diff > 2*time.Second
 }

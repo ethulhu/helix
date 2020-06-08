@@ -5,159 +5,165 @@
 package controlpoint
 
 import (
-	"context"
-	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/ethulhu/helix/upnpav"
 	"github.com/ethulhu/helix/upnpav/avtransport"
-	"github.com/ethulhu/helix/upnpav/connectionmanager"
 )
 
 func TestLoop(t *testing.T) {
 	tests := []struct {
 		comment string
 
-		prevObservedState transportState
-		currObservedState transportState
-		desiredState      avtransport.State
-		queueItems        []upnpav.Item
-		transportChanged  bool
+		queueItems         []upnpav.Item
+		prevTransportState transportState
+		currTransportState transportState
+		loopState          avtransport.State
+		loopElapsed        time.Duration
+		transportChanged   bool
 
-		wantDesiredState     avtransport.State
-		wantTransportActions []string
-		wantManagerActions   []string
+		wantLoopState   avtransport.State
+		wantLoopElapsed time.Duration
+		wantAction      action
 	}{
 		{
 			comment: "transitioning is ignored",
 
-			currObservedState: transportState{
+			currTransportState: transportState{
 				state: avtransport.StateTransitioning,
 			},
+			loopState:   avtransport.StatePlaying,
+			loopElapsed: 1 * time.Minute,
+
+			wantLoopState:   avtransport.StatePlaying,
+			wantLoopElapsed: 1 * time.Minute,
+			wantAction:      doNothing,
 		},
 		{
 			comment: "stopped to stopped",
 
-			prevObservedState: transportState{},
-			currObservedState: transportState{
+			prevTransportState: transportState{},
+			currTransportState: transportState{
 				state: avtransport.StateStopped,
 			},
-			desiredState: avtransport.StateStopped,
-			queueItems:   []upnpav.Item{},
+			loopState: avtransport.StateStopped,
 
-			wantDesiredState:     avtransport.StateStopped,
-			wantTransportActions: nil,
-			wantManagerActions:   nil,
+			wantLoopState:   avtransport.StateStopped,
+			wantLoopElapsed: 0,
+			wantAction:      doNothing,
 		},
 		{
 			comment: "playing to stopped",
 
-			prevObservedState: transportState{},
-			currObservedState: transportState{
+			prevTransportState: transportState{},
+			currTransportState: transportState{
 				state: avtransport.StatePlaying,
 			},
-			desiredState: avtransport.StateStopped,
-			queueItems:   []upnpav.Item{},
+			loopState:   avtransport.StateStopped,
+			loopElapsed: 1 * time.Minute,
 
-			wantDesiredState:     avtransport.StateStopped,
-			wantTransportActions: []string{"stop"},
-			wantManagerActions:   nil,
+			wantLoopState:   avtransport.StateStopped,
+			wantLoopElapsed: 0,
+			wantAction:      stop,
 		},
 		{
 			comment: "paused to paused",
 
-			prevObservedState: transportState{},
-			currObservedState: transportState{
-				state: avtransport.StatePaused,
+			prevTransportState: transportState{
+				state:   avtransport.StatePaused,
+				elapsed: 1 * time.Minute,
 			},
-			desiredState: avtransport.StatePaused,
-			queueItems:   []upnpav.Item{},
+			currTransportState: transportState{
+				state:   avtransport.StatePaused,
+				elapsed: 1 * time.Minute,
+			},
+			loopState:   avtransport.StatePaused,
+			loopElapsed: 1 * time.Minute,
 
-			wantDesiredState:     avtransport.StatePaused,
-			wantTransportActions: nil,
-			wantManagerActions:   nil,
+			wantLoopState:   avtransport.StatePaused,
+			wantLoopElapsed: 1 * time.Minute,
+			wantAction:      doNothing,
 		},
 		{
 			comment: "playing to paused",
 
-			prevObservedState: transportState{},
-			currObservedState: transportState{
-				state: avtransport.StatePlaying,
+			prevTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				elapsed: 1*time.Minute - 1*time.Second,
 			},
-			desiredState: avtransport.StatePaused,
-			queueItems:   []upnpav.Item{},
+			currTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				elapsed: 1 * time.Minute,
+			},
+			loopState:   avtransport.StatePaused,
+			loopElapsed: 1*time.Minute - 1*time.Second,
 
-			wantDesiredState:     avtransport.StatePaused,
-			wantTransportActions: []string{"pause"},
-			wantManagerActions:   nil,
+			wantLoopState:   avtransport.StatePaused,
+			wantLoopElapsed: 1 * time.Minute,
+			wantAction:      pause,
 		},
 		{
 			comment: "external control restarted playback",
 
-			prevObservedState: transportState{
-				state: avtransport.StatePaused,
+			prevTransportState: transportState{
+				state:   avtransport.StatePaused,
+				elapsed: 1 * time.Minute,
 			},
-			currObservedState: transportState{
-				state: avtransport.StatePlaying,
+			currTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				elapsed: 1 * time.Minute,
 			},
-			desiredState: avtransport.StatePaused,
-			queueItems:   []upnpav.Item{},
+			loopState:   avtransport.StatePaused,
+			loopElapsed: 1 * time.Minute,
 
-			wantDesiredState:     avtransport.StatePlaying,
-			wantTransportActions: nil,
-			wantManagerActions:   nil,
+			wantLoopState:   avtransport.StatePlaying,
+			wantLoopElapsed: 1 * time.Minute,
+			wantAction:      doNothing,
 		},
 		{
 			// TODO: this should take seek into account.
 			comment: "playing to playing same URI",
 
-			currObservedState: transportState{
-				state: avtransport.StatePlaying,
-				uri:   "http://mew/purr.mp3",
+			queueItems: []upnpav.Item{{
+				Resources: []upnpav.Resource{
+					resource("http://mew/purr.mp3", "audio/mpeg"),
+				},
+			}},
+			currTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr.mp3",
+				elapsed: 1 * time.Minute,
 			},
-			desiredState: avtransport.StatePlaying,
-			queueItems: []upnpav.Item{
-				{Resources: []upnpav.Resource{
-					{
-						URI: "http://mew/purr.mp3",
-					},
-				}},
-			},
+			loopState:   avtransport.StatePlaying,
+			loopElapsed: 1 * time.Minute,
 
-			wantDesiredState:     avtransport.StatePlaying,
-			wantTransportActions: nil,
-			wantManagerActions:   nil,
+			wantLoopState:   avtransport.StatePlaying,
+			wantLoopElapsed: 1 * time.Minute,
+			wantAction:      doNothing,
 		},
 		{
 			comment: "external control paused playback",
 
-			prevObservedState: transportState{
-				state: avtransport.StatePlaying,
+			queueItems: []upnpav.Item{},
+			prevTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				elapsed: 1 * time.Minute,
 			},
-			currObservedState: transportState{
-				state: avtransport.StatePaused,
+			currTransportState: transportState{
+				state:   avtransport.StatePaused,
+				elapsed: 1 * time.Minute,
 			},
-			desiredState: avtransport.StatePlaying,
-			queueItems:   []upnpav.Item{},
+			loopState:   avtransport.StatePlaying,
+			loopElapsed: 1 * time.Minute,
 
-			wantDesiredState:     avtransport.StatePaused,
-			wantTransportActions: nil,
-			wantManagerActions:   nil,
+			wantLoopState:   avtransport.StatePaused,
+			wantLoopElapsed: 1 * time.Minute,
+			wantAction:      doNothing,
 		},
 		{
-			comment: "playing to stopped to playing",
+			comment: "playing to stopped to playing on same transport",
 
-			prevObservedState: transportState{
-				state:   avtransport.StatePlaying,
-				uri:     "http://mew/purr1.mp3",
-				elapsed: 5 * time.Second,
-			},
-			currObservedState: transportState{
-				state: avtransport.StateStopped,
-			},
-			desiredState: avtransport.StatePlaying,
 			queueItems: []upnpav.Item{
 				{Resources: []upnpav.Resource{
 					resource("http://mew/purr1.mp3", "audio/mpeg"),
@@ -166,23 +172,52 @@ func TestLoop(t *testing.T) {
 					resource("http://mew/purr2.mp3", "audio/mpeg"),
 				}},
 			},
+			prevTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				elapsed: 1 * time.Minute,
+			},
+			currTransportState: transportState{
+				state: avtransport.StateStopped,
+			},
+			transportChanged: false,
+			loopState:        avtransport.StatePlaying,
+			loopElapsed:      1 * time.Minute,
 
-			wantDesiredState:     avtransport.StatePlaying,
-			wantTransportActions: []string{"setCurrentURI http://mew/purr2.mp3", "play"},
-			wantManagerActions:   []string{"protocolInfo"},
+			wantLoopState:   avtransport.StatePlaying,
+			wantLoopElapsed: 0,
+			wantAction:      skipTrack,
+		},
+		{
+			comment: "playing to playing on same transport (e.g. SetNextURI)",
+
+			queueItems: []upnpav.Item{
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr1.mp3", "audio/mpeg"),
+				}},
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr2.mp3", "audio/mpeg"),
+				}},
+			},
+			prevTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				elapsed: 1 * time.Minute,
+			},
+			currTransportState: transportState{
+				state: avtransport.StatePlaying,
+				uri:   "http://mew/purr2.mp3",
+			},
+			transportChanged: false,
+			loopState:        avtransport.StatePlaying,
+			loopElapsed:      1 * time.Minute,
+
+			wantLoopState:   avtransport.StatePlaying,
+			wantLoopElapsed: 0,
+			wantAction:      skipTrack,
 		},
 		{
 			comment: "playing to playing same URI on new transport",
-
-			prevObservedState: transportState{
-				state:   avtransport.StatePlaying,
-				uri:     "http://mew/purr1.mp3",
-				elapsed: 5 * time.Second,
-			},
-			currObservedState: transportState{
-				state: avtransport.StateStopped,
-			},
-			desiredState: avtransport.StatePlaying,
 			queueItems: []upnpav.Item{
 				{Resources: []upnpav.Resource{
 					resource("http://mew/purr1.mp3", "audio/mpeg"),
@@ -191,272 +226,173 @@ func TestLoop(t *testing.T) {
 					resource("http://mew/purr2.mp3", "audio/mpeg"),
 				}},
 			},
+			prevTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				elapsed: 1 * time.Minute,
+			},
+			currTransportState: transportState{
+				state: avtransport.StateStopped,
+			},
 			transportChanged: true,
+			loopState:        avtransport.StatePlaying,
 
-			wantDesiredState:     avtransport.StatePlaying,
-			wantTransportActions: []string{"setCurrentURI http://mew/purr1.mp3", "play", "seek 5"},
-			wantManagerActions:   []string{"protocolInfo"},
+			wantLoopState:   avtransport.StatePlaying,
+			wantLoopElapsed: 1 * time.Minute,
+			wantAction:      setURI,
 		},
 		{
 			comment: "playing to skipping to playing on new transport",
 
-			prevObservedState: transportState{
-				state:   avtransport.StatePlaying,
-				uri:     "http://mew/purr1.mp3",
-				elapsed: 5 * time.Second,
-			},
-			currObservedState: transportState{
-				state: avtransport.StateStopped,
-			},
-			desiredState: avtransport.StatePlaying,
 			queueItems: []upnpav.Item{
 				{Resources: []upnpav.Resource{
-					resource("http://mew/purr1.mp3", "audio/flac"),
+					resource("http://mew/purr1.flac", "audio/flac"),
 				}},
 				{Resources: []upnpav.Resource{
 					resource("http://mew/purr2.mp3", "audio/mpeg"),
 				}},
 			},
+			prevTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.flac",
+				elapsed: 1 * time.Minute,
+			},
+			currTransportState: transportState{
+				state: avtransport.StateStopped,
+			},
+			loopState:        avtransport.StatePlaying,
 			transportChanged: true,
 
-			wantDesiredState:     avtransport.StatePlaying,
-			wantTransportActions: []string{"setCurrentURI http://mew/purr2.mp3", "play"},
-			wantManagerActions:   []string{"protocolInfo"},
-		},
-		{
-			comment: "playing to stopped to skipping to playing",
-
-			prevObservedState: transportState{
-				state:   avtransport.StatePlaying,
-				uri:     "http://mew/purr1.mp3",
-				elapsed: 5 * time.Second,
-			},
-			currObservedState: transportState{
-				state: avtransport.StateStopped,
-			},
-			desiredState: avtransport.StatePlaying,
-			queueItems: []upnpav.Item{
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr1.mp3", "audio/mpeg"),
-				}},
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr2.mp3", "audio/flac"),
-				}},
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr3.mp3", "audio/mpeg"),
-				}},
-			},
-
-			wantDesiredState:     avtransport.StatePlaying,
-			wantTransportActions: []string{"setCurrentURI http://mew/purr3.mp3", "play"},
-			wantManagerActions:   []string{"protocolInfo"},
-		},
-		{
-			comment: "playing to stopped to skipping to playing",
-
-			prevObservedState: transportState{
-				state:   avtransport.StatePlaying,
-				uri:     "http://mew/purr1.mp3",
-				elapsed: 5 * time.Second,
-			},
-			currObservedState: transportState{
-				state: avtransport.StateStopped,
-			},
-			desiredState: avtransport.StatePlaying,
-			queueItems: []upnpav.Item{
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr1.mp3", "audio/mpeg"),
-				}},
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr2.mp3", "audio/flac"),
-				}},
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr3.mp3", "audio/mpeg"),
-				}},
-			},
-
-			wantDesiredState:     avtransport.StatePlaying,
-			wantTransportActions: []string{"setCurrentURI http://mew/purr3.mp3", "play"},
-			wantManagerActions:   []string{"protocolInfo"},
-		},
-		{
-			comment: "playing to stopped to skipping many to playing",
-
-			prevObservedState: transportState{
-				state:   avtransport.StatePlaying,
-				uri:     "http://mew/purr1.mp3",
-				elapsed: 5 * time.Second,
-			},
-			currObservedState: transportState{
-				state: avtransport.StateStopped,
-			},
-			desiredState: avtransport.StatePlaying,
-			queueItems: []upnpav.Item{
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr1.mp3", "audio/mpeg"),
-				}},
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr2.mp3", "audio/flac"),
-				}},
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr3.mp3", "audio/flac"),
-				}},
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr4.mp3", "audio/flac"),
-				}},
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr5.mp3", "audio/mpeg"),
-				}},
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr6.mp3", "audio/mpeg"),
-				}},
-			},
-			transportChanged: false,
-
-			wantDesiredState:     avtransport.StatePlaying,
-			wantTransportActions: []string{"setCurrentURI http://mew/purr5.mp3", "play"},
-			wantManagerActions:   []string{"protocolInfo"},
-		},
-		{
-			comment: "playing to stopped to skipping many to stopping",
-
-			prevObservedState: transportState{
-				state:   avtransport.StatePlaying,
-				uri:     "http://mew/purr1.mp3",
-				elapsed: 5 * time.Second,
-			},
-			currObservedState: transportState{
-				state: avtransport.StateStopped,
-			},
-			desiredState: avtransport.StatePlaying,
-			queueItems: []upnpav.Item{
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr1.mp3", "audio/mpeg"),
-				}},
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr2.mp3", "audio/flac"),
-				}},
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr3.mp3", "audio/flac"),
-				}},
-				{Resources: []upnpav.Resource{
-					resource("http://mew/purr4.mp3", "audio/flac"),
-				}},
-			},
-
-			wantDesiredState:     avtransport.StateStopped,
-			wantTransportActions: nil,
-			wantManagerActions:   []string{"protocolInfo"},
+			wantLoopState:   avtransport.StatePlaying,
+			wantLoopElapsed: 0,
+			wantAction:      skipTrack,
 		},
 		{
 			comment: "playing an empty queue to stopped",
 
-			prevObservedState: transportState{},
-			currObservedState: transportState{},
-			desiredState:      avtransport.StatePlaying,
-			queueItems:        nil,
+			prevTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr.mp3",
+				elapsed: 1*time.Minute - 1*time.Second,
+			},
+			currTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr.mp3",
+				elapsed: 1 * time.Minute,
+			},
+			loopState:   avtransport.StatePlaying,
+			loopElapsed: 1*time.Minute - 1*time.Second,
+			queueItems:  nil,
 
-			wantDesiredState:     avtransport.StateStopped,
-			wantTransportActions: nil,
-			wantManagerActions:   nil,
+			wantLoopState:   avtransport.StateStopped,
+			wantLoopElapsed: 0,
+			wantAction:      stop,
 		},
 		{
 			comment: "playing to playing a different track",
 
-			prevObservedState: transportState{
-				state:   avtransport.StatePlaying,
-				uri:     "http://mew/purr1.mp3",
-				elapsed: 5 * time.Second,
-			},
-			currObservedState: transportState{
-				state:   avtransport.StatePlaying,
-				uri:     "http://mew/purr1.mp3",
-				elapsed: 5 * time.Second,
-			},
-			desiredState: avtransport.StatePlaying,
 			queueItems: []upnpav.Item{
 				{Resources: []upnpav.Resource{
 					resource("http://mew/purr2.mp3", "audio/mpeg"),
 				}},
 			},
+			prevTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				elapsed: 1*time.Minute - 1*time.Second,
+			},
+			currTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				elapsed: 1 * time.Minute,
+			},
+			loopState:        avtransport.StatePlaying,
+			loopElapsed:      1 * time.Minute,
 			transportChanged: false,
 
-			wantDesiredState:     avtransport.StatePlaying,
-			wantTransportActions: []string{"stop", "setCurrentURI http://mew/purr2.mp3", "play"},
-			wantManagerActions:   []string{"protocolInfo"},
+			wantLoopState:   avtransport.StatePlaying,
+			wantLoopElapsed: 0,
+			wantAction:      setURI,
+		},
+		{
+			comment: "playing to seeking forward",
+
+			queueItems: []upnpav.Item{
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr1.mp3", "audio/mpeg"),
+				}},
+			},
+			prevTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				elapsed: 1*time.Minute - 1*time.Second,
+			},
+			currTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				elapsed: 1 * time.Minute,
+			},
+			loopState:   avtransport.StatePlaying,
+			loopElapsed: 2 * time.Minute,
+
+			wantLoopState:   avtransport.StatePlaying,
+			wantLoopElapsed: 2 * time.Minute,
+			wantAction:      seek,
+		},
+		{
+			comment: "playing to seeking backward",
+
+			queueItems: []upnpav.Item{
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr1.mp3", "audio/mpeg"),
+				}},
+			},
+			prevTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				elapsed: 1*time.Minute - 1*time.Second,
+			},
+			currTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				elapsed: 1 * time.Minute,
+			},
+			loopState:   avtransport.StatePlaying,
+			loopElapsed: 30 * time.Second,
+
+			wantLoopState:   avtransport.StatePlaying,
+			wantLoopElapsed: 30 * time.Second,
+			wantAction:      seek,
 		},
 	}
 
 	for i, tt := range tests {
-		transport := &fakeAVTransport{}
-		manager := &fakeConnectionManager{}
+		protocolInfos := []upnpav.ProtocolInfo{
+			{
+				Protocol:       upnpav.ProtocolHTTP,
+				Network:        "*",
+				ContentFormat:  "audio/mpeg",
+				AdditionalInfo: "*",
+			},
+		}
 
 		queue := NewTrackList()
 		for _, item := range tt.queueItems {
 			queue.Append(item)
 		}
 
-		ctx := context.Background()
+		gotLoopState, gotLoopElapsed, gotAction := tick(queue, protocolInfos, tt.prevTransportState, tt.currTransportState, tt.loopState, tt.loopElapsed, tt.transportChanged)
 
-		gotDesiredState, err := tick(ctx, tt.prevObservedState, tt.currObservedState, transport, manager, tt.desiredState, queue, tt.transportChanged)
-		if err != nil {
-			t.Fatalf("[%d]: got error: %v", i, err)
+		if gotLoopState != tt.wantLoopState {
+			t.Errorf("[%d]: got loop state %v, wanted %v", i, gotLoopState, tt.wantLoopState)
 		}
-
-		if gotDesiredState != tt.wantDesiredState {
-			t.Errorf("[%d]: got desired state %v, wanted %q", i, gotDesiredState, tt.wantDesiredState)
+		if gotLoopElapsed != tt.wantLoopElapsed {
+			t.Errorf("[%d]: got loop elapsed %v, wanted %v", i, gotLoopElapsed, tt.wantLoopElapsed)
 		}
-		if !reflect.DeepEqual(transport.actions, tt.wantTransportActions) {
-			t.Errorf("[%d]: got AVTransport actions %q, wanted %q", i, transport.actions, tt.wantTransportActions)
-		}
-		if !reflect.DeepEqual(manager.actions, tt.wantManagerActions) {
-			t.Errorf("[%d]: got ConnectionManager actions %q, wanted %q", i, manager.actions, tt.wantManagerActions)
+		if gotAction != tt.wantAction {
+			t.Errorf("[%d]: got action %v, wanted %v", i, gotAction, tt.wantAction)
 		}
 	}
-}
-
-type fakeAVTransport struct {
-	avtransport.Interface
-	actions []string
-}
-
-func (c *fakeAVTransport) Play(_ context.Context) error {
-	c.actions = append(c.actions, "play")
-	return nil
-}
-func (c *fakeAVTransport) Pause(_ context.Context) error {
-	c.actions = append(c.actions, "pause")
-	return nil
-}
-func (c *fakeAVTransport) Stop(_ context.Context) error {
-	c.actions = append(c.actions, "stop")
-	return nil
-}
-func (c *fakeAVTransport) SetCurrentURI(_ context.Context, uri string, _ *upnpav.DIDLLite) error {
-	c.actions = append(c.actions, fmt.Sprintf("setCurrentURI %v", uri))
-	return nil
-}
-func (c *fakeAVTransport) Seek(_ context.Context, elapsed time.Duration) error {
-	c.actions = append(c.actions, fmt.Sprintf("seek %v", elapsed.Seconds()))
-	return nil
-}
-
-type fakeConnectionManager struct {
-	connectionmanager.Interface
-	actions []string
-}
-
-func (c *fakeConnectionManager) ProtocolInfo(_ context.Context) ([]upnpav.ProtocolInfo, []upnpav.ProtocolInfo, error) {
-	c.actions = append(c.actions, "protocolInfo")
-	sinks := []upnpav.ProtocolInfo{
-		{
-			Protocol:       upnpav.ProtocolHTTP,
-			Network:        "*",
-			ContentFormat:  "audio/mpeg",
-			AdditionalInfo: "*",
-		},
-	}
-	return nil, sinks, nil
 }
 
 func resource(uri, mime string) upnpav.Resource {

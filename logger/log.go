@@ -27,6 +27,9 @@ type (
 		// WithError is a convenience method for one-off forks to log error messages under the key "error".
 		WithError(err error) Logger
 
+		// Fork returns a copy of the Logger and a fork of the context.Context to pass through.
+		Fork(context.Context) (Logger, context.Context)
+
 		Debug(string)
 		Info(string)
 		Warning(string)
@@ -75,22 +78,27 @@ func (l *logger) AddField(name string, value interface{}) {
 	l.values[name] = value
 }
 func (l *logger) WithField(name string, value interface{}) Logger {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	valuesCopy := map[string]interface{}{}
-	for k, v := range l.values {
-		valuesCopy[k] = v
-	}
-	valuesCopy[name] = value
-
-	return &logger{
-		values: valuesCopy,
-	}
+	clone, _ := l.Fork(context.Background())
+	clone.AddField(name, value)
+	return clone
 }
 func (l *logger) WithError(err error) Logger {
 	return l.WithField("error", err)
 }
+
+func (l *logger) Fork(ctx context.Context) (Logger, context.Context) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	clone := &logger{
+		values: map[string]interface{}{},
+	}
+	for k, v := range l.values {
+		clone.values[k] = v
+	}
+	return clone, context.WithValue(ctx, loggerKey, clone)
+}
+
 func (l *logger) Debug(message string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()

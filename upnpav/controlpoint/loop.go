@@ -89,23 +89,25 @@ func NewLoop() *Loop {
 		var protocolInfos []upnpav.ProtocolInfo
 
 		for _ = range time.Tick(1 * time.Second) {
+			log, ctx := logger.FromContext(ctx)
+
 			deviceChanged := udnOrDefault(prevDevice, "") != udnOrDefault(loop.device, "")
 
 			if deviceChanged && prevDevice != nil {
-				go func() {
-					log, ctx := logger.FromContext(ctx)
-					log.AddField("transport.previous.udn", prevDevice.UDN)
-					log.AddField("transport.previous.name", prevDevice.Name)
+				go func(transport avtransport.Interface, udn, name string) {
+					log, ctx := log.Fork(ctx)
+					log.AddField("transport.previous.udn", udn)
+					log.AddField("transport.previous.name", name)
 
-					if err := transport(prevDevice).Stop(ctx); err != nil {
+					if err := transport.Stop(ctx); err != nil {
 						log.WithError(err).Warning("could not stop previous transport")
 						return
 					}
 					log.Info("stopped previous transport")
-				}()
+				}(transport(prevDevice), prevDevice.UDN, prevDevice.Name)
 			}
+			prevDevice = loop.device
 
-			log, ctx := logger.FromContext(ctx)
 			if loop.device == nil {
 				if deviceChanged {
 					log.Info("no current renderer device")
@@ -156,7 +158,6 @@ func NewLoop() *Loop {
 			loop.enact(ctx, protocolInfos, action)
 
 			prevTransportState = currTransportState
-			prevDevice = loop.device
 		}
 	}()
 	return loop

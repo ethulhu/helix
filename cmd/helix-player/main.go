@@ -183,6 +183,11 @@ func main() {
 			http.Error(w, fmt.Sprintf("unknown state: %v", state), http.StatusBadRequest)
 		})
 
+	m.Path("/control-point/").
+		Methods("POST").
+		MatcherFunc(httputil.FormValues("elapsedSeconds", "{elapsedSeconds}")).
+		HandlerFunc(setControlPointElapsed)
+
 	// Queue routes.
 
 	m.Path("/queue/").

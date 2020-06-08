@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ethulhu/helix/httputil"
 	"github.com/ethulhu/helix/upnp"
@@ -347,6 +348,21 @@ func pauseControlPoint(w http.ResponseWriter, r *http.Request) {
 }
 func stopControlPoint(w http.ResponseWriter, r *http.Request) {
 	controlLoop.Stop()
+}
+
+func setControlPointElapsed(w http.ResponseWriter, r *http.Request) {
+	elapsedSeconds := mux.Vars(r)["elapsedSeconds"]
+
+	elapsedFloat, err := strconv.ParseFloat(elapsedSeconds, 64)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("could not parse elapsed seconds %q: %v", elapsedSeconds, err), http.StatusBadRequest)
+		return
+	}
+	d := time.Duration(elapsedFloat) * time.Second
+
+	if err := controlLoop.SetElapsed(d); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
 }
 
 // Queue handlers.

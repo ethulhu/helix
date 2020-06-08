@@ -23,8 +23,9 @@ type (
 		device *upnp.Device
 		queue  Queue
 
-		state   avtransport.State
-		elapsed time.Duration
+		state    avtransport.State
+		elapsed  time.Duration
+		duration time.Duration
 	}
 	transportState struct {
 		state    avtransport.State
@@ -141,6 +142,7 @@ func NewLoop() *Loop {
 			if currTransportState.state == avtransport.StatePlaying || currTransportState.state == avtransport.StatePaused {
 				log.AddField("current.uri", currTransportState.uri)
 			}
+			loop.duration = currTransportState.duration
 
 			newLoopState, newLoopElapsed, action := tick(loop.queue, protocolInfos, prevTransportState, currTransportState, loop.state, loop.elapsed, deviceChanged)
 
@@ -165,6 +167,20 @@ func (loop *Loop) State() avtransport.State { return loop.state }
 func (loop *Loop) Play()  { loop.state = avtransport.StatePlaying }
 func (loop *Loop) Pause() { loop.state = avtransport.StatePaused }
 func (loop *Loop) Stop()  { loop.state = avtransport.StateStopped }
+
+func (loop *Loop) Duration() time.Duration {
+	return loop.duration
+}
+func (loop *Loop) Elapsed() time.Duration {
+	return loop.elapsed
+}
+func (loop *Loop) SetElapsed(d time.Duration) error {
+	if d < loop.duration {
+		loop.elapsed = d
+		return nil
+	}
+	return fmt.Errorf("elapsed %v is after duration %v", d, loop.duration)
+}
 
 func (loop *Loop) Queue() Queue {
 	return loop.queue

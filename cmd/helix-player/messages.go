@@ -117,13 +117,14 @@ type controlPoint struct {
 	TransportID   string  `json:"transport"`
 	TransportName string  `json:"transportName,omitempty"`
 	State         string  `json:"state"`
-	Elapsed       float64 `json:"elapsedSeconds"`
+	Elapsed       float64 `json:"elapsedSeconds,omitempty"`
+	Duration      float64 `json:"durationSeconds,omitempty"`
 }
 
 func controlPointFromLoop(cl *controlpoint.Loop) controlPoint {
 	transportID := "none"
 	transportName := ""
-	if t := controlLoop.Transport(); t != nil {
+	if t := cl.Transport(); t != nil {
 		transportID = t.UDN
 		transportName = t.Name
 	}
@@ -131,7 +132,9 @@ func controlPointFromLoop(cl *controlpoint.Loop) controlPoint {
 	return controlPoint{
 		TransportID:   transportID,
 		TransportName: transportName,
-		State:         humanReadableState(controlLoop.State()),
+		State:         humanReadableState(cl.State()),
+		Elapsed:       float64(cl.Elapsed().Seconds()),
+		Duration:      float64(cl.Duration().Seconds()),
 	}
 }
 

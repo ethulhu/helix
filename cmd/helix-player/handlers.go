@@ -400,6 +400,9 @@ func appendToQueue(w http.ResponseWriter, r *http.Request) {
 	data := queueItemFromQueueItem(controlpoint.QueueItem{id, didl.Items[0]})
 	httputil.MustWriteJSON(w, data)
 }
+func skipQueueTrack(w http.ResponseWriter, r *http.Request) {
+	trackList.Skip()
+}
 func setCurrentQueueTrack(w http.ResponseWriter, r *http.Request) {
 	idRaw := mux.Vars(r)["id"]
 

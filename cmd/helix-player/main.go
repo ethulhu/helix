@@ -218,6 +218,13 @@ func main() {
 	m.Path("/queue/").
 		Methods("POST").
 		MatcherFunc(httputil.FormValues(
+			"current", "next",
+		)).
+		HandlerFunc(skipQueueTrack)
+
+	m.Path("/queue/").
+		Methods("POST").
+		MatcherFunc(httputil.FormValues(
 			"current", "{id}",
 		)).
 		HandlerFunc(setCurrentQueueTrack)

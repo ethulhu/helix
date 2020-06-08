@@ -173,7 +173,7 @@ helix-directory-tree {
 				}
 			} );
 			controls.addEventListener( 'skip', e => {
-				alert( 'unsupported!' );
+				setCurrentQueueTrack( 'next' );
 			} );
 			controls.addEventListener( 'seek', e => {
 				setControlPointElapsed( e.target.currentTime ).then( refresh );

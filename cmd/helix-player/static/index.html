@@ -44,10 +44,8 @@ helix-directory-tree {
 			</helix-tab>
 			<helix-tab id='remote' title='remote'>
 				<helix-transport-select></helix-transport-select>
-				<button id='remote-play'>▶️</button>
-				<button id='remote-pause'>⏸️</button>
-				<button id='remote-stop'>⏹️</button>
 				<span id='remote-state'></span>
+				<helix-media-controls duration='100'></helix-media-controls>
 				<details>
 					<summary>playlist</summary>
 					<helix-playlist></helix-playlist>
@@ -75,6 +73,7 @@ helix-directory-tree {
 			playControlPoint,
 			pauseControlPoint,
 			stopControlPoint,
+			setControlPointElapsed,
 			setControlPointTransport,
 
 			fetchQueue,
@@ -103,6 +102,11 @@ helix-directory-tree {
 			const player   = document.querySelector( '#local helix-media-player' );
 			const playlist = document.querySelector( '#local helix-playlist' );
 
+			controls.addEventListener( 'stop', e => {
+			  player.pause();
+			  player.sources = [];
+			  playlist.currentItem = 1;
+			} );
 			controls.addEventListener( 'playpause', e => {
 				if ( player.paused ) {
 					player.play();
@@ -137,9 +141,7 @@ helix-directory-tree {
 		function remoteWiring() {
 			const directoryTree = document.querySelector( 'helix-directory-tree' );
 
-			const play            = document.querySelector( '#remote-play' );
-			const pause           = document.querySelector( '#remote-pause' );
-			const stop            = document.querySelector( '#remote-stop' );
+			const controls        = document.querySelector( '#remote helix-media-controls' );
 			const state           = document.querySelector( '#remote-state' );
 			const playlist        = document.querySelector( '#remote helix-playlist' );
 			const transportSelect = document.querySelector( '#remote helix-transport-select' );
@@ -160,20 +162,37 @@ helix-directory-tree {
 				setCurrentQueueTrack( id );
 			} );
 
-			play.addEventListener( 'click', e => {
-				playControlPoint().then( refresh );
-			} );
-			pause.addEventListener( 'click', e => {
-				pauseControlPoint().then( refresh );
-			} );
-			stop.addEventListener( 'click', e => {
+			controls.addEventListener( 'stop', e => {
 				stopControlPoint().then( refresh );
+			} );
+			controls.addEventListener( 'playpause', e => {
+				if ( state.textContent === 'playing' ) {
+					pauseControlPoint().then( refresh );
+				} else {
+					playControlPoint().then( refresh );
+				}
+			} );
+			controls.addEventListener( 'skip', e => {
+				alert( 'unsupported!' );
+			} );
+			controls.addEventListener( 'seek', e => {
+				setControlPointElapsed( e.target.currentTime ).then( refresh );
 			} );
 
 			function refresh() {
 				fetchControlPoint().then( cp => {
 					state.textContent = cp.state;
+					if ( cp.state === 'stopped' ) {
+						controls.currentTime = 0;
+					}
 					transportSelect.value = cp.transport;
+
+					if ( cp.durationSeconds ) {
+					  controls.duration = cp.durationSeconds;
+					}
+					if ( cp.elapsedSeconds ) {
+					  controls.currentTime = cp.elapsedSeconds;
+					}
 				} );
 
 				fetchQueue().then( q => {

@@ -69,11 +69,14 @@ export async function pauseControlPoint() {
 export async function stopControlPoint() {
 	return postForm( `/control-point/`, { state: 'stopped' } );
 }
+export async function setControlPointElapsed( elapsedSeconds ) {
+	return postForm( `/control-point/`, { elapsedSeconds: elapsedSeconds } );
+}
 export async function setControlPointTransport( udn ) {
 	return postForm( `/control-point/`, { transport: udn } );
 }
 
-// Control Point APIs.
+// Queue APIs.
 
 export async function fetchQueue() {
 	return getJSON( `/queue/` );

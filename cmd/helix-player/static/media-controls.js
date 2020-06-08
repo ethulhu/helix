@@ -20,6 +20,7 @@ const template = documentFragment(
 			width: 100%;
 		}
 	` ),
+	_button( '⏹️', { id: 'stop' } ),
 	_button( '⏯️', { id: 'playpause' } ),
 	_button( '⏩', { id: 'skip' } ),
 	_input( {
@@ -63,6 +64,9 @@ export class HelixMediaControls extends HTMLElement {
 		this.attachShadow( { mode: 'open' } );
 		this.shadowRoot.appendChild( template.cloneNode( true ) );
 
+		this._stop.addEventListener( 'click', e => {
+			this._sendEvent( 'stop', null );
+		} );
 		this._playpause.addEventListener( 'click', e => {
 			this._sendEvent( 'playpause', null );
 		} );
@@ -84,6 +88,7 @@ export class HelixMediaControls extends HTMLElement {
 		this.dispatchEvent( e );
 	}
 
+	get _stop()      { return this.shadowRoot.getElementById( 'stop'      ); }
 	get _playpause() { return this.shadowRoot.getElementById( 'playpause' ); }
 	get _skip()      { return this.shadowRoot.getElementById( 'skip'      ); }
 	get _slider()    { return this.shadowRoot.getElementById( 'slider'    ); }

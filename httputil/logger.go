@@ -17,6 +17,9 @@ func Log(next http.Handler) http.Handler {
 		log, ctx := logger.FromContext(r.Context())
 
 		log.AddField("http.client", r.RemoteAddr)
+		if xForwardedFor := r.Header.Get("X-Forwarded-For"); xForwardedFor != "" {
+			log.AddField("http.client", xForwardedFor)
+		}
 		log.AddField("http.method", r.Method)
 		log.AddField("http.path", r.URL.Path)
 

@@ -321,6 +321,9 @@ func TestLoop(t *testing.T) {
 				{Resources: []upnpav.Resource{
 					resource("http://mew/purr1.mp3", "audio/mpeg"),
 				}},
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr2.mp3", "audio/mpeg"),
+				}},
 			},
 			prevTransportState: transportState{
 				state:   avtransport.StatePlaying,
@@ -346,6 +349,9 @@ func TestLoop(t *testing.T) {
 				{Resources: []upnpav.Resource{
 					resource("http://mew/purr1.mp3", "audio/mpeg"),
 				}},
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr2.mp3", "audio/mpeg"),
+				}},
 			},
 			prevTransportState: transportState{
 				state:   avtransport.StatePlaying,
@@ -363,6 +369,63 @@ func TestLoop(t *testing.T) {
 			wantLoopState:   avtransport.StatePlaying,
 			wantLoopElapsed: 30 * time.Second,
 			wantAction:      seek,
+		},
+		{
+			comment: "playing and setting next URI",
+
+			queueItems: []upnpav.Item{
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr1.mp3", "audio/mpeg"),
+				}},
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr2.mp3", "audio/mpeg"),
+				}},
+			},
+			prevTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				elapsed: 1*time.Minute - 1*time.Second,
+			},
+			currTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				elapsed: 1 * time.Minute,
+			},
+			loopState:   avtransport.StatePlaying,
+			loopElapsed: 1*time.Minute - 1*time.Second,
+
+			wantLoopState:   avtransport.StatePlaying,
+			wantLoopElapsed: 1 * time.Minute,
+			wantAction:      setNextURI,
+		},
+		{
+			comment: "playing and doing nothing (next URI already set)",
+
+			queueItems: []upnpav.Item{
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr1.mp3", "audio/mpeg"),
+				}},
+				{Resources: []upnpav.Resource{
+					resource("http://mew/purr2.mp3", "audio/mpeg"),
+				}},
+			},
+			prevTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				elapsed: 1*time.Minute - 1*time.Second,
+			},
+			currTransportState: transportState{
+				state:   avtransport.StatePlaying,
+				uri:     "http://mew/purr1.mp3",
+				nextURI: "http://mew/purr2.mp3",
+				elapsed: 1 * time.Minute,
+			},
+			loopState:   avtransport.StatePlaying,
+			loopElapsed: 1*time.Minute - 1*time.Second,
+
+			wantLoopState:   avtransport.StatePlaying,
+			wantLoopElapsed: 1 * time.Minute,
+			wantAction:      doNothing,
 		},
 	}
 

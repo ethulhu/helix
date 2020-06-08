@@ -27,9 +27,11 @@ type (
 		elapsed time.Duration
 	}
 	transportState struct {
-		state   avtransport.State
-		uri     string
-		elapsed time.Duration
+		state    avtransport.State
+		uri      string
+		nextURI  string
+		elapsed  time.Duration
+		duration time.Duration
 	}
 
 	action int
@@ -42,6 +44,7 @@ const (
 	stop
 	seek
 	setURI
+	setNextURI
 	skipTrack
 )
 
@@ -59,6 +62,8 @@ func (a action) String() string {
 		return "seek"
 	case setURI:
 		return "setURI"
+	case setNextURI:
+		return "setNextURI"
 	case skipTrack:
 		return "skipTrack"
 	default:
@@ -191,46 +196,46 @@ func (loop *Loop) SetTransport(device *upnp.Device) error {
 func (loop *Loop) enact(ctx context.Context, protocolInfos []upnpav.ProtocolInfo, action action) {
 	log, ctx := logger.FromContext(ctx)
 	transport := transport(loop.device)
+	log.AddField("action", action)
 
 	switch action {
 	case doNothing:
-		return
+		log.Debug("doing nothing")
+
 	case skipTrack:
-		log.AddField("action", "skip")
-		_, _ = loop.queue.Skip()
+		loop.queue.Skip()
 		log.Info("skipped track")
+
 	case play:
-		log.AddField("action", "play")
 		if err := transport.Play(ctx); err != nil {
 			log.WithError(err).Warning("could not play transport")
 			return
 		}
 		log.Info("set transport playing")
+
 	case pause:
-		log.AddField("action", "pause")
 		if err := transport.Pause(ctx); err != nil {
 			log.WithError(err).Warning("could not pause transport")
 			return
 		}
 		log.Info("paused transport")
+
 	case stop:
-		log.AddField("action", "stop")
 		if err := transport.Stop(ctx); err != nil {
 			log.WithError(err).Warning("could not stop transport")
 			return
 		}
 		log.Info("stopped transport")
+
 	case seek:
-		log.AddField("action", "seek")
 		log.AddField("seek", loop.elapsed)
 		if err := transport.Seek(ctx, loop.elapsed); err != nil {
 			log.WithError(err).Warning("could not seek transport")
 			return
 		}
 		log.Info("seeked transport")
-	case setURI:
-		log.AddField("action", "setURI")
 
+	case setURI:
 		item, ok := loop.queue.Current()
 		if !ok {
 			panic("got empty queue for action setURI")
@@ -240,7 +245,7 @@ func (loop *Loop) enact(ctx context.Context, protocolInfos []upnpav.ProtocolInfo
 			panic("got an unplayable item for action setURI")
 		}
 
-		log.AddField("uri", "new.uri")
+		log.AddField("uri", uri)
 		metadata := &upnpav.DIDLLite{Items: []upnpav.Item{item}}
 
 		_ = transport.Stop(ctx)
@@ -253,6 +258,24 @@ func (loop *Loop) enact(ctx context.Context, protocolInfos []upnpav.ProtocolInfo
 			return
 		}
 		log.Info("set transport URI")
+
+	case setNextURI:
+		item, ok := loop.queue.Next()
+		if !ok {
+			panic("got empty queue for action setNextURI")
+		}
+		uri, ok := item.URIForProtocolInfos(protocolInfos)
+		if !ok {
+			panic("got an unplayable item for action setNextURI")
+		}
+
+		log.AddField("next.uri", uri)
+		metadata := &upnpav.DIDLLite{Items: []upnpav.Item{item}}
+
+		if err := transport.SetNextURI(ctx, uri, metadata); err != nil {
+			log.WithError(err).Warning("could not set next transport URI")
+		}
+		log.Info("set next transport URI")
 
 	default:
 		panic(fmt.Sprintf("got unhandled action %#v", action))
@@ -349,6 +372,14 @@ func tick(
 			return avtransport.StatePlaying, curr.elapsed, play
 		}
 
+		if nextItem, ok := queue.Next(); ok {
+			if nextURI, ok := nextItem.URIForProtocolInfos(protocolInfos); ok {
+				if curr.nextURI != nextURI {
+					return avtransport.StatePlaying, curr.elapsed, setNextURI
+				}
+			}
+		}
+
 		return avtransport.StatePlaying, curr.elapsed, doNothing
 
 	default:
@@ -370,12 +401,19 @@ func newTransportState(ctx context.Context, transport avtransport.Interface) (tr
 	t.state = state
 
 	if state != avtransport.StateStopped {
-		uri, _, _, elapsed, err := transport.PositionInfo(ctx)
+		uri, _, duration, elapsed, err := transport.PositionInfo(ctx)
 		if err != nil {
 			return t, nil
 		}
 		t.uri = uri
 		t.elapsed = elapsed
+		t.duration = duration
+
+		_, _, nextURI, _, err := transport.MediaInfo(ctx)
+		if err != nil {
+			return t, nil
+		}
+		t.nextURI = nextURI
 	}
 	return t, nil
 }

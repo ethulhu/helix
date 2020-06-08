@@ -14,8 +14,9 @@ import (
 
 type (
 	Queue interface {
-		Skip() (upnpav.Item, bool)
+		Skip()
 		Current() (upnpav.Item, bool)
+		Next() (upnpav.Item, bool)
 	}
 	TrackList struct {
 		items   map[int]upnpav.Item
@@ -119,15 +120,20 @@ func (t *TrackList) RemoveAll() {
 	t.current = 0
 }
 
-func (t *TrackList) Skip() (upnpav.Item, bool) {
+func (t *TrackList) Skip() {
 	if t.current < len(t.order) {
 		t.current++
 	}
-	return t.Current()
 }
 func (t *TrackList) Current() (upnpav.Item, bool) {
-	if t.current < len(t.order) {
-		return t.items[t.order[t.current]], true
+	return t.atIndex(t.current)
+}
+func (t *TrackList) Next() (upnpav.Item, bool) {
+	return t.atIndex(t.current + 1)
+}
+func (t *TrackList) atIndex(i int) (upnpav.Item, bool) {
+	if i < len(t.order) {
+		return t.items[t.order[i]], true
 	}
 	return upnpav.Item{}, false
 }

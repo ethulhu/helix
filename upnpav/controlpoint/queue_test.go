@@ -43,7 +43,7 @@ func TestTrackListAppendHistory(t *testing.T) {
 	}
 
 	for range tracks {
-		_, _ = tl.Skip()
+		tl.Skip()
 	}
 
 	for i, qi := range tl.History() {

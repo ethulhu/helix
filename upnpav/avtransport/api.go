@@ -42,7 +42,7 @@ type (
 		// If metadata is nil, it will create a minimal metadata.
 		SetNextURI(ctx context.Context, uri string, metadata *upnpav.DIDLLite) error
 
-		// MediaInfo returns the current URI and metadata.
+		// MediaInfo returns the current URI, current metadata, next URI, and next metadata.
 		MediaInfo(context.Context) (string, *upnpav.DIDLLite, string, *upnpav.DIDLLite, error)
 
 		// PositionInfo returns the current URI, metadata, total time, and elapsed time.

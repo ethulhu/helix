@@ -100,7 +100,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/objects/", http.StripPrefix("/objects/", http.FileServer(http.Dir(basePath))))
-	mux.Handle("/", device)
+	mux.Handle("/upnp/", http.StripPrefix("/upnp", device.HTTPHandler("/upnp/")))
 
 	httpServer := &http.Server{Handler: mux}
 	go func() {
@@ -111,7 +111,7 @@ func main() {
 		}
 	}()
 
-	if err := upnp.BroadcastDevice(device, httpConn.Addr(), nil); err != nil {
+	if err := upnp.BroadcastDevice(device, fmt.Sprintf("http://%v/upnp/", httpConn.Addr()), nil); err != nil {
 		log.WithError(err).Fatal("could not serve SSDP")
 	}
 }

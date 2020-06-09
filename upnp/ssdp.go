@@ -89,7 +89,7 @@ func DiscoverDevices(ctx context.Context, urn URN, iface *net.Interface) ([]*Dev
 }
 
 // BroadcastDevice broadcasts the presence of a UPnP Device, with its SSDP/SCPD served via HTTP at addr.
-func BroadcastDevice(d *Device, addr net.Addr, iface *net.Interface) error {
+func BroadcastDevice(d *Device, url string, iface *net.Interface) error {
 	conn, err := net.ListenMulticastUDP("udp", iface, ssdpBroadcastAddr)
 	if err != nil {
 		return fmt.Errorf("could not listen on %v: %v", ssdpBroadcastAddr, err)
@@ -102,7 +102,7 @@ func BroadcastDevice(d *Device, addr net.Addr, iface *net.Interface) error {
 		Handler: func(r *http.Request) []httpu.Response {
 			switch r.Method {
 			case discoverMethod:
-				return handleDiscover(r, d, addr)
+				return handleDiscover(r, d, url)
 			case notifyMethod:
 				// TODO: handleNotify()
 				return nil
@@ -127,7 +127,7 @@ func discoverRequest(ctx context.Context, urn URN) *http.Request {
 	return req
 }
 
-func handleDiscover(r *http.Request, d *Device, addr net.Addr) []httpu.Response {
+func handleDiscover(r *http.Request, d *Device, url string) []httpu.Response {
 	log, _ := logger.FromContext(r.Context())
 
 	if r.Header.Get("Man") != `"ssdp:discover"` {
@@ -145,7 +145,7 @@ func handleDiscover(r *http.Request, d *Device, addr net.Addr) []httpu.Response 
 		responses := []httpu.Response{{
 			"CACHE-CONTROL": ssdpCacheControl,
 			"EXT":           "",
-			"LOCATION":      fmt.Sprintf("http://%v/", addr),
+			"LOCATION":      url,
 			"SERVER":        fmt.Sprintf("%s %s", d.ModelName, d.ModelNumber),
 			"ST":            d.UDN,
 			"USN":           d.UDN,
@@ -154,7 +154,7 @@ func handleDiscover(r *http.Request, d *Device, addr net.Addr) []httpu.Response 
 			responses = append(responses, httpu.Response{
 				"CACHE-CONTROL": ssdpCacheControl,
 				"EXT":           "",
-				"LOCATION":      fmt.Sprintf("http://%v/", addr),
+				"LOCATION":      url,
 				"SERVER":        fmt.Sprintf("%s %s", d.ModelName, d.ModelNumber),
 				"ST":            string(urn),
 				"USN":           fmt.Sprintf("%s::%s", d.UDN, urn),

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
 	"sync"
 
 	"github.com/ethulhu/helix/logger"
@@ -126,52 +127,54 @@ func (d *Device) SOAPInterface(urn URN) (soap.Interface, bool) {
 }
 
 // ServeHTTP serves the SSDP/SCPD UPnP discovery interface, and marshals SOAP requests.
-func (d *Device) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log, ctx := logger.FromContext(r.Context())
-	r = r.WithContext(ctx)
+func (d *Device) HTTPHandler(basePath string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log, ctx := logger.FromContext(r.Context())
+		r = r.WithContext(ctx)
 
-	log.AddField("http.client", r.RemoteAddr)
-	log.AddField("http.method", r.Method)
-	log.AddField("http.path", r.URL.Path)
+		log.AddField("http.client", r.RemoteAddr)
+		log.AddField("http.method", r.Method)
+		log.AddField("http.path", r.URL.Path)
 
-	if r.URL.Path == "/" {
-		bytes, err := xml.Marshal(d.manifest())
-		if err != nil {
-			panic(fmt.Sprintf("could not marshal manifest: %v", err))
-		}
-		fmt.Fprint(w, xml.Header)
-		w.Write(bytes)
-		log.Info("served SSDP manifest")
-		return
-	}
-
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-
-	urn := URN(r.URL.Path[1:])
-	if service, ok := d.serviceByURN[urn]; ok {
-		switch r.Method {
-		case "GET":
-			bytes, err := xml.Marshal(service.SCPD)
+		if r.URL.Path == "/" {
+			bytes, err := xml.Marshal(d.manifest(basePath))
 			if err != nil {
-				panic(fmt.Sprintf("could not marshal SCPD for %v: %v", urn, err))
+				panic(fmt.Sprintf("could not marshal manifest: %v", err))
 			}
 			fmt.Fprint(w, xml.Header)
 			w.Write(bytes)
-			log.Info("served SCPD")
-			return
-
-		case "POST":
-			soap.Handle(w, r, service.SOAPInterface)
+			log.Info("served SSDP manifest")
 			return
 		}
-	}
 
-	log.Warning("not found")
-	http.NotFound(w, r)
+		d.mu.RLock()
+		defer d.mu.RUnlock()
+
+		urn := URN(r.URL.Path[1:])
+		if service, ok := d.serviceByURN[urn]; ok {
+			switch r.Method {
+			case "GET":
+				bytes, err := xml.Marshal(service.SCPD)
+				if err != nil {
+					panic(fmt.Sprintf("could not marshal SCPD for %v: %v", urn, err))
+				}
+				fmt.Fprint(w, xml.Header)
+				w.Write(bytes)
+				log.Info("served SCPD")
+				return
+
+			case "POST":
+				soap.Handle(w, r, service.SOAPInterface)
+				return
+			}
+		}
+
+		log.Warning("not found")
+		http.NotFound(w, r)
+	})
 }
 
-func (d *Device) manifest() ssdp.Document {
+func (d *Device) manifest(basePath string) ssdp.Document {
 	doc := ssdp.Document{
 		SpecVersion: ssdp.Version,
 		Device: ssdp.Device{
@@ -201,9 +204,9 @@ func (d *Device) manifest() ssdp.Document {
 		doc.Device.Services = append(doc.Device.Services, ssdp.Service{
 			ServiceType: string(urn),
 			ServiceID:   string(service.ID),
-			SCPDURL:     "/" + string(urn),
-			ControlURL:  "/" + string(urn),
-			EventSubURL: "/" + string(urn),
+			SCPDURL:     path.Join(basePath, string(urn)),
+			ControlURL:  path.Join(basePath, string(urn)),
+			EventSubURL: path.Join(basePath, string(urn)),
 		})
 	}
 

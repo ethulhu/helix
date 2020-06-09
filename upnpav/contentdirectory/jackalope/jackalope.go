@@ -148,12 +148,22 @@ func (cd *contentDirectory) BrowseChildren(ctx context.Context, id upnpav.Object
 		return nil, contentdirectory.ErrNoSuchObject
 	}
 
-	paths, err := cd.jackalope.Query(query.String())
+	rawPaths, err := cd.jackalope.Query(query.String())
 	if err != nil {
 		log.WithError(err).Error("could not query Jackalope")
 		return nil, upnpav.ErrActionFailed
 	}
-	paths = filterOutNonExistant(paths)
+
+	var paths []string
+	for _, p := range rawPaths {
+		if !media.IsAudioOrVideo(p) {
+			continue
+		}
+		if fi, err := os.Stat(p); err != nil || fi.IsDir() {
+			continue
+		}
+		paths = append(paths, p)
+	}
 
 	containers, err := cd.containersForPaths(query, paths...)
 	if err != nil {
@@ -299,15 +309,4 @@ func objectIDForPath(basePath, p string) upnpav.ObjectID {
 		return upnpav.ObjectID(relPath)
 	}
 	return contentdirectory.Root
-}
-
-func filterOutNonExistant(paths []string) []string {
-	var out []string
-	for _, p := range paths {
-		if _, err := os.Stat(p); err != nil {
-			continue
-		}
-		out = append(out, p)
-	}
-	return out
 }

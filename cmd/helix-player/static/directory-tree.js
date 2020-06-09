@@ -84,7 +84,7 @@ export class HelixDirectoryTree extends HTMLElement {
 						fetchObject( o.directory, o.id )
 							.then( o => target.parentElement.appendChild(
 								_ul(
-									o.children.some( isItem ) ? this.addAll( o.children ) : '',
+									o.children.some( isItem ) ? this.addAll( o ) : '',
 									o.children.map( this.newObject.bind( this ) ),
 								),
 							) )
@@ -112,12 +112,10 @@ export class HelixDirectoryTree extends HTMLElement {
 		);
 	}
 
-	addAll( os ) {
+	addAll( o ) {
 		return _li(
 			_button( '[ add all ]', {
-				'click': () => {
-					os.filter( isItem ).forEach( o => this._sendEvent( 'enqueue', o ) );
-				},
+				'click': () => this._sendEvent( 'enqueue', o ),
 			} ),
 		);
 	}

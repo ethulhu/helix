@@ -168,6 +168,13 @@ func (ed *EncodedDIDLLite) UnmarshalText(raw []byte) error {
 	return err
 }
 
+func (d DIDLLite) IsSingleContainer() bool {
+	return len(d.Containers) == 1 && len(d.Items) == 0
+}
+func (d DIDLLite) IsSingleItem() bool {
+	return len(d.Containers) == 0 && len(d.Items) == 1
+}
+
 // DIDLForURI returns a minimal DIDL sufficient to get media to play with just a URI.
 //
 // NB: It may not be enough, e.g. my TV needs more information about the video

@@ -242,10 +242,10 @@ helix-directory-tree {
 						break;
 
 					case 'remote':
-						console.log( `appending track (${item.directory}, ${item.id}) to remote queue` );
+						console.log( `appending object (${item.directory}, ${item.id}) to remote queue` );
 
 						appendToQueue( item.directory, item.id )
-							.then( rsp => console.log( `appended track has id ${rsp.id}` ) )
+							.then( rsp => console.log( `appended object has id ${rsp.id}` ) )
 							.then( remoteRefresh );
 
 						break;

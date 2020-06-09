@@ -5,6 +5,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -71,7 +72,8 @@ func getObjectJSON(w http.ResponseWriter, r *http.Request) {
 
 	data := directoryObject{}
 	switch {
-	case len(self.Containers) == 1 && len(self.Items) == 0:
+
+	case self.IsSingleContainer():
 		data = directoryObjectFromContainer(udn, self.Containers[0])
 
 		children, err := directory.BrowseChildren(ctx, upnpav.ObjectID(object))
@@ -86,7 +88,7 @@ func getObjectJSON(w http.ResponseWriter, r *http.Request) {
 			data.Children = append(data.Children, directoryObjectFromItem(udn, item))
 		}
 
-	case len(self.Containers) == 0 && len(self.Items) == 1:
+	case self.IsSingleItem():
 		data = directoryObjectFromItem(udn, self.Items[0])
 
 	default:
@@ -385,20 +387,40 @@ func appendToQueue(w http.ResponseWriter, r *http.Request) {
 	directory := contentdirectory.NewClient(client)
 
 	ctx := r.Context()
-	didl, err := directory.BrowseMetadata(ctx, upnpav.ObjectID(object))
+	didllite, err := directory.BrowseMetadata(ctx, upnpav.ObjectID(object))
+	if errors.Is(err, contentdirectory.ErrNoSuchObject) {
+		http.NotFound(w, r)
+		return
+	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if !(len(didl.Containers) == 0 && len(didl.Items) == 1) {
+
+	switch {
+	case didllite.IsSingleItem():
+		id := trackList.Append(didllite.Items[0])
+		data := queueItemFromQueueItem(controlpoint.QueueItem{id, didllite.Items[0]})
+		httputil.MustWriteJSON(w, []queueItem{data})
+
+	case didllite.IsSingleContainer():
+		didllite, err := directory.BrowseChildren(ctx, upnpav.ObjectID(object))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		var queueItems []queueItem
+		for _, item := range didllite.Items {
+			id := trackList.Append(item)
+			queueItems = append(queueItems, queueItemFromQueueItem(controlpoint.QueueItem{id, item}))
+		}
+		httputil.MustWriteJSON(w, queueItems)
+
+	default:
 		http.Error(w, "found object, but was not an Item", http.StatusNotFound)
 		return
 	}
-
-	id := trackList.Append(didl.Items[0])
-
-	data := queueItemFromQueueItem(controlpoint.QueueItem{id, didl.Items[0]})
-	httputil.MustWriteJSON(w, data)
 }
 func skipQueueTrack(w http.ResponseWriter, r *http.Request) {
 	trackList.Skip()

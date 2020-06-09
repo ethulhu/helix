@@ -6,7 +6,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -23,16 +22,11 @@ import (
 )
 
 var (
-	basePath = flag.Custom("path", "", "path to serve", func(raw string) (interface{}, error) {
-		if raw == "" {
-			return nil, errors.New("must not be empty")
-		}
-		return raw, nil
-	})
-
 	udn          = flag.Custom("udn", "", "UDN to broadcast (if unset, will generate one)", flags.UDN)
 	friendlyName = flag.Custom("friendly-name", "", "human-readable name to broadcast (if unset, will generate one)", flags.FriendlyName)
 	iface        = flag.Custom("interface", "", "interface to listen on (will try to find a Private IPv4 if unset)", flags.NetInterface)
+
+	basePath = flag.Custom("path", "", "path to serve", flag.RequiredString)
 
 	disableMetadataCache = flag.Bool("disable-metadata-cache", false, "disable the metadata cache")
 )

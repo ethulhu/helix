@@ -69,15 +69,18 @@ func main() {
 	}
 	defer httpConn.Close()
 
-	device := upnp.NewDevice(friendlyName, udn)
-	device.DeviceType = contentdirectory.DeviceType
-	device.Manufacturer = "Eth Morgan"
-	device.ManufacturerURL = "https://ethulhu.co.uk"
-	device.ModelDescription = "Helix"
-	device.ModelName = "Helix"
-	device.ModelNumber = "42"
-	device.ModelURL = "https://ethulhu.co.uk"
-	device.SerialNumber = "00000000"
+	device := &upnp.Device{
+		Name:             friendlyName,
+		UDN:              udn,
+		DeviceType:       contentdirectory.DeviceType,
+		Manufacturer:     "Eth Morgan",
+		ManufacturerURL:  "https://ethulhu.co.uk",
+		ModelDescription: "Helix",
+		ModelName:        "Helix",
+		ModelNumber:      "42",
+		ModelURL:         "https://ethulhu.co.uk",
+		SerialNumber:     "00000000",
+	}
 
 	metadataCache := media.NewMetadataCache()
 	if *disableMetadataCache {

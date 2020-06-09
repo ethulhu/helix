@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sync"
 
 	"github.com/ethulhu/helix/logger"
 	"github.com/ethulhu/helix/soap"
@@ -18,9 +19,9 @@ import (
 
 type (
 	service struct {
-		SCPD      scpd.Document
-		Interface soap.Interface
-		ID        ServiceID
+		SCPD          scpd.Document
+		SOAPInterface soap.Interface
+		ID            ServiceID
 	}
 
 	// Device is an UPnP device.
@@ -46,34 +47,31 @@ type (
 		ModelURL         string
 		SerialNumber     string
 
+		mu           sync.RWMutex
 		serviceByURN map[URN]service
 	}
 )
 
-func NewDevice(name, udn string) *Device {
-	return &Device{
-		Name:         name,
-		UDN:          udn,
-		serviceByURN: map[URN]service{},
-	}
-}
-
 func newDevice(manifestURL *url.URL, manifest ssdp.Document) (*Device, error) {
-	d := NewDevice(manifest.Device.FriendlyName, manifest.Device.UDN)
-	d.Manufacturer = d.Manufacturer
-	d.ManufacturerURL = d.ManufacturerURL
-	d.ModelDescription = d.ModelDescription
-	d.ModelName = d.ModelName
-	d.ModelNumber = d.ModelNumber
-	d.ModelURL = d.ModelURL
-	d.SerialNumber = d.SerialNumber
+	d := &Device{
+		Name:             manifest.Device.FriendlyName,
+		UDN:              manifest.Device.UDN,
+		Manufacturer:     manifest.Device.Manufacturer,
+		ManufacturerURL:  manifest.Device.ManufacturerURL,
+		ModelDescription: manifest.Device.ModelDescription,
+		ModelName:        manifest.Device.ModelName,
+		ModelNumber:      manifest.Device.ModelNumber,
+		ModelURL:         manifest.Device.ModelURL,
+		SerialNumber:     manifest.Device.SerialNumber,
+	}
 
+	d.serviceByURN = map[URN]service{}
 	for _, s := range manifest.Device.Services {
 		// TODO: get the actual SCPD.
 		serviceURL := *manifestURL
 		serviceURL.Path = s.ControlURL
 		d.serviceByURN[URN(s.ServiceType)] = service{
-			Interface: soap.NewClient(&serviceURL),
+			SOAPInterface: soap.NewClient(&serviceURL),
 		}
 	}
 	return d, nil
@@ -86,6 +84,9 @@ func (d *Device) Services() []URN {
 		return nil
 	}
 
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
 	var urns []URN
 	for urn := range d.serviceByURN {
 		urns = append(urns, urn)
@@ -93,6 +94,9 @@ func (d *Device) Services() []URN {
 	return urns
 }
 func (d *Device) allURNs() []URN {
+	if d == nil {
+		return nil
+	}
 	return append(d.Services(), URN(d.DeviceType), RootDevice)
 }
 
@@ -103,11 +107,14 @@ func (d *Device) SOAPInterface(urn URN) (soap.Interface, bool) {
 		return nil, false
 	}
 
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
 	service, ok := d.serviceByURN[urn]
 	if !ok {
 		return nil, false
 	}
-	return service.Interface, true
+	return service.SOAPInterface, true
 }
 
 // ServeHTTP serves the SSDP/SCPD UPnP discovery interface, and marshals SOAP requests.
@@ -130,6 +137,9 @@ func (d *Device) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
 	urn := URN(r.URL.Path[1:])
 	if service, ok := d.serviceByURN[urn]; ok {
 		switch r.Method {
@@ -144,7 +154,7 @@ func (d *Device) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 
 		case "POST":
-			soap.Handle(w, r, service.Interface)
+			soap.Handle(w, r, service.SOAPInterface)
 			return
 		}
 	}
@@ -171,6 +181,12 @@ func (d *Device) manifest() ssdp.Document {
 		},
 	}
 
+	for _, icon := range d.Icons {
+		doc.Device.Icons = append(doc.Device.Icons, icon.ssdpIcon())
+	}
+
+	d.mu.RLock()
+	defer d.mu.RUnlock()
 	for urn, service := range d.serviceByURN {
 		doc.Device.Services = append(doc.Device.Services, ssdp.Service{
 			ServiceType: string(urn),
@@ -181,17 +197,20 @@ func (d *Device) manifest() ssdp.Document {
 		})
 	}
 
-	for _, icon := range d.Icons {
-		doc.Device.Icons = append(doc.Device.Icons, icon.ssdpIcon())
-	}
-
 	return doc
 }
 
 func (d *Device) Handle(urn URN, id ServiceID, doc scpd.Document, handler soap.Interface) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.serviceByURN == nil {
+		d.serviceByURN = map[URN]service{}
+	}
+
 	d.serviceByURN[urn] = service{
-		ID:        id,
-		Interface: handler,
-		SCPD:      doc,
+		ID:            id,
+		SOAPInterface: handler,
+		SCPD:          doc,
 	}
 }

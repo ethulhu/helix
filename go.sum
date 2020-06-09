@@ -40,6 +40,10 @@ github.com/stretchr/testify v1.6.1 h1:hDPOHmpOpP40lSULcqw7IrRb/u7w6RpDC9399XyoNd
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 go.eth.moe/jackalope v0.0.0-20200606094712-a27b6b74683f h1:mmJ1w9evO5m2KV9t351HKvXWh2Jg5+FnlObjDDy3Jtg=
 go.eth.moe/jackalope v0.0.0-20200606094712-a27b6b74683f/go.mod h1:QEq5PngQAkXOUnUQxC+un1DLt8nqPq1rBfh0WDp6+K0=
+go.eth.moe/jackalope v0.0.0-20200609141345-f87cb42937a1 h1:2ZAuojHnyF3AKAwlkuipO6xD8177cLlTS9g7+XEJo3M=
+go.eth.moe/jackalope v0.0.0-20200609141345-f87cb42937a1/go.mod h1:QEq5PngQAkXOUnUQxC+un1DLt8nqPq1rBfh0WDp6+K0=
+go.eth.moe/jackalope v0.0.0-20200609151455-46e4901a7fde h1:kHkD8aGOFcgZNivzvZaNCReW9ArAzZEKzURxOr+K6Dc=
+go.eth.moe/jackalope v0.0.0-20200609151455-46e4901a7fde/go.mod h1:QEq5PngQAkXOUnUQxC+un1DLt8nqPq1rBfh0WDp6+K0=
 golang.org/x/sys v0.0.0-20190422165155-953cdadca894 h1:Cz4ceDQGXuKRnVBDTS23GTn/pU5OE2C0WrNTOYK1Uuc=
 golang.org/x/sys v0.0.0-20190422165155-953cdadca894/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 h1:OjiUf46hAmXblsZdnoSXsEUSKU8r1UEzcL5RVZ4gO9Y=

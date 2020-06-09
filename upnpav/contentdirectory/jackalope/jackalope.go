@@ -86,7 +86,7 @@ func (cd *contentDirectory) BrowseMetadata(ctx context.Context, id upnpav.Object
 	}
 
 	if query, ok := queryForObjectID(id); ok {
-		container, err := cd.containerForQuery(id, query)
+		container, err := cd.containerForQuery(nil, query)
 		if err != nil {
 			log.AddField("jackalope.query", query)
 			log.WithError(err).Error("could not describe container for query")
@@ -133,7 +133,7 @@ func (cd *contentDirectory) BrowseChildren(ctx context.Context, id upnpav.Object
 	log.AddField("object", id)
 
 	if id == contentdirectory.Root {
-		containers, err := cd.containersForPaths(id)
+		containers, err := cd.containersForPaths(nil)
 		if err != nil {
 			log.WithError(err).Error("could not list tags from Jackalope")
 			return nil, upnpav.ErrActionFailed
@@ -147,14 +147,14 @@ func (cd *contentDirectory) BrowseChildren(ctx context.Context, id upnpav.Object
 		return nil, contentdirectory.ErrNoSuchObject
 	}
 
-	paths, err := cd.jackalope.Query(query)
+	paths, err := cd.jackalope.Query(query.String())
 	if err != nil {
 		log.WithError(err).Error("could not query Jackalope")
 		return nil, upnpav.ErrActionFailed
 	}
 	paths = filterOutNonExistant(paths)
 
-	containers, err := cd.containersForPaths(id, paths...)
+	containers, err := cd.containersForPaths(query, paths...)
 	if err != nil {
 		log.WithError(err).Error("could not list tags from Jackalope")
 		return nil, upnpav.ErrActionFailed
@@ -182,14 +182,14 @@ func (cd *contentDirectory) Search(_ context.Context, _ upnpav.ObjectID, _ searc
 	return nil, nil
 }
 
-func queryForObjectID(id upnpav.ObjectID) (string, bool) {
-	if _, err := query.Parse(string(id)); err == nil {
-		return string(id), true
+func queryForObjectID(id upnpav.ObjectID) (query.Expr, bool) {
+	if q, err := query.Parse(string(id)); err == nil {
+		return q, true
 	}
-	return "", false
+	return nil, false
 }
 
-func (cd *contentDirectory) containersForPaths(parent upnpav.ObjectID, paths ...string) ([]upnpav.Container, error) {
+func (cd *contentDirectory) containersForPaths(parent query.Expr, paths ...string) ([]upnpav.Container, error) {
 	tags, err := cd.jackalope.Tags(paths...)
 	if err != nil {
 		return nil, err
@@ -197,21 +197,30 @@ func (cd *contentDirectory) containersForPaths(parent upnpav.ObjectID, paths ...
 
 	var containers []upnpav.Container
 	for _, tag := range tags {
-		container, err := cd.containerForQuery(parent, tag)
+		andedQuery, err := query.AndTag(parent, tag)
 		if err != nil {
-			return nil, fmt.Errorf("could not describe container for tag %q", tag)
+			return nil, fmt.Errorf("could not describe container for tag %q: %v", tag, err)
+		}
+		container, err := cd.containerForQuery(parent, andedQuery)
+		if err != nil {
+			return nil, fmt.Errorf("could not describe container for tag %q: %v", tag, err)
 		}
 		containers = append(containers, container)
 	}
 	return containers, nil
 }
-func (cd *contentDirectory) containerForQuery(parent upnpav.ObjectID, query string) (upnpav.Container, error) {
+func (cd *contentDirectory) containerForQuery(parentQuery query.Expr, query query.Expr) (upnpav.Container, error) {
+	parentID := contentdirectory.Root
+	if parentQuery != nil {
+		parentID = upnpav.ObjectID(query.String())
+	}
+
 	// TODO: actually get ChildCount.
 	return upnpav.Container{
 		Object: upnpav.Object{
-			ID:     upnpav.ObjectID(query),
-			Title:  query,
-			Parent: parent,
+			ID:     upnpav.ObjectID(query.String()),
+			Title:  query.String(),
+			Parent: parentID,
 			Class:  upnpav.StorageFolder,
 		},
 	}, nil

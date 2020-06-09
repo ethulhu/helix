@@ -10,7 +10,7 @@ buildGoModule rec {
   version = "latest";
   goPackagePath = "github.com/ethulhu/helix";
 
-  modSha256 = "154wc401jkp3pwd3r06slrhb4zw9sqlsasq6alkcrvsk9kzg6jwp";
+  modSha256 = "0i8kxcmkv2d4fqd0cw3wgsppy33742fwlkh4wa41qywb1f97jkrj";
 
   preBuild = ''
     go generate ./...

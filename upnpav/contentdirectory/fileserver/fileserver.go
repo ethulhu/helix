@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-// Package fileserver is a basic "serve a directory" contentDirectory handler.
+// Package fileserver is a basic "serve a directory" ContentDirectory handler.
 package fileserver
 
 import (

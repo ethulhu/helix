@@ -12,6 +12,18 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type (
+	responseWriter struct {
+		http.ResponseWriter
+		StatusCode int
+	}
+)
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.StatusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
 func Log(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log, ctx := logger.FromContext(r.Context())
@@ -22,6 +34,7 @@ func Log(next http.Handler) http.Handler {
 		}
 		log.AddField("http.method", r.Method)
 		log.AddField("http.path", r.URL.Path)
+		log.AddField("http.useragent", r.UserAgent())
 
 		for k, v := range mux.Vars(r) {
 			log.AddField(fmt.Sprintf("http.vars.%s", k), v)
@@ -41,8 +54,11 @@ func Log(next http.Handler) http.Handler {
 			log.AddField(fmt.Sprintf("http.form.%s", k), vs)
 		}
 
-		next.ServeHTTP(w, r.WithContext(ctx))
+		rw := responseWriter{ResponseWriter: w, StatusCode: 200}
 
+		next.ServeHTTP(&rw, r.WithContext(ctx))
+
+		log.AddField("http.status", rw.StatusCode)
 		log.Info("served HTTP request")
 	})
 }

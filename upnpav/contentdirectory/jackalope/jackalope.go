@@ -77,7 +77,9 @@ func (cd *contentDirectory) BrowseMetadata(ctx context.Context, id upnpav.Object
 			Containers: []upnpav.Container{{
 				Object: upnpav.Object{
 					ID:     id,
+					Title:  path.Base(cd.basePath),
 					Parent: upnpav.ObjectID("-1"),
+					Class:  upnpav.StorageFolder,
 				},
 			}},
 		}, nil

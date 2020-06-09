@@ -5,15 +5,15 @@
 package main
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 
 	"github.com/ethulhu/helix/flag"
+	"github.com/ethulhu/helix/flags"
 	"github.com/ethulhu/helix/media"
+	"github.com/ethulhu/helix/netutil"
 	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav/connectionmanager"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
@@ -30,34 +30,9 @@ var (
 		return raw, nil
 	})
 
-	udn = flag.Custom("udn", "", "UDN to broadcast (if unset, will generate one)", func(raw string) (interface{}, error) {
-		if raw == "" {
-			bytes := make([]byte, 16)
-			if _, err := rand.Read(bytes); err != nil {
-				panic(err)
-			}
-			return fmt.Sprintf("uuid:%x-%x-%x-%x-%x", bytes[0:4], bytes[4:6], bytes[6:8], bytes[8:10], bytes[10:]), nil
-		}
-		return raw, nil
-	})
-
-	friendlyName = flag.Custom("friendly-name", "", "human-readable name to broadcast (if unset, will generate one)", func(raw string) (interface{}, error) {
-		if raw == "" {
-			hostname, err := os.Hostname()
-			if err != nil {
-				panic(err)
-			}
-			return fmt.Sprintf("Helix (%s)", hostname), nil
-		}
-		return raw, nil
-	})
-
-	iface = flag.Custom("interface", "", "interface to listen on (will try to find a Private IPv4 if unset)", func(raw string) (interface{}, error) {
-		if raw == "" {
-			return (*net.Interface)(nil), nil
-		}
-		return net.InterfaceByName(raw)
-	})
+	udn          = flag.Custom("udn", "", "UDN to broadcast (if unset, will generate one)", flags.UDN)
+	friendlyName = flag.Custom("friendly-name", "", "human-readable name to broadcast (if unset, will generate one)", flags.FriendlyName)
+	iface        = flag.Custom("interface", "", "interface to listen on (will try to find a Private IPv4 if unset)", flags.NetInterface)
 
 	disableMetadataCache = flag.Bool("disable-metadata-cache", false, "disable the metadata cache")
 )
@@ -70,7 +45,7 @@ func main() {
 	iface := (*iface).(*net.Interface)
 	udn := (*udn).(string)
 
-	ip, err := suitableIP(iface)
+	ip, err := netutil.SuitableIP(iface)
 	if err != nil {
 		name := "ALL"
 		if iface != nil {
@@ -140,38 +115,4 @@ func main() {
 			"error": err,
 		}).Fatal("could not serve SSDP")
 	}
-}
-
-func suitableIP(iface *net.Interface) (net.IP, error) {
-	addrs, err := net.InterfaceAddrs()
-	if iface != nil {
-		addrs, err = iface.Addrs()
-	}
-	if err != nil {
-		return nil, fmt.Errorf("could not list addresses: %w", err)
-	}
-
-	err = errors.New("interface has no addresses")
-	for _, addr := range addrs {
-		addr, ok := addr.(*net.IPNet)
-		if !ok {
-			err = errors.New("interface has no IP addresses")
-			continue
-		}
-		if addr.IP.To4() == nil {
-			err = errors.New("interface has no IPv4 addresses")
-			continue
-		}
-		ip := addr.IP.To4()
-
-		// Default IP must be a "LAN IP".
-		// TODO: support 172.16.0.0/12
-		if iface == nil && !(ip[0] == 10 || (ip[0] == 192 && ip[1] == 168)) {
-			err = errors.New("interface has no Private IPv4 addresses")
-			continue
-		}
-
-		return ip, nil
-	}
-	return nil, err
 }

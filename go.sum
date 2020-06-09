@@ -44,6 +44,8 @@ go.eth.moe/jackalope v0.0.0-20200609141345-f87cb42937a1 h1:2ZAuojHnyF3AKAwlkuipO
 go.eth.moe/jackalope v0.0.0-20200609141345-f87cb42937a1/go.mod h1:QEq5PngQAkXOUnUQxC+un1DLt8nqPq1rBfh0WDp6+K0=
 go.eth.moe/jackalope v0.0.0-20200609151455-46e4901a7fde h1:kHkD8aGOFcgZNivzvZaNCReW9ArAzZEKzURxOr+K6Dc=
 go.eth.moe/jackalope v0.0.0-20200609151455-46e4901a7fde/go.mod h1:QEq5PngQAkXOUnUQxC+un1DLt8nqPq1rBfh0WDp6+K0=
+go.eth.moe/jackalope v0.0.0-20200609154611-6506eb0b162c h1:UB/ViKN+476cIzhy83le1eZ24HVSHrRcRLacvSuxHG0=
+go.eth.moe/jackalope v0.0.0-20200609154611-6506eb0b162c/go.mod h1:QEq5PngQAkXOUnUQxC+un1DLt8nqPq1rBfh0WDp6+K0=
 golang.org/x/sys v0.0.0-20190422165155-953cdadca894 h1:Cz4ceDQGXuKRnVBDTS23GTn/pU5OE2C0WrNTOYK1Uuc=
 golang.org/x/sys v0.0.0-20190422165155-953cdadca894/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 h1:OjiUf46hAmXblsZdnoSXsEUSKU8r1UEzcL5RVZ4gO9Y=

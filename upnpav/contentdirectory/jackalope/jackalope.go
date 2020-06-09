@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 
@@ -197,10 +198,20 @@ func (cd *contentDirectory) containersForPaths(parent query.Expr, paths ...strin
 
 	var containers []upnpav.Container
 	for _, tag := range tags {
-		andedQuery, err := query.AndTag(parent, tag)
+		atom, err := query.Parse(tag)
 		if err != nil {
-			return nil, fmt.Errorf("could not describe container for tag %q: %v", tag, err)
+			return nil, fmt.Errorf("could not parse query for tag %q: %v", tag, err)
 		}
+
+		andedQuery := atom
+		if parent != nil {
+			andedQuery = query.And{parent, atom}.CanonicalExpr()
+		}
+
+		if reflect.DeepEqual(andedQuery, parent) {
+			continue
+		}
+
 		container, err := cd.containerForQuery(parent, andedQuery)
 		if err != nil {
 			return nil, fmt.Errorf("could not describe container for tag %q: %v", tag, err)

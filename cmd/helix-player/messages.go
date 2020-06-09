@@ -57,14 +57,16 @@ func objectMetadataFromContainer(container upnpav.Container) objectMetadata {
 // ContentDirectory messages.
 
 type directory struct {
-	UDN  string `json:"udn"`
-	Name string `json:"name"`
+	UDN             string `json:"udn"`
+	Name            string `json:"name"`
+	PresentationURL string `json:"presentationURL,omitempty"`
 }
 
 func directoryFromDevice(device *upnp.Device) directory {
 	return directory{
-		UDN:  device.UDN,
-		Name: device.Name,
+		UDN:             device.UDN,
+		Name:            device.Name,
+		PresentationURL: device.PresentationURL,
 	}
 }
 

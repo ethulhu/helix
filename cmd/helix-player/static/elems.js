@@ -80,7 +80,11 @@ export function elemGenerator(tag, ns)
 
 		args.forEach( arg =>
 		{
-			if ( arg instanceof Attr )
+			if ( arg === null )
+			{
+				return;
+			}
+			else if ( arg instanceof Attr )
 			{
 				elem.setAttribute( arg.name, arg.value );
 			}

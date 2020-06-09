@@ -47,6 +47,8 @@ type (
 		ModelURL         string
 		SerialNumber     string
 
+		PresentationURL string
+
 		mu           sync.RWMutex
 		serviceByURN map[URN]service
 	}
@@ -63,6 +65,12 @@ func newDevice(manifestURL *url.URL, manifest ssdp.Document) (*Device, error) {
 		ModelNumber:      manifest.Device.ModelNumber,
 		ModelURL:         manifest.Device.ModelURL,
 		SerialNumber:     manifest.Device.SerialNumber,
+	}
+
+	if manifest.Device.PresentationURL != "" {
+		presentationURL := *manifestURL
+		presentationURL.Path = manifest.Device.PresentationURL
+		d.PresentationURL = presentationURL.String()
 	}
 
 	d.serviceByURN = map[URN]service{}
@@ -178,6 +186,8 @@ func (d *Device) manifest() ssdp.Document {
 			ModelNumber:      d.ModelNumber,
 			ModelURL:         d.ModelURL,
 			SerialNumber:     d.SerialNumber,
+
+			PresentationURL: d.PresentationURL,
 		},
 	}
 

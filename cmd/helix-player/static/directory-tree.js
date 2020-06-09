@@ -5,6 +5,7 @@
 import { documentFragment, elemGenerator } from './elems.js';
 import { fetchDirectories, fetchObject, rootObject } from './api.js';
 
+const _a      = elemGenerator( 'a' );
 const _button = elemGenerator( 'button' );
 const _input  = elemGenerator( 'input' );
 const _label  = elemGenerator( 'label' );
@@ -66,6 +67,7 @@ export class HelixDirectoryTree extends HTMLElement {
 				},
 			} ),
 			_label( d.name, { for: d.udn } ),
+			d.presentationURL ? [ ' ', _a( '🔗', { href: d.presentationURL } ) ] : null,
 		);
 	}
 
@@ -103,11 +105,6 @@ export class HelixDirectoryTree extends HTMLElement {
 		return _li(
 			_button( o.title, {
 				'click': () => this._sendEvent( 'enqueue', o ),
-				// TODO: figure out what to do with this.
-				// While there are things a browser cannot play,
-				// a transport might be able to,
-				// and this is supposed to be reusable.
-				// disabled: ! this._player.canPlay( o ),
 			} ),
 		);
 	}

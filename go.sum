@@ -1,3 +1,4 @@
+aletheia.icu/broccoli v1.0.3 h1:tpju/6c8lo+AtcrCSvKpZjrV28Qx63rHENOt9BKLE3g=
 aletheia.icu/broccoli v1.0.3/go.mod h1:DMvyvNIt2SFMpwCFUL1QltNlvPKapLM/h4NFhjEQxO4=
 aletheia.icu/broccoli/fs v0.0.0-20200420162907-e7ff440cf358/go.mod h1:62pufqcyJVU55Qd5VtXz24d/P+VCFWc18FAbHnyrT+s=
 aletheia.icu/broccoli/fs v0.0.0-20200506212414-5bc1e2f86a59 h1:A/zlfoh6wPRnKh5QHjV1NuF4LXKSOcScNweJNifW8OU=
@@ -27,6 +28,7 @@ github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/sabhiram/go-gitignore v0.0.0-20180611051255-d3107576ba94 h1:G04eS0JkAIVZfaJLjla9dNxkJCPiKIGZlw9AfOhzOD0=
 github.com/sabhiram/go-gitignore v0.0.0-20180611051255-d3107576ba94/go.mod h1:b18R55ulyQ/h3RaWyloPyER7fWQVZvimKKhnI5OfrJQ=
 github.com/sirupsen/logrus v1.6.0 h1:UBcNElsrwanuuMsnGSlYmtmgbb23qDR5dG+6X6Oo89I=
 github.com/sirupsen/logrus v1.6.0/go.mod h1:7uNnSEd1DgxDLC74fIahvMZmmYsHGZGEOFrfsX/uA88=

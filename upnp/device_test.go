@@ -41,7 +41,10 @@ func TestDeviceManifest(t *testing.T) {
 	}
 
 	for i, tt := range tests {
-		d := NewDevice("name", "udn")
+		d := &Device{
+			Name: "name",
+			UDN: "udn",
+		}
 		for i, urn := range tt.urns {
 			d.Handle(urn, tt.ids[i], scpd.Document{}, nil)
 		}

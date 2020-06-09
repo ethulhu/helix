@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -12,14 +13,13 @@ import (
 
 	"github.com/ethulhu/helix/flag"
 	"github.com/ethulhu/helix/flags"
+	"github.com/ethulhu/helix/logger"
 	"github.com/ethulhu/helix/media"
 	"github.com/ethulhu/helix/netutil"
 	"github.com/ethulhu/helix/upnp"
 	"github.com/ethulhu/helix/upnpav/connectionmanager"
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
 	"github.com/ethulhu/helix/upnpav/contentdirectory/fileserver"
-
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -45,16 +45,16 @@ func main() {
 	iface := (*iface).(*net.Interface)
 	udn := (*udn).(string)
 
+	log, _ := logger.FromContext(context.Background())
+
 	ip, err := netutil.SuitableIP(iface)
 	if err != nil {
 		name := "ALL"
 		if iface != nil {
 			name = iface.Name
 		}
-		log.WithFields(log.Fields{
-			"interface": name,
-			"error":     err,
-		}).Fatal("could not find suitable serving IP")
+		log.AddField("interface", name)
+		log.WithError(err).Fatal("could not find suitable serving IP")
 	}
 	addr := &net.TCPAddr{
 		IP: ip,
@@ -62,10 +62,8 @@ func main() {
 
 	httpConn, err := net.Listen("tcp", addr.String())
 	if err != nil {
-		log.WithFields(log.Fields{
-			"listener": addr,
-			"error":    err,
-		}).Fatal("could not create HTTP listener")
+		log.AddField("listener", addr)
+		log.WithError(err).Fatal("could not create HTTP listener")
 	}
 	defer httpConn.Close()
 
@@ -89,7 +87,7 @@ func main() {
 
 	cd, err := fileserver.NewContentDirectory(basePath, fmt.Sprintf("http://%v/objects/", httpConn.Addr()), metadataCache)
 	if err != nil {
-		panic(fmt.Sprintf("could not create ContentDirectory object: %v", err))
+		log.WithError(err).Fatal("could not create ContentDirectory object")
 	}
 
 	device.Handle(contentdirectory.Version1, contentdirectory.ServiceID, contentdirectory.SCPD, contentdirectory.SOAPHandler{cd})
@@ -99,23 +97,16 @@ func main() {
 	mux.Handle("/objects/", http.StripPrefix("/objects/", http.FileServer(http.Dir(basePath))))
 	mux.Handle("/", device)
 
-	server := &http.Server{Handler: mux}
-
+	httpServer := &http.Server{Handler: mux}
 	go func() {
-		log.WithFields(log.Fields{
-			"http.listener": httpConn.Addr(),
-		}).Info("serving HTTP")
-		if err := server.Serve(httpConn); err != nil {
-			log.WithFields(log.Fields{
-				"http.listener": httpConn.Addr(),
-				"error":         err,
-			}).Fatal("could not serve HTTP")
+		log := log.WithField("http.listener", httpConn.Addr())
+		log.Info("serving HTTP")
+		if err := httpServer.Serve(httpConn); err != nil {
+			log.WithError(err).Fatal("could not serve HTTP")
 		}
 	}()
 
 	if err := upnp.BroadcastDevice(device, httpConn.Addr(), nil); err != nil {
-		log.WithFields(log.Fields{
-			"error": err,
-		}).Fatal("could not serve SSDP")
+		log.WithError(err).Fatal("could not serve SSDP")
 	}
 }

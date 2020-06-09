@@ -150,6 +150,7 @@ func (cd *contentDirectory) BrowseChildren(ctx context.Context, id upnpav.Object
 		log.WithError(err).Error("could not query Jackalope")
 		return nil, upnpav.ErrActionFailed
 	}
+	paths = filterOutNonExistant(paths)
 
 	containers, err := cd.containersForPaths(id, paths...)
 	if err != nil {
@@ -191,7 +192,6 @@ func (cd *contentDirectory) containersForPaths(parent upnpav.ObjectID, paths ...
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(tags)
 
 	var containers []upnpav.Container
 	for _, tag := range tags {
@@ -277,4 +277,15 @@ func objectIDForPath(basePath, p string) upnpav.ObjectID {
 		return upnpav.ObjectID(relPath)
 	}
 	return contentdirectory.Root
+}
+
+func filterOutNonExistant(paths []string) []string {
+	var out []string
+	for _, p := range paths {
+		if _, err := os.Stat(p); err != nil {
+			continue
+		}
+		out = append(out, p)
+	}
+	return out
 }

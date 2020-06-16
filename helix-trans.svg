@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1"
+viewBox="-10 -10 140 230" style="fill: none;">
+  <path style="stroke-width: 15px; stroke-linecap: round; stroke-linejoin: round; stroke: rgb(55, 205, 252); fill: none;"
+  d="M120,0 Q120,45 60,60 Q0,75 0,105" />
+  <path style="stroke-width: 15px; stroke-linecap: round; stroke-linejoin: round; stroke: rgb(247, 168, 184); fill: none;"
+  d="M0,0 Q0,45 60,60 Q120,75 120,105" />
+  <path style="stroke-width: 15px; stroke-linecap: round; stroke-linejoin: round; stroke: rgb(247, 168, 184); fill: none;"
+  d="M0,210 Q0,165 60,150 Q120,135 120,105" />
+  <path style="stroke-width: 15px; stroke-linecap: round; stroke-linejoin: round; stroke: rgb(55, 205, 252); fill: none;"
+  d="M120,210 Q120,165 60,150 Q0,135 0,105" />
+</svg>

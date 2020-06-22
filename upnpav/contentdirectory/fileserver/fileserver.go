@@ -194,11 +194,9 @@ func (cd *contentDirectory) Search(_ context.Context, _ upnpav.ObjectID, _ searc
 
 func (cd *contentDirectory) containerFromPath(p string) (upnpav.Container, error) {
 	container := upnpav.Container{
-		Object: upnpav.Object{
-			ID:     objectIDForPath(cd.basePath, p),
-			Parent: parentIDForPath(cd.basePath, p),
-			Class:  upnpav.StorageFolder,
-		},
+		ID:     objectIDForPath(cd.basePath, p),
+		Parent: parentIDForPath(cd.basePath, p),
+		Class:  upnpav.StorageFolder,
 	}
 
 	fi, err := os.Stat(p)
@@ -236,12 +234,10 @@ func (cd *contentDirectory) itemsForPaths(paths ...string) ([]upnpav.Item, error
 		}
 
 		items = append(items, upnpav.Item{
-			Object: upnpav.Object{
-				ID:     objectIDForPath(cd.basePath, p),
-				Parent: parentIDForPath(cd.basePath, p),
-				Class:  class,
-				Title:  md.Title,
-			},
+			ID:           objectIDForPath(cd.basePath, p),
+			Parent:       parentIDForPath(cd.basePath, p),
+			Class:        class,
+			Title:        md.Title,
 			AlbumArtURIs: albumArtURIs,
 			Resources: []upnpav.Resource{{
 				URI:      cd.uri(p),

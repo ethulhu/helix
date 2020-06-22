@@ -76,12 +76,10 @@ func (cd *contentDirectory) BrowseMetadata(ctx context.Context, id upnpav.Object
 	if id == contentdirectory.Root {
 		return &upnpav.DIDLLite{
 			Containers: []upnpav.Container{{
-				Object: upnpav.Object{
-					ID:     id,
-					Title:  path.Base(cd.basePath),
-					Parent: upnpav.ObjectID("-1"),
-					Class:  upnpav.StorageFolder,
-				},
+				ID:     id,
+				Title:  path.Base(cd.basePath),
+				Parent: upnpav.ObjectID("-1"),
+				Class:  upnpav.StorageFolder,
 			}},
 		}, nil
 	}
@@ -238,12 +236,10 @@ func (cd *contentDirectory) containerForQuery(parentQuery query.Expr, query quer
 
 	// TODO: actually get ChildCount.
 	return upnpav.Container{
-		Object: upnpav.Object{
-			ID:     upnpav.ObjectID(query.String()),
-			Title:  query.String(),
-			Parent: parentID,
-			Class:  upnpav.StorageFolder,
-		},
+		ID:     upnpav.ObjectID(query.String()),
+		Title:  query.String(),
+		Parent: parentID,
+		Class:  upnpav.StorageFolder,
 	}, nil
 }
 
@@ -277,12 +273,10 @@ func (cd *contentDirectory) itemsForPaths(paths ...string) ([]upnpav.Item, error
 		}
 
 		items = append(items, upnpav.Item{
-			Object: upnpav.Object{
-				ID:     objectIDForPath(cd.basePath, p),
-				Parent: contentdirectory.Root,
-				Class:  class,
-				Title:  md.Title,
-			},
+			ID:           objectIDForPath(cd.basePath, p),
+			Parent:       contentdirectory.Root,
+			Class:        class,
+			Title:        md.Title,
 			AlbumArtURIs: albumArtURIs,
 			Resources: []upnpav.Resource{{
 				URI:      cd.uri(p),

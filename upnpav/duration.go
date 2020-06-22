@@ -6,6 +6,7 @@ package upnpav
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -23,13 +24,19 @@ type (
 )
 
 func ParseDuration(raw string) (Duration, error) {
-
-	withoutSubseconds := strings.Split(raw, ".")[0]
-
-	parts := strings.Split(withoutSubseconds, ":")
+	var withoutSubseconds, subseconds string
+	switch parts := strings.Split(raw, "."); len(parts) {
+	case 1:
+		withoutSubseconds = parts[0]
+	case 2:
+		withoutSubseconds = parts[0]
+		subseconds = parts[1]
+	default:
+		return Duration{0}, fmt.Errorf("invalid duration format")
+	}
 
 	var hours, minutes, seconds string
-	switch len(parts) {
+	switch parts := strings.Split(withoutSubseconds, ":"); len(parts) {
 	case 2:
 		hours = "0"
 		minutes = parts[0]
@@ -45,7 +52,32 @@ func ParseDuration(raw string) (Duration, error) {
 		return Duration{0}, fmt.Errorf("invalid number of parts")
 	}
 
-	d, err := time.ParseDuration(fmt.Sprintf("%vh%vm%vs", hours, minutes, seconds))
+	milliseconds := 0
+	if subseconds != "" {
+		fractions := strings.Split(subseconds, "/")
+		switch len(fractions) {
+		case 1:
+			fraction, err := strconv.ParseFloat("0."+subseconds, 64)
+			if err != nil {
+				return Duration{0}, fmt.Errorf("could not parse milliseconds %q: %v", subseconds, err)
+			}
+			milliseconds = int(fraction * 1000)
+		case 2:
+			top, err := strconv.Atoi(fractions[0])
+			if err != nil {
+				return Duration{0}, fmt.Errorf("could not parse top of fraction %q: %v", fractions[0], err)
+			}
+			bottom, err := strconv.Atoi(fractions[1])
+			if err != nil {
+				return Duration{0}, fmt.Errorf("could not parse bottom of fraction %q: %v", fractions[1], err)
+			}
+			milliseconds = (1000 * top) / bottom
+		default:
+			return Duration{0}, fmt.Errorf("invalid subseconds")
+		}
+	}
+
+	d, err := time.ParseDuration(fmt.Sprintf("%vh%vm%vs%vms", hours, minutes, seconds, milliseconds))
 	return Duration{d}, err
 }
 
@@ -58,7 +90,13 @@ func (d Duration) String() string {
 	td = td - (minutes * time.Minute)
 	seconds := time.Duration(td.Truncate(time.Second).Seconds())
 	td = td - (seconds * time.Second)
-	return fmt.Sprintf("%d:%02d:%02d", hours, minutes, seconds)
+
+	if td == 0 {
+		return fmt.Sprintf("%d:%02d:%02d", hours, minutes, seconds)
+	}
+
+	milliseconds := time.Duration(td.Truncate(time.Millisecond).Milliseconds())
+	return fmt.Sprintf("%d:%02d:%02d.%03d", hours, minutes, seconds, milliseconds)
 }
 
 func (d Duration) MarshalText() ([]byte, error) {

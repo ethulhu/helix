@@ -39,11 +39,11 @@ func TestParseDuration(t *testing.T) {
 		},
 		{
 			raw:  "04:03.123",
-			want: Duration{4*time.Minute + 3*time.Second},
+			want: Duration{4*time.Minute + 3*time.Second + 123*time.Millisecond},
 		},
 		{
 			raw:  "04:03.1/3",
-			want: Duration{4*time.Minute + 3*time.Second},
+			want: Duration{4*time.Minute + 3*time.Second + 333*time.Millisecond},
 		},
 		{
 			raw:  "1:04:03",
@@ -81,6 +81,10 @@ func TestFormatDuration(t *testing.T) {
 		{
 			duration: Duration{1 * time.Second},
 			want:     "0:00:01",
+		},
+		{
+			duration: Duration{1 * time.Second + 12*time.Millisecond},
+			want:     "0:00:01.012",
 		},
 	}
 

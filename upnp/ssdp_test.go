@@ -5,7 +5,6 @@
 package upnp
 
 import (
-	"net"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -18,7 +17,7 @@ func TestHandleDiscover(t *testing.T) {
 	tests := []struct {
 		req    *http.Request
 		device *Device
-		addr   net.Addr
+		url    string
 		want   []httpu.Response
 	}{
 		{
@@ -36,10 +35,7 @@ func TestHandleDiscover(t *testing.T) {
 				DeviceType: DeviceType("device-type"),
 				UDN:        "device-id",
 			},
-			addr: &net.TCPAddr{
-				IP:   net.IPv4(1, 2, 3, 4),
-				Port: 8000,
-			},
+			url: "http://1.2.3.4:8000/",
 			want: []httpu.Response{
 				{
 					"CACHE-CONTROL": ssdpCacheControl,
@@ -82,10 +78,7 @@ func TestHandleDiscover(t *testing.T) {
 				DeviceType: DeviceType("device-type"),
 				UDN:        "device-id",
 			},
-			addr: &net.TCPAddr{
-				IP:   net.IPv4(1, 2, 3, 4),
-				Port: 8000,
-			},
+			url: "http://1.2.3.4:8000/",
 			want: []httpu.Response{
 				{
 					"CACHE-CONTROL": ssdpCacheControl,
@@ -131,10 +124,7 @@ func TestHandleDiscover(t *testing.T) {
 					"service-urn": service{},
 				},
 			},
-			addr: &net.TCPAddr{
-				IP:   net.IPv4(1, 2, 3, 4),
-				Port: 8000,
-			},
+			url: "http://1.2.3.4:8000/",
 			want: []httpu.Response{
 				{
 					"CACHE-CONTROL": ssdpCacheControl,
@@ -188,16 +178,13 @@ func TestHandleDiscover(t *testing.T) {
 					"tweedle": service{},
 				},
 			},
-			addr: &net.TCPAddr{
-				IP:   net.IPv4(1, 2, 3, 4),
-				Port: 8000,
-			},
+			url:  "http://1.2.3.4:8000/",
 			want: nil,
 		},
 	}
 
 	for i, tt := range tests {
-		got := handleDiscover(tt.req, tt.device, tt.addr)
+		got := handleDiscover(tt.req, tt.device, tt.url)
 
 		if !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("[%d]: got:\n\n%v\n\nwant:\n\n%v", i, got, tt.want)

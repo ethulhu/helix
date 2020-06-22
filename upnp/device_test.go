@@ -49,7 +49,7 @@ func TestDeviceManifest(t *testing.T) {
 			d.Handle(urn, tt.ids[i], scpd.Document{}, nil)
 		}
 
-		got := d.manifest()
+		got := d.manifest("/")
 		if !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("[%d]: got:\n\n%v\n\nwant:\n\n%v", i, got, tt.want)
 		}

@@ -219,6 +219,12 @@ func (cd *contentDirectory) itemsForPaths(paths ...string) ([]upnpav.Item, error
 	coverArts := media.CoverArtForPaths(paths)
 	metadatas := cd.metadataCache.MetadataForPaths(paths)
 
+	titles := make([]string, len(metadatas))
+	for i, md := range metadatas {
+		titles[i] = md.Title
+	}
+	titles = trimCommonPrefix(titles)
+
 	var items []upnpav.Item
 	for i, p := range paths {
 		md := metadatas[i]
@@ -237,7 +243,7 @@ func (cd *contentDirectory) itemsForPaths(paths ...string) ([]upnpav.Item, error
 			ID:           objectIDForPath(cd.basePath, p),
 			Parent:       parentIDForPath(cd.basePath, p),
 			Class:        class,
-			Title:        md.Title,
+			Title:        titles[i],
 			AlbumArtURIs: albumArtURIs,
 			Resources: []upnpav.Resource{{
 				URI:      cd.uri(p),
@@ -259,4 +265,25 @@ func (cd *contentDirectory) uri(p string) string {
 	uri.Path = path.Join(uri.Path, relPath)
 	// TODO: figure out what's actually going wrong here.
 	return strings.Replace((&uri).String(), "&", "%26", -1)
+}
+
+func trimCommonPrefix(ss []string) []string {
+	if len(ss) == 0 {
+		return ss
+	}
+
+	offset := strings.Index(ss[0], " - ")
+	if offset == -1 {
+		return ss
+	}
+	prefix := ss[0][0:offset] + " - "
+
+	maybe := make([]string, len(ss))
+	for i, s := range ss {
+		if !strings.HasPrefix(s, prefix) {
+			return ss
+		}
+		maybe[i] = strings.TrimPrefix(s, prefix)
+	}
+	return trimCommonPrefix(maybe)
 }

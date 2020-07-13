@@ -69,8 +69,13 @@ func newDevice(manifestURL *url.URL, manifest ssdp.Document) (*Device, error) {
 	}
 
 	if manifest.Device.PresentationURL != "" {
-		presentationURL := *manifestURL
-		presentationURL.Path = manifest.Device.PresentationURL
+		presentationURL, _ := url.Parse(manifest.Device.PresentationURL)
+		if presentationURL.Host == "" {
+			presentationURL.Host = manifestURL.Host
+		}
+		if presentationURL.Scheme == "" {
+			presentationURL.Scheme = manifestURL.Scheme
+		}
 		d.PresentationURL = presentationURL.String()
 	}
 
@@ -83,6 +88,7 @@ func newDevice(manifestURL *url.URL, manifest ssdp.Document) (*Device, error) {
 			SOAPInterface: soap.NewClient(&serviceURL),
 		}
 	}
+
 	return d, nil
 }
 

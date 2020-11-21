@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-//go:generate go run aletheia.icu/broccoli -src=static -o assets -var=assets
+//go:generate go run github.com/rakyll/statik -src=static
 package main
 
 import (
@@ -20,6 +20,9 @@ import (
 	"github.com/ethulhu/helix/upnpav/contentdirectory"
 	"github.com/ethulhu/helix/upnpav/controlpoint"
 	"github.com/gorilla/mux"
+	"github.com/rakyll/statik/fs"
+
+	_ "github.com/ethulhu/helix/cmd/helix-player/statik"
 )
 
 var (
@@ -250,9 +253,13 @@ func main() {
 			Methods("GET").
 			Handler(http.FileServer(httputil.TryFiles{http.Dir(*debugAssetsPath)}))
 	} else {
+		statikFS, err := fs.New()
+		if err != nil {
+			panic(err)
+		}
 		m.PathPrefix("/").
 			Methods("GET").
-			Handler(http.FileServer(httputil.TryFiles{httputil.BroccoliFS{"static", assets}}))
+			Handler(http.FileServer(httputil.TryFiles{statikFS}))
 	}
 
 	m.Use(httputil.Log)

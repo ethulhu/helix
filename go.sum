@@ -3,6 +3,8 @@ aletheia.icu/broccoli v1.0.3/go.mod h1:DMvyvNIt2SFMpwCFUL1QltNlvPKapLM/h4NFhjEQx
 aletheia.icu/broccoli/fs v0.0.0-20200420162907-e7ff440cf358/go.mod h1:62pufqcyJVU55Qd5VtXz24d/P+VCFWc18FAbHnyrT+s=
 aletheia.icu/broccoli/fs v0.0.0-20200506212414-5bc1e2f86a59 h1:A/zlfoh6wPRnKh5QHjV1NuF4LXKSOcScNweJNifW8OU=
 aletheia.icu/broccoli/fs v0.0.0-20200506212414-5bc1e2f86a59/go.mod h1:62pufqcyJVU55Qd5VtXz24d/P+VCFWc18FAbHnyrT+s=
+github.com/aletheia-icu/broccoli v1.0.3 h1:ENExTEhjlsohEQrHugszdwLGuMtsH3NBlL+ELG2bkJE=
+github.com/aletheia-icu/broccoli v1.0.3/go.mod h1:DMvyvNIt2SFMpwCFUL1QltNlvPKapLM/h4NFhjEQxO4=
 github.com/andybalholm/brotli v1.0.0 h1:7UCwP93aiSfvWpapti8g88vVVGp2qqtGyePsSuDafo4=
 github.com/andybalholm/brotli v1.0.0/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
 github.com/creack/pty v1.1.9 h1:uDmaGzcdjhF4i/plgjmEsriH11Y0o7RKapEf/LDaM3w=
